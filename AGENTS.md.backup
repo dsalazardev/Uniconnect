@@ -1,0 +1,660 @@
+# AGENTS.md - Sistema de Contexto Autónomo para IA
+
+> **FUENTE DE LA VERDAD** para cualquier LLM que trabaje en el proyecto Uniconnect.
+> Este documento debe ser consultado ANTES de realizar cualquier cambio en el código.
+
+## 🏗️ TECH STACK
+
+### Backend (Uniconnect-Backend-Core)
+- **Framework**: NestJS 11.x con TypeScript 5.7.x
+- **Base de Datos**: PostgreSQL con Prisma ORM 7.4.x
+- **Autenticación**: Passport JWT + Auth0 (Google OAuth)
+- **Storage**: AWS S3 con SDK v3
+- **WebSockets**: Socket.IO 4.8.x para chat en tiempo real
+- **Testing**: Jest 30.x + Supertest + Fast-Check (Property-Based Testing)
+- **Documentación**: Swagger/OpenAPI
+
+### Frontend (Uniconnect-Frontend)
+- **Framework**: React Native 0.81.x con Expo 54.x
+- **Navegación**: Expo Router 6.x
+- **Estado**: Zustand 5.x + MobX 6.x (híbrido)
+- **HTTP Client**: Axios 1.13.x + TanStack Query 5.x
+- **UI**: Expo Vector Icons + Linear Gradient
+- **Testing**: Jest + React Native Testing Library + Fast-Check
+
+## 🚨 REGLAS DE INGENIERÍA ESTRICTAS
+
+### 1. TIPADO ESTRICTO - CERO `any`
+```typescript
+// ❌ PROHIBIDO
+function processData(data: any): any { }
+
+// ✅ CORRECTO
+function processData(data: UserData): ProcessedResult { }
+```
+
+### 2. ARQUITECTURA BACKEND - Servicios/Repositorios
+```
+src/
+├── [entity]/
+│   ├── [entity].controller.ts    # Endpoints REST
+│   ├── [entity].service.ts       # Lógica de negocio
+│   ├── [entity].module.ts        # Módulo NestJS
+│   ├── dto/                      # Data Transfer Objects
+│   └── guards/                   # Guards específicos
+```
+
+### 3. ARQUITECTURA FRONTEND - MVC Local
+```
+src/
+├── features/[feature]/
+│   ├── components/               # Vista (V)
+│   ├── hooks/                    # Controlador (C)
+│   ├── stores/                   # Modelo (M) - Zustand/MobX
+│   └── types/                    # Interfaces TypeScript
+```
+
+### 4. LOGGING OBLIGATORIO - UniconnectLogger Singleton
+```typescript
+import { UniconnectLogger } from '@/core/logger/uniconnect-logger.singleton';
+
+const logger = UniconnectLogger.getInstance();
+logger.info('Operación iniciada');
+logger.error('Error crítico', error.stack);
+```
+
+### 5. PROGRAMACIÓN DEFENSIVA - Try/Catch + Excepciones NestJS
+```typescript
+// Backend
+try {
+  const result = await this.service.riskyOperation();
+  return result;
+} catch (error) {
+  this.logger.error('Error en operación', error.stack);
+  throw new InternalServerErrorException('Operación falló');
+}
+
+// Frontend
+try {
+  const data = await api.fetchData();
+  return data;
+} catch (error) {
+  logger.error('API call failed', error);
+  throw new Error('Failed to fetch data');
+}
+```
+
+### 6. VALIDACIÓN ESTRICTA
+- **Backend**: `class-validator` + `class-transformer` en DTOs
+- **Frontend**: Validación en hooks antes de envío
+
+## 📊 MAPA DE ENTIDADES (Prisma Schema)
+
+
+### Enums
+
+#### 🏷️ **EventType**
+```prisma
+enum EventType {
+  CONFERENCIA
+  TALLER
+  SEMINARIO
+  COMPETENCIA
+  CULTURAL
+  DEPORTIVO
+}
+```
+
+### Entidades Principales
+
+#### 👤 **User**
+```prisma
+model user {
+  id_role: Int
+  id_user: Int                @id @default(autoincrement())
+  full_name: String             @db.VarChar
+  cell_phone: String?            @db.VarChar
+  picture: String?
+  email: String             @db.VarChar
+  id_program: Int?
+  current_semester: Int?
+  google_sub: String?            @db.VarChar
+  enrollments: enrollment[]
+  groups_owned: group[]
+  memberships: membership[]
+  notifications: notification[]
+  push_token: push_token[]
+  group_join_requests: group_join_request[]
+  events_created: event[]
+  
+  // Relaciones
+  connections_adressee: connection[]       @relation("ConnectionAdressee")
+  connections_requester: connection[]       @relation("ConnectionRequester")
+  invitations_received: group_invitation[] @relation("GroupInvitee")
+  invitations_sent: group_invitation[] @relation("GroupInviter")
+  program: program?           @relation(fields: [id_program], references: [id_program])
+  role: role               @relation(fields: [id_role], references: [id_role])
+}
+```
+
+#### 🏢 **Group**
+```prisma
+model group {
+  id_group: Int                  @id @default(autoincrement())
+  name: String?              @db.VarChar
+  description: String?              @db.VarChar
+  id_course: Int?
+  owner_id: Int?
+  created_at: DateTime             @default(now()) @db.Timestamptz(6)
+  is_direct_message: Boolean              @default(false)
+  files: file[]
+  group_invitation: group_invitation[]
+  memberships: membership[]
+  group_join_requests: group_join_request[]
+  
+  // Relaciones
+  course: course?              @relation(fields: [id_course], references: [id_course])
+  owner: user?                @relation(fields: [owner_id], references: [id_user])
+}
+```
+
+#### 💬 **Message**
+```prisma
+model message {
+  id_message: Int         @id @default(autoincrement())
+  id_membership: Int?
+  text_content: String?     @db.VarChar
+  send_at: DateTime    @default(now()) @db.Timestamptz(6)
+  attachments: String?
+  edited_at: DateTime?   @db.Timestamptz(6)
+  is_edited: Boolean     @default(false)
+  files: file[]
+  
+  // Relaciones
+  membership: membership? @relation(fields: [id_membership], references: [id_membership])
+}
+```
+
+#### 🎯 **Event**
+```prisma
+model event {
+  id: String    @id @default(uuid())
+  title: String
+  description: String
+  date: DateTime
+  time: String
+  location: String
+  type: EventType
+  created_by: Int       // ID del usuario que creó el evento
+  id_program: Int?      // ID de la carrera/programa (opcional para eventos globales de superadmin)
+  createdAt: DateTime  @default(now())
+  updatedAt: DateTime  @updatedAt
+  
+  // Relaciones
+  creator: user      @relation(fields: [created_by], references: [id_user])
+  program: program?  @relation(fields: [id_program], references: [id_program])
+}
+```
+
+#### 🔗 **Connection**
+```prisma
+model connection {
+  id_connection: Int       @id @default(autoincrement())
+  requester_id: Int
+  adressee_id: Int
+  status: String?   @db.VarChar
+  request_at: DateTime? @db.Timestamptz(6)
+  respondend_at: DateTime? @db.Timestamptz(6)
+  
+  // Relaciones
+  adressee: user      @relation("ConnectionAdressee", fields: [adressee_id], references: [id_user])
+  requester: user      @relation("ConnectionRequester", fields: [requester_id], references: [id_user])
+}
+```
+
+#### 👥 **Membership**
+```prisma
+model membership {
+  id_membership: Int       @id @default(autoincrement())
+  id_user: Int?
+  id_group: Int?
+  is_admin: Boolean?
+  joined_at: DateTime? @db.Timestamptz(6)
+  messages: message[]
+  
+  // Relaciones
+  group: group?    @relation(fields: [id_group], references: [id_group])
+  user: user?     @relation(fields: [id_user], references: [id_user])
+}
+```
+
+### Entidades de Relación
+
+#### 🔑 **Access**
+```prisma
+model access {
+  id_role: Int
+  id_permission: Int
+  
+  // Relaciones
+  permission: permission @relation(fields: [id_permission], references: [id_permission])
+  role: role       @relation(fields: [id_role], references: [id_role])
+}
+```
+
+#### 📚 **Course**
+```prisma
+model course {
+  id_course: Int          @id @default(autoincrement())
+  name: String?      @db.VarChar
+  id_program: Int?
+  enrollments: enrollment[]
+  groups: group[]
+  
+  // Relaciones
+  program: program?     @relation(fields: [id_program], references: [id_program])
+}
+```
+
+#### 📝 **Enrollment**
+```prisma
+model enrollment {
+  id_enrollment: Int     @id @default(autoincrement())
+  id_user: Int?
+  id_course: Int?
+  status: String? @db.VarChar
+  
+  // Relaciones
+  course: course? @relation(fields: [id_course], references: [id_course])
+  user: user?   @relation(fields: [id_user], references: [id_user])
+}
+```
+
+#### 📁 **File**
+```prisma
+model file {
+  id_file: Int       @id @default(autoincrement())
+  url: String    @db.VarChar
+  file_name: String    @db.VarChar
+  mime_type: String    @db.VarChar
+  size: Int?
+  created_at: DateTime? @default(now()) @db.Timestamptz(6)
+  id_message: Int?
+  id_group: Int?
+  
+  // Relaciones
+  group: group?    @relation(fields: [id_group], references: [id_group], onDelete: Cascade)
+  message: message?  @relation(fields: [id_message], references: [id_message], onDelete: Cascade)
+}
+```
+
+#### 📧 **Group_invitation**
+```prisma
+model group_invitation {
+  id_invitation: Int       @id @default(autoincrement())
+  id_group: Int
+  inviter_id: Int
+  invitee_id: Int
+  status: String    @default("pending") @db.VarChar
+  invited_at: DateTime  @default(now()) @db.Timestamptz(6)
+  responded_at: DateTime? @db.Timestamptz(6)
+  
+  // Relaciones
+  group: group     @relation(fields: [id_group], references: [id_group], onDelete: Cascade)
+  invitee: user      @relation("GroupInvitee", fields: [invitee_id], references: [id_user])
+  inviter: user      @relation("GroupInviter", fields: [inviter_id], references: [id_user])
+}
+```
+
+#### 🚪 **Group_join_request**
+```prisma
+model group_join_request {
+  id_request: Int       @id @default(autoincrement())
+  requester_id: Int
+  id_group: Int
+  status: String    @default("pending") // pending, accepted, rejected
+  requested_at: DateTime  @default(now()) @db.Timestamptz(6)
+  responded_at: DateTime? @db.Timestamptz(6)
+  
+  // Relaciones
+  requester: user      @relation(fields: [requester_id], references: [id_user])
+  group: group     @relation(fields: [id_group], references: [id_group])
+}
+```
+
+#### 🔔 **Notification**
+```prisma
+model notification {
+  id_notification: Int       @id @default(autoincrement())
+  id_user: Int?
+  message: String?   @db.VarChar
+  is_read: Boolean?
+  created_at: DateTime? @db.Timestamptz(6)
+  related_entity_id: Int?
+  notification_type: String?
+  push_sent: Boolean   @default(false)
+  
+  // Relaciones
+  user: user?     @relation(fields: [id_user], references: [id_user])
+}
+```
+
+#### 🛡️ **Permission**
+```prisma
+model permission {
+  id_permission: Int      @id @default(autoincrement())
+  name: String   @db.VarChar
+  description: String   @db.VarChar
+  claim: String   @db.VarChar
+  accesses: access[]
+}
+```
+
+#### 🎓 **Program**
+```prisma
+model program {
+  id_program: Int      @id @default(autoincrement())
+  name: String?  @db.VarChar
+  courses: course[]
+  users: user[]
+  events: event[]
+}
+```
+
+#### 📱 **Push_token**
+```prisma
+model push_token {
+  id_token: Int      @id @default(autoincrement())
+  id_user: Int
+  token: String   @unique
+  device_type: String
+  device_name: String?
+  is_active: Boolean  @default(true)
+  created_at: DateTime @default(now())
+  updated_at: DateTime
+  
+  // Relaciones
+  user: user     @relation(fields: [id_user], references: [id_user])
+}
+```
+
+#### 🔐 **Role**
+```prisma
+model role {
+  id_role: Int      @id @default(autoincrement())
+  name: String   @unique @db.VarChar
+  accesses: access[]
+  users: user[]
+}
+```
+
+## 🏛️ ARQUITECTURA DE MÓDULOS BACKEND (18 MÓDULOS)
+
+### Módulos Core
+1. **AppModule** - Módulo raíz con configuración global
+2. **AuthModule** - Autenticación JWT + Auth0 + Google OAuth
+3. **PrismaModule** - ORM y conexión a PostgreSQL
+4. **UsersModule** - Gestión de perfiles de usuario
+
+### Módulos de Negocio
+5. **GroupsModule** - Grupos de chat y estudio
+6. **MessagesModule** - Sistema de mensajería + WebSockets
+7. **EventsModule** - Eventos académicos
+8. **ConnectionsModule** - Red social de conexiones
+9. **NotificationsModule** - Sistema de notificaciones push
+
+### Módulos Académicos
+10. **ProgramsModule** - Carreras/Programas académicos
+11. **CoursesModule** - Materias/Cursos
+12. **EnrollmentsModule** - Inscripciones a cursos
+
+### Módulos de Gestión
+13. **MembershipsModule** - Membresías en grupos
+14. **GroupInvitationsModule** - Invitaciones a grupos
+15. **FilesModule** - Gestión de archivos AWS S3
+
+### Módulos de Seguridad
+16. **RolesModule** - Sistema de roles (student, admin, superadmin)
+17. **PermissionsModule** - Permisos granulares
+18. **CoreModule** - Utilidades centrales (Logger, Middlewares)
+
+## 🔐 SISTEMA DE AUTENTICACIÓN
+
+### Flujo de Autenticación
+```
+1. Frontend → Google OAuth → Auth0
+2. Auth0 → Authorization Code → Backend
+3. Backend → Token Exchange → JWT + User Data
+4. JWT Payload: { sub: user_id, permissions: [claims], roleName, auth0_sub }
+```
+
+### Guards y Decoradores
+- **@UseGuards(JwtAuthGuard)** - Valida JWT en requests
+- **@UseGuards(GroupOwnershipGuard)** - Valida que el usuario sea owner o admin del grupo
+- **@UseGuards(EventOwnershipGuard)** - Valida que el usuario sea creador del evento o superadmin
+- **@AdminOnly()** - Solo usuarios admin/superadmin
+- **@RequireAll(...permissions)** - Requiere TODOS los permisos
+- **@RequireAny(...permissions)** - Requiere AL MENOS UNO
+- **@GetClaim('sub')** - Extrae claim del JWT
+
+### Roles y Permisos
+- **student** (default) - Usuarios nuevos
+- **admin** - Administradores de programa
+- **superadmin** - Administradores del sistema
+- **Claims**: GC (Google Classroom), GD (Google Drive), etc.
+
+## 🔄 FLUJOS PRINCIPALES
+
+### 1. Chat en Tiempo Real (WebSockets)
+```typescript
+// Gateway: MessagesGateway
+@SubscribeMessage('authenticate')
+@SubscribeMessage('send_message')
+@SubscribeMessage('edit_message')
+@SubscribeMessage('delete_message')
+@SubscribeMessage('load_messages')
+@SubscribeMessage('search_messages')
+@SubscribeMessage('user_typing')
+@SubscribeMessage('leave_room')
+```
+
+### 2. Gestión de Grupos
+```
+Create Group → Add Owner as Admin → Create Membership
+Join Group → Request Access → Admin Approval → Add Membership
+Invite User → Create GroupInvitation → User Accept/Reject
+Leave Group → Remove Membership
+```
+
+### 3. Conexiones Sociales
+```
+Request Connection → Create Connection (pending)
+Accept Connection → Update status to accepted
+Reject Connection → Update status to rejected
+Get Connected Users → Filter by program/course
+```
+
+### 4. Eventos Académicos
+```
+Create Event → Validate permissions → Store in Prisma
+Filter Events → By program, type, date, creator
+Push Notifications → Auto-notify students
+```
+
+### 5. Subida de Archivos
+```
+Frontend → Multer → Validate → S3 Upload → Get Presigned URL → Store in Prisma
+```
+
+## 🎨 ARQUITECTURA FRONTEND (React Native + Expo)
+
+### Estructura de Features
+```
+src/
+├── features/
+│   ├── auth/
+│   │   ├── components/          # LoginScreen, OnboardingScreen
+│   │   ├── hooks/               # useAuth0Login, useTokenRefresh
+│   │   ├── stores/              # AuthStore (MobX)
+│   │   ├── controllers/         # AuthController
+│   │   └── types/               # User, Role, TokenPayload
+│   ├── messages/
+│   │   ├── components/          # MessageList, MessageInput, ChatHeader
+│   │   ├── hooks/               # useMessages, useRecentMessages
+│   │   ├── services/            # MessagesService, WebSocketService
+│   │   └── types/               # Message, MessageSearchResponse
+│   ├── groups/
+│   │   ├── components/          # GroupList, GroupDetail, MemberList
+│   │   ├── hooks/               # useGroups, useMyGroups, useJoinRequest
+│   │   ├── services/            # GroupsService
+│   │   └── types/               # Group, Membership, GroupInvitation
+│   ├── events/
+│   │   ├── components/          # EventList, EventDetail, EventCreate
+│   │   ├── hooks/               # useEvents, useEventFilters
+│   │   ├── stores/              # EventStore (MobX)
+│   │   └── services/            # EventsService
+│   └── notifications/
+│       ├── components/          # NotificationCenter
+│       ├── hooks/               # useNotifications, usePushNotifications
+│       ├── stores/              # NotificationStore (MobX)
+│       └── services/            # NotificationsService
+```
+
+### Estado Global (MobX + Zustand)
+- **AuthStore** (MobX) - Sesión, tokens, usuario
+- **EventStore** (MobX) - Eventos, filtros
+- **NotificationStore** (MobX) - Notificaciones, contador
+
+### Configuración HTTP
+- **Base URL**: EXPO_PUBLIC_API_URL
+- **WebSocket URL**: WEBSOCKET_URL (sin /api)
+- **Interceptors**: JWT Bearer token + refresh automático
+- **Timeout**: 10 segundos
+
+## 🛠️ REGLAS DE NEGOCIO IMPLEMENTADAS
+
+1. **Autenticación**: Solo usuarios @ucaldas.edu.co con email verificado
+2. **Roles**: student (default), admin (programa), superadmin (sistema)
+3. **Grupos**: 
+   - Owner es admin automáticamente, memberships únicas por usuario
+   - **SEGURIDAD**: Solo Owner o Admin pueden editar/eliminar grupos (GroupOwnershipGuard)
+   - **UI CONDICIONAL**: Botones de editar/eliminar solo visibles para Owner/Admin
+   - **INVITACIONES**: Manejo defensivo - si ya es miembro, retorna éxito con mensaje amigable
+4. **Mensajes**: Solo miembros pueden enviar, editar/eliminar solo autor o admin
+5. **Conexiones**: Bidireccionales, estados: pending/accepted/rejected
+6. **Eventos**: 
+   - Superadmin crea globales, admin crea por programa
+   - **SEGURIDAD**: Solo creador o superadmin pueden editar/eliminar eventos (EventOwnershipGuard)
+   - **UI CONDICIONAL**: Botones de editar/eliminar solo visibles para creador o superadmin
+   - **VALIDACIÓN**: EditEventModal valida event.id antes de enviar requests
+7. **Archivos**: Validación MIME, almacenamiento en S3, URLs presignadas
+8. **Notificaciones**: Push automáticas para eventos importantes
+
+## 📝 PATRONES ARQUITECTÓNICOS
+
+### Backend
+- **MVC**: Controllers → Services → Repositories (Prisma)
+- **Dependency Injection**: NestJS IoC container
+- **Event-Driven**: EventEmitter2 para eventos internos
+- **Guards & Decorators**: Seguridad declarativa
+- **DTOs**: Validación con class-validator
+
+### Frontend
+- **Feature-Based**: Organización por dominio
+- **Custom Hooks**: Lógica reutilizable
+- **MobX Stores**: Estado observable
+- **API Layer**: Servicios HTTP centralizados
+- **Component Composition**: Componentes pequeños y reutilizables
+
+## 🚀 CONFIGURACIÓN Y DEPLOYMENT
+
+### Variables de Entorno Backend
+```env
+PORT=3000
+DATABASE_URL="postgresql://..."
+JWT_SECRET="uniconnect-secret"
+JWT_EXPIRES_IN="2h"
+AUTH0_DOMAIN="dev-xxx.auth0.com"
+AUTH0_CLIENT_ID="xxx"
+AUTH0_CLIENT_SECRET="xxx"
+AWS_REGION="us-east-1"
+AWS_S3_BUCKET_NAME="uniconnect-files"
+AWS_ACCESS_KEY_ID="xxx"
+AWS_SECRET_ACCESS_KEY="xxx"
+```
+
+### Variables de Entorno Frontend
+```env
+EXPO_PUBLIC_API_URL="http://localhost:3000/api"
+EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID="xxx"
+EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID="xxx"
+EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID="xxx"
+EXPO_PUBLIC_AUTH0_DOMAIN="dev-xxx.auth0.com"
+EXPO_PUBLIC_AUTH0_CLIENT_ID="xxx"
+EXPO_PUBLIC_AUTH0_AUDIENCE="xxx"
+```
+
+### Scripts Principales
+**Backend**: `start:dev`, `build`, `test`, `test:cov`, `lint`, `format`
+**Frontend**: `start`, `android`, `ios`, `web`, `test`, `test:watch`
+
+---
+
+## 🎯 DIRECTIVA DE ACTUALIZACIÓN CONTINUA
+
+> **OBLIGATORIO PARA TODOS LOS AGENTES**: Al finalizar cualquier Historia de Usuario (HU), refactorización o cambio en el esquema de base de datos, el Agente TIENE LA OBLIGACIÓN de abrir `AGENTS.md` y actualizar el mapa de entidades, la estructura de carpetas o las reglas de negocio si sufrieron modificaciones, antes de dar por terminada la tarea.
+
+### Cuándo Actualizar Este Documento:
+1. **Cambios en Prisma Schema** → Actualizar "Mapa de Entidades"
+2. **Nuevos Módulos NestJS** → Actualizar "Arquitectura de Módulos Backend"
+3. **Nuevas Features Frontend** → Actualizar "Arquitectura Frontend"
+4. **Cambios en Autenticación** → Actualizar "Sistema de Autenticación"
+5. **Nuevas Reglas de Negocio** → Actualizar "Reglas de Negocio Implementadas"
+6. **Cambios en Tech Stack** → Actualizar "Tech Stack"
+
+### Proceso de Actualización:
+1. Identificar qué sección del documento se ve afectada
+2. Actualizar la información correspondiente
+3. Verificar que los ejemplos de código sigan siendo válidos
+4. Confirmar que las relaciones entre entidades están correctas
+5. Actualizar la fecha de última modificación
+
+---
+
+**Última actualización**: 20 de Marzo, 2026
+**Versión del documento**: 1.0.0
+**Mantenido por**: Sistema de Contexto Autónomo para IA
+
+## 📋 REGLAS DE NEGOCIO ACTUALIZADAS - EVENTOS
+
+### EventOwnershipGuard - Seguridad de Eventos
+- **Ubicación**: `src/events/guards/event-ownership.guard.ts`
+- **Propósito**: Validar que solo el creador del evento o superadmin puedan editarlo/eliminarlo
+- **Implementación**:
+  - Extrae `userId` del JWT (`request.user.sub`)
+  - Extrae `eventId` de los parámetros de la URL (`request.params.id`)
+  - Consulta la base de datos para verificar `created_by`
+  - Permite acceso si: `event.created_by === userId` OR `userRole === 'superadmin'`
+
+### Endpoints de Eventos - Permisos
+- **GET /events**: Autenticación requerida (cualquier usuario)
+- **GET /events/:id**: Autenticación requerida (cualquier usuario)
+- **POST /events**: Admin o Superadmin únicamente
+- **PUT /events/:id**: EventOwnershipGuard (creador o superadmin)
+- **DELETE /events/:id**: EventOwnershipGuard (creador o superadmin)
+
+### Frontend - UI Condicional de Eventos
+- **EventCard.tsx**: Los botones de editar/eliminar se muestran solo si:
+  - `currentUser.role.name === 'superadmin'` OR
+  - `event.created_by === currentUser.id_user`
+- **Validación**: El `EditEventModal` valida que `event.id` no sea undefined antes de enviar
+
+### Cambios en Arquitectura
+- **Nuevo Guard**: `EventOwnershipGuard` implementado para validación de propiedad
+- **Logging mejorado**: Agregados logs de debugging en EventsService.update
+- **Validación Frontend**: Mejorada validación en EditEventModal
+
+### Debugging y Logs
+- **EventsService.update**: Incluye logs detallados de parámetros de entrada y resultados de consulta
+- **EventOwnershipGuard**: Logs de auditoría para accesos autorizados y no autorizados
+- **Frontend**: Logs de diagnóstico en EditEventModal para validación de event.id

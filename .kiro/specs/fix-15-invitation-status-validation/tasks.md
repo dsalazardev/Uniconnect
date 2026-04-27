@@ -1,0 +1,138 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Inconsistent Invitation State Recovery
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test implementation details from Bug Condition in design:
+    - Create invitation with `status = 'accepted'` and `responded_at` set, but NO membership exists
+    - Attempt to accept the invitation using UNFIXED code
+    - Verify that `isBugCondition(input)` returns true: invitation exists, invitee_id matches, status ≠ 'pending', no membership exists
+  - The test assertions should match the Expected Behavior Properties from design:
+    - System should either create missing membership and return HTTP 200, OR return HTTP 409 with descriptive error
+    - If HTTP 200, verify membership was created with correct user and group IDs
+    - If HTTP 409, verify error message contains "inconsistente" or "ya es miembro"
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause (e.g., "HTTP 400 'Esta invitación ya fue respondida anteriormente' when invitation has status='accepted' but no membership")
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.5, 2.1, 2.2, 2.3, 2.6_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Non-Buggy Input Behavior
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs:
+    - Pending invitations that process normally (status='pending', no membership yet)
+    - Already-responded invitations with existing membership (status='accepted', membership exists)
+    - Permission violations (wrong user attempting to respond)
+    - Non-existent invitations
+    - Rejection operations (status='rejected')
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Test 1: Pending invitation acceptance creates membership and returns HTTP 200
+    - Test 2: Pending invitation rejection updates status without creating membership and returns HTTP 200
+    - Test 3: Wrong user gets HTTP 403 Forbidden
+    - Test 4: Non-existent invitation gets HTTP 404 Not Found
+    - Test 5: Already-responded with membership gets HTTP 400 "Esta invitación ya fue respondida anteriormente"
+    - Test 6: WebSocket events (GROUP_INVITATION_ACCEPTED, USER_JOINED_GROUP, GROUP_INVITATION_REJECTED) emit correctly
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 3. Fix for invitation status validation with atomic transactions
+
+  - [x] 3.1 Add membership existence check before status validation
+    - After line 195 (invitation not found check), add query to check if membership already exists
+    - Query: `const existingMembership = await this.prisma.membership.findFirst({ where: { id_user: userId, id_group: invitation.id_group } })`
+    - If membership exists and invitation status is 'accepted', return idempotent success response: `{ statusCode: 200, message: "Ya eres miembro de este grupo" }`
+    - If membership exists but invitation status is 'rejected' or 'pending', return HTTP 409 conflict error: `{ statusCode: 409, message: "Estado inconsistente detectado" }`
+    - Add logging for membership existence check result
+    - _Bug_Condition: isBugCondition(input) where invitation.status ≠ 'pending' AND no membership exists_
+    - _Expected_Behavior: System detects inconsistent state and either recovers or returns descriptive error_
+    - _Preservation: Pending invitations and legitimate already-responded cases continue to work identically_
+    - _Requirements: 2.1, 2.2, 2.6, 3.1_
+
+  - [x] 3.2 Wrap status update and membership creation in atomic transaction
+    - Replace lines 207-230 with `prisma.$transaction()` wrapper
+    - Use Prisma's transaction API: `await this.prisma.$transaction([updateOp, createOp])`
+    - Ensure both invitation update and membership creation succeed or both fail
+    - Transaction operations:
+      - Operation 1: Update invitation status to 'accepted' and set responded_at
+      - Operation 2: Create membership with id_user, id_group, is_admin=false, joined_at
+    - Add logging for transaction start and completion
+    - _Bug_Condition: Prevents partial failures that leave invitation in 'accepted' state without membership_
+    - _Expected_Behavior: Atomic operations guarantee data consistency_
+    - _Preservation: Existing acceptance flow continues to work, now with stronger guarantees_
+    - _Requirements: 2.3, 2.5, 3.3, 3.5_
+
+  - [x] 3.3 Add unique constraint handling for race conditions
+    - Wrap transaction in try/catch for Prisma error P2002 (unique constraint violation)
+    - If P2002 occurs on membership creation, query membership and return idempotent success
+    - Error handling: `if (error.code === 'P2002') { membership = await findMembership(...); return success; }`
+    - This handles concurrent requests attempting to create the same membership
+    - Add logging for race condition detection and recovery
+    - _Bug_Condition: Handles concurrent acceptance attempts that could create inconsistent state_
+    - _Expected_Behavior: Graceful handling of race conditions with idempotent response_
+    - _Preservation: Single-request acceptance continues to work identically_
+    - _Requirements: 1.4, 2.4, 3.1_
+
+  - [x] 3.4 Implement idempotent behavior for acceptance
+    - If user is already a member (membership exists), return success message instead of error
+    - Message: "Ya eres miembro de este grupo" with HTTP 200
+    - Emit events only if membership was newly created (not if already existed)
+    - Check: `if (existingMembership) { return success; } else { create and emit events; }`
+    - _Bug_Condition: Allows recovery from inconsistent states where membership should exist_
+    - _Expected_Behavior: Idempotent operations prevent errors on repeated acceptance attempts_
+    - _Preservation: First-time acceptance continues to work identically_
+    - _Requirements: 2.1, 2.6, 3.1_
+
+  - [x] 3.5 Add defensive logging for debugging
+    - Log invitation state before validation (already exists at line 188)
+    - Log membership existence check result
+    - Log transaction start and completion
+    - Log any errors with full context (invitation ID, user ID, status)
+    - Use format: `console.log('[GroupInvitations Service] Operation', { invitationId, userId, status, membershipExists })`
+    - _Bug_Condition: Enables debugging of inconsistent states in production_
+    - _Expected_Behavior: Comprehensive logging for troubleshooting_
+    - _Preservation: Existing logging continues to work_
+    - _Requirements: 1.1, 1.2, 1.3, 1.5_
+
+  - [x] 3.6 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Inconsistent Invitation State Recovery
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that invitations with inconsistent state now either:
+      - Create missing membership and return HTTP 200, OR
+      - Return HTTP 409 with descriptive error message
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
+
+  - [x] 3.7 Verify preservation tests still pass
+    - **Property 2: Preservation** - Non-Buggy Input Behavior
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix:
+      - Pending invitation acceptance works identically
+      - Pending invitation rejection works identically
+      - Permission validation works identically
+      - Non-existent invitation handling works identically
+      - Already-responded with membership works identically
+      - WebSocket events emit correctly
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run all bug condition exploration tests - verify they pass
+  - Run all preservation property tests - verify they pass
+  - Run full test suite for group-invitations module - verify no regressions
+  - Verify WebSocket events emit correctly for acceptance and rejection
+  - Verify idempotent behavior works for repeated acceptance attempts
+  - Verify atomic transactions prevent inconsistent states
+  - Verify race condition handling works correctly
+  - If any issues arise, document them and ask the user for guidance

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RICE Score — UniConnect Sprint 1</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+--bg: #0d0f14;
+--surface: #161a23;
+--card: #1c2130;
+--border: #2a3045;
+--accent: #5b8ef7;
+--accent2: #7c3aed;
+--green: #10d98a;
+--orange: #f97316;
+--red: #ef4444;
+--yellow: #fbbf24;
+--text: #e8eaf0;
+--muted: #6b7280;
+--highlight: #252d3e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+font-family: 'Space Grotesk', sans-serif;
+background: var(--bg);
+color: var(--text);
+min-height: 100vh;
+padding: 2rem 1.5rem;
+}
+
+/* HEADER */
+header {
+max-width: 1100px;
+margin: 0 auto 2.5rem;
+display: flex;
+align-items: flex-start;
+justify-content: space-between;
+gap: 1rem;
+flex-wrap: wrap;
+}
+.header-left h1 {
+font-size: 2rem;
+font-weight: 700;
+letter-spacing: -0.04em;
+background: linear-gradient(120deg, #5b8ef7, #a78bfa);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+}
+.header-left p {
+color: var(--muted);
+font-size: 0.9rem;
+margin-top: 0.3rem;
+}
+.formula-pill {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 10px;
+padding: 0.7rem 1.2rem;
+font-family: 'JetBrains Mono', monospace;
+font-size: 0.85rem;
+color: var(--accent);
+white-space: nowrap;
+align-self: center;
+}
+.formula-pill span { color: var(--muted); }
+
+/* LEGEND */
+.legend {
+max-width: 1100px;
+margin: 0 auto 2rem;
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1rem;
+}
+.legend-card {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 12px;
+padding: 1rem 1.2rem;
+}
+.legend-card .letter {
+font-size: 1.5rem;
+font-weight: 700;
+margin-bottom: 0.3rem;
+}
+.legend-card .name { font-weight: 600; font-size: 0.9rem; }
+.legend-card .desc { color: var(--muted); font-size: 0.8rem; margin-top: 0.2rem; }
+.legend-card .values { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--accent); margin-top: 0.4rem; }
+.r { color: #5b8ef7; }
+.i { color: #10d98a; }
+.c { color: #fbbf24; }
+.e { color: #f97316; }
+
+/* TABLE CONTAINER */
+.table-wrap {
+max-width: 1100px;
+margin: 0 auto 2rem;
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 16px;
+overflow: hidden;
+}
+.table-header {
+padding: 1.2rem 1.5rem;
+border-bottom: 1px solid var(--border);
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+.table-header h2 { font-size: 1rem; font-weight: 600; }
+.badge {
+font-size: 0.75rem;
+background: var(--highlight);
+border: 1px solid var(--border);
+border-radius: 6px;
+padding: 0.25rem 0.6rem;
+color: var(--muted);
+}
+
+table {
+width: 100%;
+border-collapse: collapse;
+font-size: 0.875rem;
+}
+thead th {
+padding: 0.75rem 1rem;
+text-align: left;
+font-size: 0.75rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(--muted);
+font-weight: 600;
+border-bottom: 1px solid var(--border);
+background: var(--card);
+cursor: pointer;
+white-space: nowrap;
+}
+thead th:hover { color: var(--text); }
+thead th.sorted { color: var(--accent); }
+thead th .sort-arrow { margin-left: 4px; opacity: 0.6; }
+
+tbody tr {
+border-bottom: 1px solid var(--border);
+transition: background 0.15s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--highlight); }
+tbody tr.top-story { background: rgba(91, 142, 247, 0.05); }
+tbody tr.top-story td:first-child { border-left: 3px solid var(--accent); }
+
+td {
+padding: 0.9rem 1rem;
+vertical-align: middle;
+}
+td.story-cell { max-width: 280px; }
+.story-id {
+font-family: 'JetBrains Mono', monospace;
+font-size: 0.7rem;
+color: var(--muted);
+margin-bottom: 0.2rem;
+}
+.story-title { font-weight: 500; font-size: 0.875rem; line-height: 1.3; }
+.story-desc { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.4; }
+
+.tag {
+display: inline-block;
+font-size: 0.7rem;
+border-radius: 5px;
+padding: 0.15rem 0.45rem;
+font-weight: 500;
+margin-top: 0.3rem;
+}
+.tag-critica { background: rgba(239,68,68,0.15); color: #ef4444; }
+.tag-alta { background: rgba(251,191,36,0.15); color: #fbbf24; }
+
+.val-reach { color: #5b8ef7; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+.val-impact { color: #10d98a; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+.val-conf { color: #fbbf24; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+.val-effort { color: #f97316; font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; }
+
+.impact-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+.impact-bar {
+height: 6px;
+border-radius: 3px;
+flex: 1;
+background: var(--border);
+overflow: hidden;
+max-width: 60px;
+}
+.impact-fill { height: 100%; border-radius: 3px; background: var(--green); }
+
+.conf-pill {
+display: inline-block;
+font-family: 'JetBrains Mono', monospace;
+font-size: 0.78rem;
+font-weight: 600;
+padding: 0.2rem 0.5rem;
+border-radius: 5px;
+}
+.conf-high { background: rgba(16,217,138,0.12); color: #10d98a; }
+.conf-med { background: rgba(251,191,36,0.12); color: #fbbf24; }
+
+.pts-chip {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+font-family: 'JetBrains Mono', monospace;
+font-weight: 700;
+font-size: 0.85rem;
+width: 34px;
+height: 34px;
+border-radius: 8px;
+border: 2px solid var(--border);
+color: var(--orange);
+background: rgba(249,115,22,0.08);
+}
+
+.score-cell { text-align: center; }
+.score-badge {
+display: inline-block;
+font-family: 'JetBrains Mono', monospace;
+font-size: 1.05rem;
+font-weight: 700;
+padding: 0.35rem 0.75rem;
+border-radius: 8px;
+min-width: 64px;
+text-align: center;
+}
+.score-1 { background: rgba(16,217,138,0.18); color: #10d98a; border: 1.5px solid rgba(16,217,138,0.4); }
+.score-2 { background: rgba(91,142,247,0.18); color: #5b8ef7; border: 1.5px solid rgba(91,142,247,0.4); }
+.score-3 { background: rgba(167,139,250,0.18); color: #a78bfa; border: 1.5px solid rgba(167,139,250,0.4); }
+.score-4 { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1.5px solid rgba(251,191,36,0.35); }
+.score-5 { background: rgba(249,115,22,0.15); color: #f97316; border: 1.5px solid rgba(249,115,22,0.35); }
+
+.rank-num {
+font-family: 'JetBrains Mono', monospace;
+font-weight: 700;
+font-size: 0.95rem;
+color: var(--muted);
+width: 28px;
+text-align: center;
+}
+.rank-num.rank-1 { color: var(--accent); font-size: 1rem; }
+.rank-num.rank-2 { color: #a78bfa; }
+.rank-num.rank-3 { color: #10d98a; }
+
+.decision-cell { text-align: center; }
+.sprint-badge {
+font-size: 0.72rem;
+font-weight: 600;
+border-radius: 6px;
+padding: 0.2rem 0.5rem;
+white-space: nowrap;
+}
+.sprint-done { background: rgba(16,217,138,0.15); color: #10d98a; border: 1px solid rgba(16,217,138,0.3); }
+
+/* RESULT SUMMARY */
+.summary {
+max-width: 1100px;
+margin: 0 auto 2.5rem;
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1rem;
+}
+.summary-card {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: 14px;
+padding: 1.3rem 1.5rem;
+}
+.summary-card h3 {
+font-size: 0.75rem;
+text-transform: uppercase;
+letter-spacing: 0.08em;
+color: var(--muted);
+margin-bottom: 0.8rem;
+font-weight: 600;
+}
+.sprint-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.sprint-item {
+display: flex;
+align-items: center;
+gap: 0.75rem;
+padding: 0.6rem 0.75rem;
+background: var(--card);
+border-radius: 8px;
+border: 1px solid var(--border);
+}
+.sprint-item .rank-dot {
+width: 24px; height: 24px;
+border-radius: 6px;
+display: flex; align-items: center; justify-content: center;
+font-size: 0.7rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+}
+.dot-1 { background: rgba(16,217,138,0.2); color: #10d98a; }
+.dot-2 { background: rgba(91,142,247,0.2); color: #5b8ef7; }
+.dot-3 { background: rgba(167,139,250,0.2); color: #a78bfa; }
+.dot-4 { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.sprint-item .si-name { flex: 1; font-size: 0.82rem; font-weight: 500; }
+.sprint-item .si-pts { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--orange); }
+.sprint-item .si-score { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted); }
+
+.insight-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.insight {
+display: flex;
+align-items: flex-start;
+gap: 0.6rem;
+font-size: 0.82rem;
+line-height: 1.5;
+color: var(--muted);
+}
+.insight-icon { font-size: 1rem; flex-shrink: 0; margin-top: 0.05rem; }
+.insight strong { color: var(--text); }
+
+/* FOOTER NOTE */
+.note {
+max-width: 1100px;
+margin: 0 auto;
+background: rgba(91,142,247,0.06);
+border: 1px solid rgba(91,142,247,0.2);
+border-radius: 12px;
+padding: 1rem 1.3rem;
+font-size: 0.82rem;
+color: var(--muted);
+line-height: 1.6;
+}
+.note strong { color: var(--accent); }
+
+@media (max-width: 768px) {
+.legend { grid-template-columns: repeat(2, 1fr); }
+.summary { grid-template-columns: 1fr; }
+table { font-size: 0.8rem; }
+td, th { padding: 0.7rem 0.6rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<div class="header-left">
+<h1>RICE Score — UniConnect</h1>
+<p>Priorización y Estado de Historias de Usuario · Sprint 1</p>
+</div>
+<div class="formula-pill">
+RICE = (R × I × C) <span>/</span> E
+</div>
+</header>
+
+<div class="legend">
+<div class="legend-card">
+<div class="letter r">R</div>
+<div class="name">Reach</div>
+<div class="desc">Usuarios estimados alcanzados (Base 1000)</div>
+<div class="values">1000 · 800 · 600</div>
+</div>
+<div class="legend-card">
+<div class="letter i">I</div>
+<div class="name">Impact</div>
+<div class="desc">Impacto en Objetivo (Crítica vs Alta)</div>
+<div class="values">3 (Crítica) · 2 (Alta)</div>
+</div>
+<div class="legend-card">
+<div class="letter c">C</div>
+<div class="name">Confidence</div>
+<div class="desc">Certeza técnica y de uso</div>
+<div class="values">100% (Tareas completadas)</div>
+</div>
+<div class="legend-card">
+<div class="letter e">E</div>
+<div class="name">Effort</div>
+<div class="desc">Story Points (Fibonacci)</div>
+<div class="values">3 · 5 · 8</div>
+</div>
+</div>
+
+<div class="table-wrap">
+<div class="table-header">
+<h2>Backlog Sprint 1 — Evaluación RICE</h2>
+<span class="badge">Estado: 100% Completado</span>
+</div>
+<table>
+<thead>
+<tr>
+<th style="width:28px">#</th>
+<th>Historia de Usuario</th>
+<th>Reach <span style="color:#5b8ef7">R</span></th>
+<th>Impact <span style="color:#10d98a">I</span></th>
+<th>Confidence <span style="color:#fbbf24">C</span></th>
+<th>Effort <span style="color:#f97316">E</span></th>
+<th style="text-align:center">RICE Score</th>
+<th style="text-align:center">Estado</th>
+</tr>
+</thead>
+<tbody>
+
+<tr class="top-story">
+<td><span class="rank-num rank-1">1</span></td>
+<td class="story-cell">
+<div class="story-id">HU-02</div>
+<div class="story-title">Crear y Editar Perfil Académico</div>
+<div class="story-desc">Gestión de carrera y materias.</div>
+<span class="tag tag-critica">CRÍTICA</span>
+</td>
+<td><span class="val-reach">1000</span></td>
+<td>
+<div class="impact-bar-wrap">
+<span class="val-impact">3</span>
+<div class="impact-bar"><div class="impact-fill" style="width:100%"></div></div>
+</div>
+</td>
+<td><span class="conf-pill conf-high">100%</span></td>
+<td><div class="pts-chip">5</div></td>
+<td class="score-cell"><span class="score-badge score-1">600</span></td>
+<td class="decision-cell"><span class="sprint-badge sprint-done">COMPLETO</span></td>
+</tr>
+
+<tr class="top-story">
+<td><span class="rank-num rank-2">2</span></td>
+<td class="story-cell">
+<div class="story-id">HU-03</div>
+<div class="story-title">Visualizar y Filtrar Estudiantes</div>
+<div class="story-desc">Búsqueda por materia para encontrar compañeros.</div>
+<span class="tag tag-alta">ALTA</span>
+</td>
+<td><span class="val-reach">900</span></td>
+<td>
+<div class="impact-bar-wrap">
+<span class="val-impact">2</span>
+<div class="impact-bar"><div class="impact-fill" style="width:66%"></div></div>
+</div>
+</td>
+<td><span class="conf-pill conf-high">100%</span></td>
+<td><div class="pts-chip">3</div></td>
+<td class="score-cell"><span class="score-badge score-1">600</span></td>
+<td class="decision-cell"><span class="sprint-badge sprint-done">COMPLETO</span></td>
+</tr>
+
+<tr class="top-story">
+<td><span class="rank-num rank-3">3</span></td>
+<td class="story-cell">
+<div class="story-id">HU-12</div>
+<div class="story-title">Ver Perfil de Otros Estudiantes</div>
+<div class="story-desc">Ver carrera y materias antes de contactar.</div>
+<span class="tag tag-alta">ALTA</span>
+</td>
+<td><span class="val-reach">900</span></td>
+<td>
+<div class="impact-bar-wrap">
+<span class="val-impact">2</span>
+<div class="impact-bar"><div class="impact-fill" style="width:66%"></div></div>
+</div>
+</td>
+<td><span class="conf-pill conf-high">100%</span></td>
+<td><div class="pts-chip">3</div></td>
+<td class="score-cell"><span class="score-badge score-1">600</span></td>
+<td class="decision-cell"><span class="sprint-badge sprint-done">COMPLETO</span></td>
+</tr>
+
+<tr>
+<td><span class="rank-num">4</span></td>
+<td class="story-cell">
+<div class="story-id">HU-05</div>
+<div class="story-title">Botón de "Conectar"</div>
+<div class="story-desc">Iniciar contacto desde el perfil.</div>
+<span class="tag tag-alta">ALTA</span>
+</td>
+<td><span class="val-reach">800</span></td>
+<td>
+<div class="impact-bar-wrap">
+<span class="val-impact">2</span>
+<div class="impact-bar"><div class="impact-fill" style="width:66%"></div></div>
+</div>
+</td>
+<td><span class="conf-pill conf-high">100%</span></td>
+<td><div class="pts-chip">3</div></td>
+<td class="score-cell"><span class="score-badge score-2">533</span></td>
+<td class="decision-cell"><span class="sprint-badge sprint-done">COMPLETO</span></td>
+</tr>
+
+<tr>
+<td><span class="rank-num">5</span></td>
+<td class="story-cell">
+<div class="story-id">HU-01</div>
+<div class="story-title">Autenticación (Login + Registro)</div>
+<div class="story-desc">Acceso seguro a la plataforma.</div>
+<span class="tag tag-critica">CRÍTICA</span>
+</td>
+<td><span class="val-reach">1000</span></td>
+<td>
+<div class="impact-bar-wrap">
+<span class="val-impact">3</span>
+<div class="impact-bar"><div class="impact-fill" style="width:100%"></div></div>
+</div>
+</td>
+<td><span class="conf-pill conf-high">100%</span></td>
+<td><div class="pts-chip">8</div></td>
+<td class="score-cell"><span class="score-badge score-3">375</span></td>
+<td class="decision-cell"><span class="sprint-badge sprint-done">COMPLETO</span></td>
+</tr>
+
+<tr>
+<td><span class="rank-num">6</span></td>
+<td class="story-cell">
+<div class="story-id">HU-04</div>
+<div class="story-title">Gestionar Grupos de Estudio</div>
+<div class="story-desc">Crear, visualizar y eliminar grupos.</div>
+<span class="tag tag-critica">CRÍTICA</span>
+</td>
+<td><span class="val-reach">600</span></td>
+<td>
+<div class="impact-bar-wrap">
+<span class="val-impact">3</span>
+<div class="impact-bar"><div class="impact-fill" style="width:100%"></div></div>
+</div>
+</td>
+<td><span class="conf-pill conf-high">100%</span></td>
+<td><div class="pts-chip">8</div></td>
+<td class="score-cell"><span class="score-badge score-4">225</span></td>
+<td class="decision-cell"><span class="sprint-badge sprint-done">COMPLETO</span></td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+<div class="summary">
+<div class="summary-card">
+<h3>📊 Rendimiento del Sprint (32 Pts Totales)</h3>
+<div class="sprint-list">
+<div class="sprint-item">
+<div class="rank-dot dot-1">1</div>
+<span class="si-name">HU-01 Autenticación</span>
+<span class="si-pts">8 pts</span>
+<span class="si-score">Done</span>
+</div>
+<div class="sprint-item">
+<div class="rank-dot dot-2">2</div>
+<span class="si-name">HU-04 Gestión de Grupos</span>
+<span class="si-pts">8 pts</span>
+<span class="si-score">Done</span>
+</div>
+<div class="sprint-item">
+<div class="rank-dot dot-3">3</div>
+<span class="si-name">HU-02 Perfil Académico</span>
+<span class="si-pts">5 pts</span>
+<span class="si-score">Done</span>
+</div>
+</div>
+<p style="margin-top:0.8rem;font-size:0.78rem;color:var(--muted)">
+Responsables principales: Jaime Andres & Luis Miguel
+</p>
+</div>
+
+<div class="summary-card">
+<h3>💡 Análisis del Proyecto</h3>
+<div class="insight-list">
+<div class="insight">
+<span class="insight-icon">✅</span>
+<span><strong>Objetivo Cumplido:</strong> Todas las HU críticas (01, 02, 04) y altas (03, 05, 12) fueron entregadas.</span>
+</div>
+<div class="insight">
+<span class="insight-icon">🥇</span>
+<span><strong>Quick Wins (RICE):</strong> HU-02, HU-03 y HU-12 entregaron el máximo valor (600) con esfuerzo bajo/medio.</span>
+</div>
+<div class="insight">
+<span class="insight-icon">⚖️</span>
+<span><strong>Esfuerzo:</strong> HU-01 y HU-04 consumieron el 50% de los puntos del sprint (16/32 pts), justificando su bajo RICE relativo.</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="note">
+<strong>Nota sobre RICE:</strong> Las tareas con esfuerzo de 8 puntos (HU-01, HU-04) aparecen más abajo en la tabla RICE. Esto es normal: la fórmula penaliza el esfuerzo alto, pero no disminuye su importancia estratégica para el negocio.
+</div>
+
+</body>
+</html>

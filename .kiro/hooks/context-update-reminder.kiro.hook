@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Recordatorio Actualización Contexto",
+  "description": "Recuerda al agente actualizar AGENTS.md después de completar cualquier tarea que modifique la arquitectura",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "VERIFICACIÓN OBLIGATORIA: ¿Realizaste cambios en entidades Prisma, módulos NestJS, features Frontend, o reglas de negocio? Si es así, DEBES actualizar AGENTS.md antes de finalizar. Revisa la sección correspondiente y actualízala si es necesario."
+  }
+}

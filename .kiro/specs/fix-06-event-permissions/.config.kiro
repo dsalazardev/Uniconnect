@@ -1,0 +1,12 @@
+{
+  "specType": "bugfix",
+  "workflowType": "requirements-first",
+  "featureName": "fix-06-event-permissions",
+  "createdAt": "2026-03-20T05:30:00.000Z",
+  "lastModified": "2026-03-20T05:30:00.000Z",
+  "status": "draft",
+  "priority": "critical",
+  "tags": ["security", "bugfix", "events", "permissions", "access-control"],
+  "phase": "requirements",
+  "version": "1.0.0"
+}

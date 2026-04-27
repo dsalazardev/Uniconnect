@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Auto-actualizar Contexto Prisma",
+  "description": "Ejecuta automáticamente el script de generación de contexto cuando se modifican archivos del schema de Prisma",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "Uniconnect-Backend-Core/prisma/schema/*.prisma"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "node Uniconnect-Backend-Core/scripts/generate-context.js"
+  }
+}
