@@ -1,35 +1,34 @@
-# Etapa 1: Builder
 FROM node:20-alpine AS builder
-WORKDIR /usr/src/app
+
+WORKDIR /app
 
 RUN npm install -g pnpm
 
 COPY package.json pnpm-lock.yaml ./
-COPY prisma ./prisma/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 COPY . .
 RUN npx prisma generate
 RUN pnpm build
 
-# Etapa 2: Runner (Producción y Soporte para Dev en Compose)
-FROM node:20-alpine AS runner
-RUN apk add --no-cache curl
 
-RUN npm install -g pnpm 
+FROM node:20-alpine
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=8007
+RUN npm install -g pnpm
 
-# Copiamos lo necesario
-COPY --from=builder /usr/src/app ./
+COPY package.json pnpm-lock.yaml ./
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:${PORT}/api/health || exit 1
+RUN pnpm install --prod
 
-EXPOSE ${PORT}
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
-CMD ["node", "dist/main"]
+RUN npx prisma generate
+
+
+EXPOSE 8007
+
+CMD ["node", "dist/src/main.js"]

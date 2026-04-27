@@ -4,9 +4,7 @@ import { AuthService } from './auth.service';
 import { GoogleLoginDto } from './dto/google-auth.dto';
 import { Auth0CallbackDto } from './dto/auth0-callback.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { LogoutDto } from './dto/logout.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { GetClaim } from './decorators/get-token-claim.decorator';
 import { RequireAll, RequireAny } from './decorators/permissions.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { TempLoginDto } from './dto/temp-login.dto';
@@ -72,7 +70,7 @@ export class AuthController {
             example: {
                 success: false,
                 statusCode: 401,
-                message: 'Dominio de correo no permitido. Solo se permiten correos @ucaldas.edu.co',
+                message: 'Email domain not allowed. Only @ucaldas.edu.co emails are permitted.',
                 error: 'Unauthorized'
             }
         }
@@ -124,7 +122,7 @@ export class AuthController {
             example: {
                 success: false,
                 statusCode: 401,
-                message: 'Usuario no encontrado',
+                message: 'User not found',
                 error: 'Unauthorized'
             }
         }
@@ -143,62 +141,5 @@ export class AuthController {
     })
     async refreshToken(@Body() dto: RefreshTokenDto) {
         return this.authService.refreshAuth0Token(dto.refresh_token, dto.user_id);
-    }
-
-    @Post('logout')
-    @UseGuards(JwtAuthGuard)
-    @ApiOperation({ 
-        summary: 'Logout - Invalidate JWT Token',
-        description: 'Invalidates the current JWT token by adding it to a blacklist. The token will no longer be valid for authentication.'
-    })
-    @ApiBody({ 
-        type: LogoutDto,
-        description: 'JWT access token to invalidate'
-    })
-    @ApiResponse({ 
-        status: 200, 
-        description: 'Logout successful - Token invalidated',
-        schema: {
-            example: {
-                success: true,
-                data: {
-                    message: 'Logout successful'
-                },
-                error: null,
-                metadata: {
-                    timestamp: '2024-01-01T00:00:00.000Z'
-                }
-            }
-        }
-    })
-    @ApiResponse({ 
-        status: 401, 
-        description: 'Unauthorized - Invalid token or token does not belong to user',
-        schema: {
-            example: {
-                success: false,
-                statusCode: 401,
-                message: 'Token inválido o expirado',
-                error: 'Unauthorized'
-            }
-        }
-    })
-    @ApiResponse({ 
-        status: 500, 
-        description: 'Internal server error',
-        schema: {
-            example: {
-                success: false,
-                statusCode: 500,
-                message: 'Error al cerrar sesión',
-                error: 'Internal Server Error'
-            }
-        }
-    })
-    async logout(
-        @Body() dto: LogoutDto,
-        @GetClaim('sub') userId: number,
-    ) {
-        return this.authService.logout(dto.access_token, userId);
     }
 }

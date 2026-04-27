@@ -1,11 +1,9 @@
 node_modules
 dist
-.env
 .git
 .gitignore
-test
-docker-compose.yml
+.env
 Dockerfile
-README.md
+docker-compose.yml
 npm-debug.log
 pnpm-debug.log

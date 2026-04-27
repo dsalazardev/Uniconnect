@@ -1,6 +1,0 @@
-model role {
-  id_role  Int      @id @default(autoincrement())
-  name     String   @unique @db.VarChar
-  accesses access[]
-  users    user[]
-}
