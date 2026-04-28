@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { NotificationsService } from './notifications.service';
+import { PrismaModule } from 'src/prisma/prisma.module';
 import { NotificationsController } from './notifications.controller';
-import { ExpoPushService } from './expopush.service';
-import { PrismaModule } from '../prisma/prisma.module';
+import { NotificationsService } from './notifications.service';
+import { NotificationEventListener } from './listeners/notification-event.listener';
 
 @Module({
   imports: [PrismaModule],
-  providers: [NotificationsService, ExpoPushService],
   controllers: [NotificationsController],
+  providers: [NotificationsService, NotificationEventListener],
   exports: [NotificationsService],
 })
-export class NotificationsModule { }
+export class NotificationsModule {}

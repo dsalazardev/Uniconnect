@@ -25,7 +25,7 @@ export class AuthService {
             throw new UnauthorizedException({
                 success: false,
                 statusCode: 401,
-                message: 'Invalid Google token or email not verified'
+                message: 'Token de Google inválido o correo no verificado'
             });
         }
 
@@ -34,34 +34,42 @@ export class AuthService {
             throw new UnauthorizedException({
                 success: false,
                 statusCode: 401,
-                message: 'Email domain not allowed'
+                message: 'Dominio de correo no permitido. Solo se permiten correos @ucaldas.edu.co'
             });
         }
 
         let user = await this.usersService.findByEmail(googleUser.email);
 
         if (!user) {
-            const userRole = await this.rolesService.getUserRole();
-            if (!userRole) {
-                throw new Error('User role not found');
+            // Asignar rol "student" por defecto a usuarios nuevos
+            const studentRole = await this.rolesService.getStudentRole();
+            if (!studentRole) {
+                throw new Error('Rol "student" no encontrado en la base de datos. Ejecuta el seeder.');
             }
             user = await this.usersService.create({
                 email: googleUser.email,
                 full_name: googleUser.name,
                 picture: googleUser.picture,
-                id_role: userRole.id_role,
+                id_role: studentRole.id_role,
                 google_sub: googleUser.sub,
             })
         }
 
         const permissionsClaims = await this.permissionsService.getClaimsForRole(user.id_role);
 
-        const payload = { sub: user.id_user, permissions: permissionsClaims.map(p => p.claim) };
+        const payload = { 
+            sub: user.id_user, 
+            permissions: permissionsClaims.map(p => p.claim),
+            roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+        };
                 
         const jwt = this.jwtService.sign(payload);
         return {
             access_token: jwt,
-            user,            
+            user: {
+                ...user,
+                role: user.role, // ⭐ Asegurar que role esté incluido
+            },            
         };
     }
 
@@ -82,23 +90,112 @@ export class AuthService {
             throw new UnauthorizedException({
                 success: false,
                 statusCode: 401,
-                message: 'User not found'
+                message: 'Usuario no encontrado'
             });
         }
         
         const permissionsClaims = await this.permissionsService.getClaimsForRole(user.id_role);
 
-        const payload = { sub: user.id_user, permissions: permissionsClaims.map(p => p.claim) };
+        const payload = { 
+            sub: user.id_user, 
+            permissions: permissionsClaims.map(p => p.claim),
+            roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+        };
                 
         const jwt = this.jwtService.sign(payload);
         return {
             access_token: jwt,
-            user,            
+            user: {
+                ...user,
+                role: user.role, // ⭐ Asegurar que role esté incluido
+            },            
         };
     }
 
     async decodeToken(token: string): Promise<any> {
         return this.jwtService.decode(token);
+    }
+
+    async logout(accessToken: string, userId: number) {
+        try {
+            // 1. Verificar que el token sea válido
+            let decoded: any;
+            try {
+                decoded = this.jwtService.verify(accessToken);
+            } catch (error) {
+                throw new UnauthorizedException({
+                    success: false,
+                    statusCode: 401,
+                    message: 'Token inválido o expirado',
+                });
+            }
+
+            // 2. Verificar que el token pertenezca al usuario que hace logout
+            if (decoded.sub !== userId) {
+                throw new UnauthorizedException({
+                    success: false,
+                    statusCode: 401,
+                    message: 'El token no pertenece al usuario autenticado',
+                });
+            }
+
+            // 3. Verificar si el token ya está en la blacklist
+            const existingBlacklist = await this.usersService.findBlacklistedToken(accessToken);
+            if (existingBlacklist) {
+                return {
+                    success: true,
+                    data: {
+                        message: 'Logout successful',
+                    },
+                    error: null,
+                    metadata: {
+                        timestamp: new Date().toISOString(),
+                    },
+                };
+            }
+
+            // 4. Agregar el token a la blacklist
+            const expiresAt = new Date(decoded.exp * 1000); // exp está en segundos
+            await this.usersService.addTokenToBlacklist(accessToken, userId, expiresAt);
+
+            console.log('✅ [AuthService.logout] Token invalidated:', {
+                userId,
+                expiresAt,
+                timestamp: new Date().toISOString(),
+            });
+
+            return {
+                success: true,
+                data: {
+                    message: 'Logout successful',
+                },
+                error: null,
+                metadata: {
+                    timestamp: new Date().toISOString(),
+                },
+            };
+        } catch (error) {
+            console.error('❌ [AuthService.logout] Error:', {
+                message: error.message,
+                userId,
+            });
+
+            if (error instanceof UnauthorizedException) {
+                throw error;
+            }
+
+            throw new InternalServerErrorException({
+                success: false,
+                statusCode: 500,
+                message: 'Error al cerrar sesión',
+                error: error.message || 'Ocurrió un error desconocido',
+            });
+        }
+    }
+
+    async isTokenBlacklisted(token: string): Promise<boolean> {
+        const blacklisted = await this.usersService.findBlacklistedToken(token);
+        return !!blacklisted;
     }
 
     async auth0Callback(authorizationCode: string, redirectUri: string, codeVerifier: string) {
@@ -111,23 +208,24 @@ export class AuthService {
                 throw new UnauthorizedException({
                     success: false,
                     statusCode: 401,
-                    message: 'Email domain not allowed. Only @ucaldas.edu.co emails are permitted.'
+                    message: 'Dominio de correo no permitido. Solo se permiten correos @ucaldas.edu.co'
                 });
             }
 
             let user = await this.usersService.findByEmail(userProfile.email);
 
             if (!user) {
-                const userRole = await this.rolesService.getUserRole();
-                if (!userRole) {
-                    throw new Error('User role not found');
+                // Asignar rol "student" por defecto a usuarios nuevos
+                const studentRole = await this.rolesService.getStudentRole();
+                if (!studentRole) {
+                    throw new Error('Rol "student" no encontrado en la base de datos. Ejecuta el seeder.');
                 }
                 
                 user = await this.usersService.create({
                     email: userProfile.email,
                     full_name: userProfile.name || userProfile.email,
                     picture: userProfile.picture || null,
-                    id_role: userRole.id_role,
+                    id_role: studentRole.id_role,
                     google_sub: userProfile.sub, // Auth0 user ID
                 });
             }
@@ -136,7 +234,8 @@ export class AuthService {
             const payload = { 
                 sub: user.id_user, 
                 permissions: permissionsClaims.map(p => p.claim),
-                auth0_sub: userProfile.sub 
+                auth0_sub: userProfile.sub,
+                roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
             };
             
             const jwt = this.jwtService.sign(payload);
@@ -150,9 +249,12 @@ export class AuthService {
                     user: {
                         id_user: user.id_user,
                         id_role: user.id_role,
+                        role: user.role, // ⭐ INCLUIR OBJETO ROLE COMPLETO
                         full_name: user.full_name,
                         email: user.email,
                         picture: user.picture,
+                        id_program: user.id_program ?? null,
+                        needsOnboarding: user.id_program === null || user.id_program === undefined,
                     },
                     auth0_tokens: {
                         access_token: tokenResponse.access_token,
@@ -173,8 +275,8 @@ export class AuthService {
             throw new UnauthorizedException({
                 success: false,
                 statusCode: 401,
-                message: 'Authentication failed',
-                error: error.message || 'Unknown error occurred'
+                message: 'Autenticación fallida',
+                error: error.message || 'Ocurrió un error desconocido'
             });
         }
     }
@@ -289,7 +391,7 @@ export class AuthService {
                 throw new UnauthorizedException({
                     success: false,
                     statusCode: 401,
-                    message: 'User not found'
+                    message: 'Usuario no encontrado'
                 });
             }
 
@@ -297,7 +399,8 @@ export class AuthService {
             const payload = { 
                 sub: user.id_user, 
                 permissions: permissionsClaims.map(p => p.claim),
-                auth0_sub: user.google_sub 
+                auth0_sub: user.google_sub,
+                roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
             };
             
             const jwt = this.jwtService.sign(payload);
@@ -311,9 +414,12 @@ export class AuthService {
                     user: {
                         id_user: user.id_user,
                         id_role: user.id_role,
+                        role: user.role, // ⭐ INCLUIR OBJETO ROLE COMPLETO
                         full_name: user.full_name,
                         email: user.email,
                         picture: user.picture,
+                        id_program: user.id_program ?? null,
+                        needsOnboarding: user.id_program === null || user.id_program === undefined,
                     },
                     auth0_tokens: {
                         access_token: tokenData.access_token,

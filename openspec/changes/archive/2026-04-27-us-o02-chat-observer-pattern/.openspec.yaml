@@ -1,0 +1,130 @@
+id: us-o02-chat-observer-pattern
+name: "US-O02: Observer Pattern para Chat en Tiempo Real"
+status: proposed
+created_at: 2026-04-27T20:29:00-05:00
+updated_at: 2026-04-27T20:29:00-05:00
+
+metadata:
+  story_id: US-O02
+  story_points: 5
+  priority: high
+  estimated_hours: 16.5
+  estimated_days: 4
+
+description: |
+  Implementar el Patrón Observer formal para el sistema de chat en tiempo real,
+  garantizando que los mensajes notifiquen automáticamente a todos los participantes
+  conectados (web y mobile) mediante WebSockets (Socket.IO), con separación estricta
+  de canales privados y grupales.
+
+acceptance_criteria:
+  - id: AC1
+    description: "ChatSubject implementado que emite NUEVO_MENSAJE con DTO decorado"
+    status: pending
+  - id: AC2
+    description: "Cliente web y mobile reciben mensajes en tiempo real vía Socket.IO"
+    status: pending
+  - id: AC3
+    description: "Mensaje emitido lleva decoradores aplicados antes de notificar"
+    status: pending
+  - id: AC4
+    description: "Observer privado independiente del grupal (canales separados)"
+    status: pending
+
+phases:
+  - name: "Phase 1: Domain Layer"
+    tasks:
+      - "Task 1.1: Create Observer Interfaces"
+      - "Task 1.2: Implement ChatSubject"
+    estimated_hours: 1.5
+    
+  - name: "Phase 2: Infrastructure Layer"
+    tasks:
+      - "Task 2.1: Create ChatGateway"
+      - "Task 2.2: Implement PrivateChatObserver"
+      - "Task 2.3: Implement GroupChatObserver"
+    estimated_hours: 3.0
+    
+  - name: "Phase 3: Application Layer"
+    tasks:
+      - "Task 3.1: Create MessageDto"
+      - "Task 3.2: Implement MessagesService"
+    estimated_hours: 2.5
+    
+  - name: "Phase 4: Module Configuration"
+    tasks:
+      - "Task 4.1: Update MessagesModule"
+    estimated_hours: 0.5
+    
+  - name: "Phase 5: Testing"
+    tasks:
+      - "Task 5.1: Unit Tests for ChatSubject"
+      - "Task 5.2: Unit Tests for Observers"
+      - "Task 5.3: Unit Tests for ChatGateway"
+      - "Task 5.4: Unit Tests for MessagesService"
+    estimated_hours: 5.0
+    
+  - name: "Phase 6: Integration & Validation"
+    tasks:
+      - "Task 6.1: Integration Testing"
+      - "Task 6.2: Manual Testing & Validation"
+      - "Task 6.3: Documentation"
+    estimated_hours: 4.0
+
+files_to_create:
+  - path: "src/messages/domain/observer/interfaces/subject.interface.ts"
+    description: "ISubject<T> interface"
+  - path: "src/messages/domain/observer/interfaces/observer.interface.ts"
+    description: "IObserver<T> interface"
+  - path: "src/messages/domain/observer/interfaces/index.ts"
+    description: "Export interfaces"
+  - path: "src/messages/domain/observer/chat-subject.ts"
+    description: "ChatSubject concrete implementation"
+  - path: "src/messages/infrastructure/observers/private-chat.observer.ts"
+    description: "PrivateChatObserver implementation"
+  - path: "src/messages/infrastructure/observers/group-chat.observer.ts"
+    description: "GroupChatObserver implementation"
+  - path: "src/messages/infrastructure/gateways/chat.gateway.ts"
+    description: "ChatGateway WebSocket implementation"
+  - path: "src/messages/application/messages.service.ts"
+    description: "MessagesService coordinator"
+  - path: "src/messages/dto/message.dto.ts"
+    description: "MessageDto with chat_type and room_id"
+  - path: "src/messages/__tests__/chat-subject.spec.ts"
+    description: "Unit tests for ChatSubject"
+  - path: "src/messages/__tests__/observers.spec.ts"
+    description: "Unit tests for Observers"
+  - path: "src/messages/__tests__/chat.gateway.spec.ts"
+    description: "Unit tests for ChatGateway"
+  - path: "src/messages/__tests__/messages.service.spec.ts"
+    description: "Unit tests for MessagesService"
+
+files_to_modify:
+  - path: "src/messages/messages.module.ts"
+    description: "Register new providers and exports"
+
+dependencies:
+  - "@nestjs/websockets@^11.1.19"
+  - "@nestjs/platform-socket.io@^11.1.19"
+  - "socket.io@^4.8.3"
+
+risks:
+  - description: "Conflicto con código legacy"
+    probability: high
+    impact: medium
+    mitigation: "Mantener ambos sistemas en paralelo"
+  - description: "Performance de notificaciones"
+    probability: low
+    impact: high
+    mitigation: "Limpiar observadores después de uso"
+  - description: "Memory leaks"
+    probability: medium
+    impact: high
+    mitigation: "Tests de memoria + monitoreo"
+
+success_metrics:
+  - "4/4 Criterios de Aceptación cumplidos"
+  - "Tests unitarios > 80% cobertura"
+  - "Latencia < 100ms para notificaciones"
+  - "Cero 'any' en código TypeScript"
+  - "Clean Architecture implementada"

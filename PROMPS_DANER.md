@@ -122,3 +122,307 @@ Corrección de AppController: Verifica si getHello cambió de nombre en el contr
 Flexibilidad en PBT: En los tests de fast-check (Multer/Files), ajusta las validaciones para que acepten el encoding de URLs (ej. que %7B sea válido para {).
 Validación Incremental: Después de cada grupo de tareas (especialmente el Grupo 1 y 2), ejecuta los tests específicos de esos archivos para asegurar que pasaron a verde antes de seguir.
 Al finalizar, ejecuta npm test en todo el proyecto. No consideres la tarea completa hasta que el reporte muestre "0 failed". Actualiza el AGENTS.md con el éxito de la estabilización.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+NUEVOS PROMPS SEGUNDA IMPLEMENTACIÓN
+
+US-O02 · Observer para mensajes del chat en tiempo real
+
+/opsx-explore.prompt explore-chat-observer-us-o02 CONTEXTO OBLIGATORIO: Vamos a implementar la Historia de Usuario US-O02, que exige refactorizar o crear la arquitectura del chat en tiempo real utilizando el Patrón Observer y WebSockets (Socket.io). Como primer paso, lee detenidamente el archivo AGENTS.md para entender las reglas del proyecto.
+
+OBJETIVOS DE LA EXPLORACIÓN:
+
+Auditoría de Patrones y Eventos: Busca en el backend si ya existen interfaces como ISubject, IObserver, o una clase ChatSubject. Verifica cómo se están manejando actualmente los eventos de mensajería (buscando la constante o string NUEVO_MENSAJE).
+
+Análisis de Socket.io: Rastrea la configuración de WebSockets. Revisa cómo se están aislando los canales (rooms/namespaces). Necesitamos confirmar la separación estricta entre el canal del chat privado y el canal del chat grupal.
+
+Flujo de Decoradores: Rastrea el flujo actual de envío de mensajes. Identifica el punto exacto donde se aplican los decoradores (archivos, menciones) y verifica si esto ocurre antes o después de la emisión a los clientes.
+
+Reporte de Brecha (Gap Analysis): Genera un diagnóstico técnico contrastando el código actual contra los 4 criterios de aceptación de la US-O02. Indica exactamente qué clases/archivos debemos crear o modificar para cumplir el requerimiento al 100%.
+
+No modifiques código ni generes la especificación (requirements/design) todavía. Solo entrega el diagnóstico.
+
+
+/opsx-propose.prompt us-o02-chat-observer-pattern CONTEXTO OBLIGATORIO: Vamos a implementar la Historia de Usuario US-O02 desde cero. El sistema actual carece del Patrón Observer formal y de una separación estricta de canales. El objetivo es crear una arquitectura limpia (Clean Architecture) para el chat en tiempo real usando WebSockets (Socket.io) y el Patrón Observer puro, cumpliendo estrictamente con los 4 Criterios de Aceptación.
+
+OBJETIVO DE LA ESPECIFICACIÓN:
+Generar los archivos requirements.md, design.md y tasks.md definiendo la siguiente estructura:
+
+Dominio (Criterio 1): Definir las interfaces puras ISubject<T> e IObserver<T>. Crear la clase ChatSubject que implemente ISubject, maneje la lista de observadores y sea la encargada de emitir el evento NUEVO_MENSAJE con un DTO ya decorado.
+
+Infraestructura (Criterios 2 y 4): Diseñar dos observadores independientes: PrivateChatObserver (emite a rooms private-{id1}-{id2}) y GroupChatObserver (emite a rooms group-{id}). Ambos deben inyectar el ChatGateway (configurado con Socket.io para clientes web/mobile) y llamar a un método como emitToRoom().
+
+Aplicación (Criterio 3): Diseñar el flujo en MessagesService.sendMessage(). El servicio debe: 1) Recibir el mensaje, 2) Simular/Aplicar los decoradores correspondientes (moderación, archivos, menciones), 3) Determinar el tipo de chat y atar (attach) el observador correcto al ChatSubject, 4) Guardar en BD, y 5) Llamar a chatSubject.notify().
+
+DTOs y Tests: Definir el MessageDto con los campos necesarios (chat_type, room_id, contenido decorado). Incluir en el plan la creación de tests unitarios que aseguren que los canales no se cruzan y que el mensaje sale decorado.
+
+RESTRICCIONES: Aplicar la política estricta de Zero-Any (tipado fuerte en TypeScript). Usar Inyección de Dependencias nativa de NestJS. No romper el código legacy existente, si hay un messages.gateway.ts viejo, el nuevo debe llamarse chat.gateway.ts.
+
+
+/opsx-apply.prompt us-o02-chat-observer-pattern Procede con la implementación total de las 15 tareas definidas en el tasks.md para la US-O02. Acciones clave:
+
+Fase 1 (Dominio): Crea las interfaces ISubject e IObserver, y la implementación concreta ChatSubject asegurando el desacoplamiento y el manejo de memoria (limpieza de observadores tras notificar).
+
+Fase 2 (Infraestructura): Configura el ChatGateway y los observadores PrivateChatObserver y GroupChatObserver, garantizando el aislamiento absoluto de los canales (rooms).
+
+Fase 3 (Aplicación): Crea el MessageDto y construye el flujo en MessagesService (applyDecorators -> enrichMessageWithRoomInfo -> attachObserverForChatType -> persistMessage -> chatSubject.notify).
+
+Fase 4 (Módulo): Registra todos los nuevos providers y el servicio orquestador en messages.module.ts, exportándolos correctamente y manteniendo la convivencia con el código legacy si es necesario.
+
+Fase 5 (Testing y Validación): Crea los archivos .spec.ts para cubrir la funcionalidad principal. Asegúrate de que el código cumpla la política estricta de Zero-Any, compile sin errores (npm run build) y pase los tests.
+
+Avísame en cuanto termines, el código compile y los tests estén en verde para validar el servidor.
+
+
+US-D01 · Decorator de mensajes del chat grupal (5 pts)
+
+/opsx-explore.prompt explore-us-d01-decorator-pattern CONTEXTO OBLIGATORIO: Vamos a iniciar la Historia de Usuario US-D01, que requiere implementar el Patrón Decorator sobre los mensajes del chat grupal. La arquitectura base ya fue implementada en la US-O02 (Clean Architecture en src/messages/).
+
+OBJETIVOS DE LA EXPLORACIÓN:
+
+Auditoría del Punto de Inserción: Revisa el archivo src/messages/application/messages.service.ts, específicamente el método applyDecorators(), que actualmente es un placeholder. Este será nuestro punto de conexión.
+
+Revisión de DTOs: Revisa src/messages/dto/message.dto.ts para entender la estructura actual del mensaje y cómo los nuevos campos (menciones, archivos, reacciones) definidos en la US-D01 deberán integrarse o convivir con el DTO.
+
+Mapeo de Capas (Domain): Evalúa la creación de un nuevo directorio src/messages/domain/decorator/ donde vivirán: la interfaz base IMensaje, la clase concreta MensajeBase, la clase abstracta MensajeDecorator y los decoradores concretos (MensajeConArchivo, MensajeConMencion, MensajeConReaccion).
+
+Análisis de Tipado: Verifica cómo manejaremos el método render() (AC1) en un entorno backend (Node.js/NestJS), definiendo si retornará un string formateado, HTML, o una estructura JSON enriquecida para que el frontend la consuma.
+
+Gap Analysis: Genera un diagnóstico indicando exactamente cómo vamos a conectar el Patrón Decorator (Dominio) con el flujo existente del Patrón Observer (Aplicación) cumpliendo los 7 Criterios de Aceptación.
+
+REGLA: NO modifiques código ni generes la especificación (requirements/design) aún. Solo entrega el diagnóstico técnico y el análisis de la brecha.
+
+/opsx-propose.prompt us-d01-decorator-pattern CONTEXTO OBLIGATORIO: Inicia la generación de la propuesta para la US-D01 (Decorator de mensajes). La exploración determinó que el punto de conexión será MessagesService.applyDecorators(), que el método render() debe generar un JSON estructurado, y que se debe actualizar el DTO y el esquema de Prisma.
+
+OBJETIVO DE LA ESPECIFICACIÓN:
+Generar los archivos requirements.md, design.md y tasks.md detallando lo siguiente:
+
+Dominio (AC1 a AC5): Diseñar en src/messages/domain/decorator/ la interfaz IMensaje (con getContenido, getMetadata, render), la clase MensajeBase y la clase abstracta MensajeDecorator. Diseñar los 3 decoradores concretos: MensajeConArchivo, MensajeConMencion y MensajeConReaccion. Especificar el uso estricto de TypeScript (Zero-Any).
+
+Aplicación y DTOs (Integración): Extender MessageDto para soportar las entradas opcionales (mentions, files, reactions) y el campo de salida rendered_content. Actualizar MessagesService.applyDecorators() para que instancie la cadena de decoradores (AC6 - Componibilidad) y retorne el DTO con el rendered_content.
+
+Infraestructura (Prisma): Agregar una tarea para actualizar schema.prisma añadiendo el campo rendered_content (String/Text) al modelo Message y ejecutar la migración.
+
+Documentación (AC7): Incluir una tarea específica para crear un README.md en la carpeta domain/decorator/ que contenga un diagrama UML del patrón utilizando sintaxis Mermaid.
+
+RESTRICCIONES: El código generado en el diseño debe aplicar la política estricta de Zero-Any. El flujo propuesto debe ser compatible con el Patrón Observer previamente implementado.
+
+
+/opsx-apply.prompt us-d01-decorator-pattern Procede con la implementación total de las tareas definidas en el tasks.md para la US-D01. Acciones clave:
+
+Dominio: Crea las interfaces y las clases del patrón Decorator (MensajeBase, MensajeConArchivo, MensajeConMencion, MensajeConReaccion) garantizando que el método render() retorne un JSON estructurado. Aplica la política Zero-Any.
+
+Prisma: Añade el campo rendered_content al modelo Message en schema.prisma y genera/ejecuta la migración de base de datos (npx prisma migrate dev --name add_rendered_content).
+
+DTOs y Aplicación: Extiende MessageDto y reemplaza el placeholder en MessagesService.applyDecorators() para que instancie dinámicamente la cadena de decoradores basada en los campos del DTO y genere el rendered_content.
+
+Documentación (AC7): Crea el archivo README.md en domain/decorator/ con el diagrama UML en sintaxis Mermaid.
+
+Testing: Genera los archivos .spec.ts requeridos. Ejecuta el build (npm run build) y los tests (npm run test) al finalizar. Si algún test de este dominio falla, corrígelo.
+
+Avísame en cuanto la migración haya pasado, el código compile y los tests de los decoradores estén en verde.
+
+
+US-O01 · Observer para eventos del grupo de estudio
+
+/opsx-explore.prompt explore-us-o01-group-observer CONTEXTO OBLIGATORIO: Vamos a iniciar la US-O01 (Observer para eventos del grupo de estudio). Basado en la experiencia previa, TODO el código, clases, archivos e interfaces deben nombrarse estrictamente en INGLÉS puro (ej. StudyGroupSubject, WebSocketNotificationObserver, PersistenceNotificationObserver), aunque la HU esté redactada en español.
+
+OBJETIVOS DE LA EXPLORACIÓN:
+
+Auditoría de Interfaces Base: Verifica si podemos abstraer y reutilizar las interfaces ISubject e IObserver (creadas en messages) moviéndolas a un directorio compartido (src/common/domain/observer/), o si es mejor crearlas específicas en src/groups/domain/observer/.
+
+Análisis del Subject y Eventos (AC1): Identifica dónde alojaremos el StudyGroupSubject y cómo tiparemos estrictamente los 5 eventos requeridos (ej. JOIN_REQUEST, MEMBER_ACCEPTED, MEMBER_REJECTED, ADMIN_TRANSFER_REQUESTED, ADMIN_TRANSFER_ACCEPTED).
+
+Análisis de Observers (AC2 y AC3): Revisa cómo el WebSocketNotificationObserver localizará el socket del usuario destinatario (¿usará ChatSessionManager u otro servicio?) y cómo el PersistenceNotificationObserver interactuará con Prisma (revisa el modelo de notificaciones en schema.prisma).
+
+Puntos de Inyección (AC4): Examina src/groups/groups.service.ts y servicios asociados (memberships, group-invitations) para ubicar los métodos exactos donde ocurrirán las acciones que deben llamar a subject.notify().
+
+Gap Analysis: Entrega un diagnóstico técnico mapeando el código actual contra los 5 Criterios de Aceptación.
+
+REGLA: NO modifiques código ni generes la especificación (requirements/design) aún. Solo entrega el diagnóstico técnico.
+
+
+/opsx-propose.prompt us-o01-group-observer CONTEXTO OBLIGATORIO: Inicia la generación de la propuesta técnica para la US-O01 (Observer para eventos del grupo). Toda la propuesta y el código a generar DEBEN estar en estricto inglés (StudyGroupSubject, WebSocketNotificationObserver, PersistenceNotificationObserver, etc.) y aplicar política Zero-Any.
+
+OBJETIVO DE LA ESPECIFICACIÓN:
+Generar los archivos requirements.md, design.md y tasks.md detallando lo siguiente:
+
+Arquitectura y Reutilización: Definir que se reutilizarán las interfaces ISubject e IObserver creadas en src/messages/domain/decorator/interfaces/. El StudyGroupSubject vivirá en src/groups/domain/observer/.
+
+Tipado de Eventos (AC1): Definir una interfaz/tipo StudyGroupEvent con los eventos en inglés: JOIN_REQUEST, MEMBER_ACCEPTED, MEMBER_REJECTED, ADMIN_TRANSFER_REQUESTED, ADMIN_TRANSFER_ACCEPTED, e integrarlos (si faltan) en src/messages/events/message.events.ts.
+
+Observers (AC2 y AC3): Diseñar WebSocketNotificationObserver (que inyectará ChatGateway y ChatSessionManager para emitir a server.to(socketId).emit()) y PersistenceNotificationObserver (que inyectará PrismaService para guardar en la tabla notification). Estos vivirán en src/groups/infrastructure/observers/.
+
+Módulo e Inyección (AC4): Definir cómo GroupsModule implementará OnModuleInit para instanciar el Subject y atarle (attach) los dos observers. Detallar que GroupsService llamará a subject.notify() en los métodos correspondientes (solicitudes, aceptación, rechazo, transferencia de admin).
+
+Documentación (AC5): Planificar la creación de src/groups/domain/observer/README.md con un diagrama de clases UML en sintaxis Mermaid.
+
+RESTRICCIONES: La estructura de carpetas debe separar claramente la capa de dominio de la capa de infraestructura.
+
+
+/opsx-apply.prompt us-o01-group-observer Procede con la implementación total de las tareas definidas en el tasks.md para la US-O01.
+
+Acciones Clave y Reglas Estrictas:
+
+Idioma Estricto: TODO el código, nombres de clases, interfaces, variables, y archivos deben estar en INGLÉS (ej. StudyGroupSubject, WebSocketNotificationObserver). Los mensajes que se guardan en la base de datos (Prisma) sí deben generarse en español.
+
+Reutilización: Reutiliza las interfaces ISubject e IObserver que ya existen en src/messages/domain/observer/interfaces/. NO las dupliques.
+
+Tipado de Eventos (Domain): Crea el tipo StudyGroupEvent con los 5 eventos requeridos y actualiza MESSAGE_EVENTS en src/messages/events/message.events.ts con los nuevos payloads si es necesario.
+
+Infraestructura: Implementa los observers de WebSocket y Persistencia, inyectando los servicios correspondientes (ChatGateway, PrismaService, etc.).
+
+Módulo y Servicio (Aplicación): Registra e inicializa el patrón Observer en GroupsModule (OnModuleInit). Inyecta StudyGroupSubject en GroupsService y lanza subject.notify() en los 4 métodos indicados (request, accept, reject, transfer).
+
+Validación: Asegúrate de aplicar la política Zero-Any. Al terminar, corre npm run build y npm run test para asegurar que todo compila y los tests pasan en verde.
+
+Documentación: Crea el README.md con el UML en src/groups/domain/observer/.
+
+Avísame apenas finalices y los tests estén pasando exitosamente.
+
+
+US-T01 · Unit tests para el patron Decorator
+
+/opsx-explore.prompt explore-us-t01-decorator-tests CONTEXTO OBLIGATORIO: Iniciamos la US-T01 para validar mediante pruebas unitarias el patrón Decorator. La implementación base (US-D01) ya cuenta con archivos de test en src/messages/domain/decorator/__tests__/ usando nombres en inglés (BaseMessage, FileMessageDecorator, etc.).
+
+OBJETIVOS DE LA EXPLORACIÓN:
+
+Auditoría de Tests Existentes: Revisa los archivos .spec.ts en src/messages/domain/decorator/__tests__/. Cruza los tests actuales con los 5 Criterios de Aceptación de la US-T01.
+
+Búsqueda de "Profile Decorators": La historia menciona "decoradores de mensaje y de perfil". Busca en todo el proyecto (src/) si existe alguna implementación del patrón Decorator para perfiles de usuario. Si no existe, identifícalo como un GAP crítico.
+
+Análisis de Cobertura (AC5): Verifica si cada clase (BaseMessage + los 3 decoradores) tiene al menos 2 casos de prueba como exige el criterio 5.
+
+Verificación de Pruebas Negativas (AC4): Confirma si ya existe un test que valide que un mensaje SIN el decorador de archivo NO incluya los campos de archivo en el JSON resultante.
+
+Diagnóstico Técnico: Entrega el reporte indicando qué tests faltan o qué ajustes se requieren para llegar al 100% de cumplimiento.
+
+REGLA: NO modifiques código. Solo entrega el diagnóstico técnico de la brecha de testing.
+
+
+/opsx-propose.prompt us-t01-decorator-tests CONTEXTO OBLIGATORIO: Vamos a completar la US-T01. El diagnóstico detectó que falta el AC4 y que no existen los decoradores de perfil mencionados en la descripción. REGLA DE ORO: Debemos cumplir con el 100% de la historia, incluyendo la mención de "perfil".
+
+OBJETIVO DE LA ESPECIFICACIÓN:
+Generar los archivos requirements.md, design.md y tasks.md detallando:
+
+Pruebas de Mensajes (AC1 a AC5):
+
+Actualizar base-message.spec.ts para incluir la prueba negativa (AC4): verificar que files, mentions y reactions sean undefined en el mensaje base.
+
+Asegurar que BaseMessage, FileMessageDecorator, MentionMessageDecorator y ReactionMessageDecorator tengan al menos 2 casos de prueba (AC5).
+
+Decoradores de Perfil (Cumplimiento de Descripción):
+
+Identificar que para testear "decoradores de perfil" primero debemos crearlos.
+
+Diseñar una implementación rápida en src/users/domain/decorator/ (o similar) que incluya: IProfile, BaseProfile y un decorador VerifiedProfileDecorator (que añada un badge de verificado).
+
+Crear los unit tests para estas nuevas clases siguiendo la misma lógica del patrón (AC5 aplicado a perfiles).
+
+Integración:
+
+Asegurar que todos los nombres sigan en INGLÉS estricto.
+
+Garantizar política Zero-Any.
+
+Ejecución final de npm run test -- decorator y npm run test -- profile para validar el verde total.
+
+
+/opsx-apply.prompt us-t01-decorator-tests Procede con la implementación total de las tareas definidas en el tasks.md para la US-T01.
+
+Acciones Clave:
+
+Mensajes (AC4): Agrega la prueba negativa en base-message.spec.ts para validar que el JSON base no contenga files, mentions o reactions.
+
+Perfiles (Scaffolding y Tests): Crea la estructura en src/users/domain/decorator/ incluyendo IProfile, BaseProfile, ProfileDecorator (abstracto) y VerifiedProfileDecorator. Implementa sus tests unitarios correspondientes en la carpeta __tests__.
+
+Reglas Estrictas:
+
+Idioma: Todo el código, nombres de archivos y comentarios deben estar en INGLÉS.
+
+Tipado: Aplica política Zero-Any.
+
+Documentación: Crea el README.md en la nueva carpeta de perfiles con el diagrama UML en Mermaid.
+
+Validación: Ejecuta el build (npm run build) y corre todos los tests del dominio decorator (npm run test -- decorator) para asegurar que los 26 tests pasen en verde.
+
+Avísame cuando la implementación esté completa y los tests confirmados.
+
+
+
+US-T02 · Unit tests para el patron Observer (3 pts)
+
+/opsx-explore.prompt explore-us-t02-observer-tests CONTEXTO OBLIGATORIO: Iniciamos la US-T02 para validar el ciclo completo del patrón Observer. Ya existen implementaciones y tests en src/messages/ (Chat) y src/groups/ (Study Groups).
+
+OBJETIVOS DE LA EXPLORACIÓN:
+
+Auditoría de Tests de Chat: Revisa src/messages/__tests__/chat-subject.spec.ts. Verifica si cumple con el ciclo de suscripción/desuscripción (AC1, AC2) y el aislamiento de errores (AC3).
+
+Auditoría de Tests de Grupos: Revisa src/groups/domain/observer/__tests__/study-group-subject.spec.ts. Verifica el cumplimiento de AC1, AC2 y AC3.
+
+Validación de Mocks (AC4): Asegura que ningún test esté levantando instancias reales de PrismaService o gateways de Socket.io, sino que usen mocks de Jest.
+
+Mapeo de Integración (AC5): Confirma si existen tests de integración que vinculen el Subject con su Observer principal (ej. ChatSubject con GroupChatObserver y StudyGroupSubject con WebSocketNotificationObserver).
+
+Diagnóstico Técnico: Entrega el reporte de brechas. Identifica si falta algún test de "error isolation" (cuando un observer explota, el otro debe seguir funcionando).
+
+REGLA: NO modifiques código. Solo entrega el diagnóstico técnico de la brecha de testing en INGLÉS estricto para los nombres técnicos.
+
+/opsx-propose.prompt us-t02-observer-tests CONTEXTO OBLIGATORIO: Vamos a completar la US-T02. El diagnóstico detectó que el dominio de Chat está cubierto, pero el de Study Groups tiene un 0% de cobertura de tests. OBJETIVO: Alcanzar el 100% de cumplimiento replicando la lógica de pruebas de Chat en Grupos.
+
+OBJETIVO DE LA ESPECIFICACIÓN:
+Generar los archivos requirements.md, design.md y tasks.md detallando:
+
+Tests de Dominio (AC1, AC2, AC3):
+
+Diseñar src/groups/domain/observer/__tests__/study-group-subject.spec.ts.
+
+Incluir pruebas de: attach (prevención de duplicados), detach (ciclo de vida) y notify (múltiples observers).
+
+CRÍTICO: Incluir el test de Error Isolation (AC3): si un observer lanza una excepción, el otro debe recibir la notificación.
+
+Tests de Observers (AC4):
+
+Diseñar tests unitarios para WebSocketNotificationObserver y PersistenceNotificationObserver usando mocks estrictos de ChatGateway, ChatSessionManager y PrismaService.
+
+Tests de Integración (AC5):
+
+Diseñar un test de integración en el dominio de grupos que valide que el StudyGroupSubject notifica correctamente a sus observers principales en un flujo real (pero mockeado).
+
+Reglas Estrictas:
+
+Idioma: Todo en INGLÉS estricto.
+
+Tipado: Política Zero-Any.
+
+Mocks: Uso exclusivo de jest.fn() y jest.Mocked.
+
+/opsx-apply.prompt us-t02-observer-tests Procede con la implementación total de las tareas definidas en el tasks.md para la US-T02.
+
+Acciones Clave y Reglas de Oro:
+
+Tests de Dominio (AC1, AC2, AC3): Implementa study-group-subject.spec.ts validando la suscripción, desuscripción y, sobre todo, el Error Isolation (si un observer falla, los demás deben recibir la notificación).
+
+Tests de Observers (AC4): Crea los tests unitarios para WebSocketNotificationObserver y PersistenceNotificationObserver asegurando el uso de mocks estrictos para no depender de la base de datos ni de Sockets reales.
+
+Tests de Integración (AC5): Implementa study-group-subject.integration.spec.ts para verificar el flujo real de notificación desde el Subject hacia sus observers principales.
+
+Calidad: * Aplica política Zero-Any.
+
+Todo el código y nombres de tests en INGLÉS.
+
+Validación Final: Al terminar, corre npm run build y luego ejecuta todos los tests de observadores con npm test -- observer.
+
+Avísame apenas termines y confirmes que los 24 nuevos tests (más los 31 previos de Chat) están en verde.
