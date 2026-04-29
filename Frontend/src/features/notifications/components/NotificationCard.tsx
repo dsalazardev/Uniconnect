@@ -30,6 +30,8 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         return { name: 'checkmark-circle' as const, color: '#22C55E' };
       case 'group_join_request_rejected':
         return { name: 'close-circle' as const, color: '#EF4444' };
+      case 'mention':
+        return { name: 'at-circle' as const, color: '#38BDF8' };
       default:
         return { name: 'notifications' as const, color: '#D9B97E' };
     }

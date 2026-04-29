@@ -17,6 +17,8 @@ import {
 } from '../hooks/useGroupInfo';
 import { GroupInfo } from '../types';
 import { TransferOwnershipModal } from './TransferOwnershipModal';
+import { useDirectMessage } from '../hooks/useDirectMessage';
+import { authStore } from '@/src/features/auth/store/AuthStore';
 
 interface GroupMembersTabProps {
   groupInfo: GroupInfo;
@@ -27,6 +29,8 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
   const removeMemberMutation = useRemoveMember();
   const makeAdminMutation = useMakeMemberAdmin();
   const leaveGroupMutation = useLeaveGroup();
+  const { openDirectMessage, loadingUserId } = useDirectMessage();
+  const currentUserId = authStore.user?.id_user;
 
   const handleRemoveMember = (memberId: number, memberName: string) => {
     Alert.alert(
@@ -165,6 +169,21 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
                     </Text>
                   </View>
                 </View>
+
+                {member.id_user !== currentUserId && (
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.dmButton]}
+                    onPress={() => openDirectMessage(member.id_user)}
+                    disabled={loadingUserId !== null}
+                    accessibilityLabel="Mensaje privado"
+                  >
+                    {loadingUserId === member.id_user ? (
+                      <ActivityIndicator size="small" color="#38BDF8" />
+                    ) : (
+                      <Ionicons name="chatbubble-outline" size={18} color="#38BDF8" />
+                    )}
+                  </TouchableOpacity>
+                )}
 
                 {groupInfo.canManageMembers && member.role !== 'admin' && member.id_user !== groupInfo.owner.id_user && (
                   <View style={styles.actionsContainer}>
@@ -343,6 +362,9 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  dmButton: {
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
   },
   leaveButton: {
     flexDirection: 'row',

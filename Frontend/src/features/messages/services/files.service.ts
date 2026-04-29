@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/src/constants/api';
+import { Platform } from 'react-native';
 
 class FilesService {
   /**
@@ -14,22 +15,49 @@ class FilesService {
   ): Promise<any[]> {
     const formData = new FormData();
 
-    // Campos de texto primero
     formData.append('id_group', String(groupId));
     if (messageId) {
       formData.append('id_message', String(messageId));
     }
 
-    // Archivos en formato React Native: { uri, type, name }
-    files.forEach((file, index) => {
-      formData.append('files', {
-        uri: file.uri,
-        type: file.mimeType || file.type || 'application/octet-stream',
-        name: file.name || file.fileName || `archivo_${index}`,
-      } as any);
-    });
+    if (Platform.OS === 'web') {
+      // En web: los archivos de expo-document-picker tienen una propiedad `file`
+      // que es un objeto File nativo del navegador, o podemos fetch el blob desde la URI
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
 
-    console.log(`[FilesService] Subiendo ${files.length} archivo(s) al grupo ${groupId}...`);
+        if (file.file instanceof File) {
+          // expo-document-picker en web expone el File nativo directamente
+          formData.append('files', file.file, file.name || file.file.name);
+        } else if (file.uri && file.uri.startsWith('blob:')) {
+          // Fallback: convertir blob URI a Blob y adjuntar
+          try {
+            const blobResponse = await fetch(file.uri);
+            const blob = await blobResponse.blob();
+            const fileName = file.name || `archivo_${index}`;
+            formData.append('files', blob, fileName);
+          } catch {
+            console.warn(`[FilesService] No se pudo convertir blob URI para ${file.name}`);
+          }
+        } else if (file.uri) {
+          // URI de datos (data:...) u otro formato
+          const blobResponse = await fetch(file.uri);
+          const blob = await blobResponse.blob();
+          formData.append('files', blob, file.name || `archivo_${index}`);
+        }
+      }
+    } else {
+      // React Native (iOS / Android): formato { uri, type, name }
+      files.forEach((file, index) => {
+        formData.append('files', {
+          uri: file.uri,
+          type: file.mimeType || file.type || 'application/octet-stream',
+          name: file.name || file.fileName || `archivo_${index}`,
+        } as any);
+      });
+    }
+
+    console.log(`[FilesService] Subiendo ${files.length} archivo(s) al grupo ${groupId} (platform: ${Platform.OS})...`);
 
     try {
       // FETCH NATIVO: evita el bug de Axios con FormData en Android

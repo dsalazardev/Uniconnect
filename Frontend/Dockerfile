@@ -22,7 +22,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN npm install -g expo-cli
+# expo-cli global está deprecado desde SDK 50; npx usa el local de node_modules
 RUN npx expo export -p web
 
 # ETAPA 2: Runner (Nginx)

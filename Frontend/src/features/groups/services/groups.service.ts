@@ -11,6 +11,7 @@ import {
   GroupInfo,
   JoinRequestResponse,
   DirectMessageResponse,
+  OwnershipTransferResponse,
 } from '../types';
 
 class GroupsService {
@@ -25,9 +26,9 @@ class GroupsService {
         },
       });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear grupo:', error);
-      throw error;
+      throw new Error(error.response?.data?.message || 'No se pudo crear el grupo');
     }
   }
 
@@ -527,6 +528,61 @@ class GroupsService {
     } catch (error) {
       console.error('Error al transferir propiedad:', error);
       throw error;
+    }
+  }
+
+  // ==================== TRANSFERENCIA CON CONFIRMACIÓN (US-W02) ====================
+
+  /**
+   * POST /groups/:id/request-ownership-transfer/:candidateId
+   * El owner designa un candidato. El candidato queda en pending_owner_id.
+   */
+  async requestOwnershipTransfer(groupId: number, candidateId: number, token: string): Promise<OwnershipTransferResponse> {
+    try {
+      const response = await axios.post(
+        groupJoinRequestsEndpoints.requestOwnershipTransfer(groupId, candidateId),
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('[GroupsService] requestOwnershipTransfer error:', error);
+      throw new Error(error.response?.data?.message || 'No se pudo solicitar la transferencia.');
+    }
+  }
+
+  /**
+   * DELETE /groups/:id/cancel-ownership-transfer
+   * El owner cancela la solicitud pendiente.
+   */
+  async cancelOwnershipTransfer(groupId: number, token: string): Promise<{ message: string }> {
+    try {
+      const response = await axios.delete(
+        groupJoinRequestsEndpoints.cancelOwnershipTransfer(groupId),
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('[GroupsService] cancelOwnershipTransfer error:', error);
+      throw new Error(error.response?.data?.message || 'No se pudo cancelar la transferencia.');
+    }
+  }
+
+  /**
+   * PATCH /groups/:id/accept-ownership-transfer
+   * El candidato acepta la transferencia.
+   */
+  async acceptOwnershipTransfer(groupId: number, token: string): Promise<OwnershipTransferResponse> {
+    try {
+      const response = await axios.patch(
+        groupJoinRequestsEndpoints.acceptOwnershipTransfer(groupId),
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('[GroupsService] acceptOwnershipTransfer error:', error);
+      throw new Error(error.response?.data?.message || 'No se pudo aceptar la transferencia.');
     }
   }
 }

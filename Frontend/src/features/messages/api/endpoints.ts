@@ -1,9 +1,11 @@
 import { API_BASE_URL } from '@/src/constants/api';
 
 export const messagesEndpoints = {
-  // Obtener mensajes recientes de un grupo
-  getRecentMessages: (groupId: number, limit: number = 50) =>
-    `${API_BASE_URL}/messages/group/${groupId}/recent?limit=${limit}`,
+  // Obtener mensajes recientes de un grupo (con cursor para paginación infinita)
+  getRecentMessages: (groupId: number, limit: number = 50, beforeId?: number) => {
+    const base = `${API_BASE_URL}/messages/group/${groupId}/recent?limit=${limit}`;
+    return beforeId ? `${base}&beforeId=${beforeId}` : base;
+  },
   
   // Buscar mensajes en un grupo
   searchMessages: (groupId: number, query: string) =>

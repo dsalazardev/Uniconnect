@@ -18,10 +18,7 @@ export const useGroups = () => {
       showToast.success('Éxito', 'Grupo creado correctamente');
     },
     onError: (error: unknown) => {
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'No se pudo crear el grupo'
-        : 'No se pudo crear el grupo';
-      showToast.error('Error', errorMessage);
+      console.error('[useGroups] createGroup error:', error);
     },
   });
 
@@ -36,8 +33,8 @@ export const useGroups = () => {
       showToast.success('Éxito', 'Grupo actualizado correctamente');
     },
     onError: (error: unknown) => {
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'No se pudo actualizar el grupo'
+      const errorMessage = error instanceof Error
+        ? error.message
         : 'No se pudo actualizar el grupo';
       showToast.error('Error', errorMessage);
     },
@@ -54,16 +51,19 @@ export const useGroups = () => {
       showToast.success('Éxito', 'Grupo eliminado correctamente');
     },
     onError: (error: unknown) => {
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message || 'No se pudo eliminar el grupo'
+      const errorMessage = error instanceof Error
+        ? error.message
         : 'No se pudo eliminar el grupo';
       showToast.error('Error', errorMessage);
     },
   });
 
   return {
-    createGroup: createMutation.mutate,
+    createGroup: createMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    createError: createMutation.error instanceof Error
+      ? createMutation.error.message
+      : null,
     updateGroup: updateMutation.mutate,
     isUpdating: updateMutation.isPending,
     deleteGroup: deleteMutation.mutate,

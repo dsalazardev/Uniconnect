@@ -8,3 +8,6 @@ export { GroupMembersTab } from './GroupMembersTab';
 export { GroupInfoHeader } from './GroupInfoHeader';
 export { GroupInfoModal } from './GroupInfoModal';
 export { InviteToGroupModal } from './InviteToGroupModal';
+export { GroupAdminPanel } from './GroupAdminPanel';
+// Banner de transferencia de administración (US-W02 — CA-4)
+export { TransferInvitationBanner } from './TransferInvitationBanner';

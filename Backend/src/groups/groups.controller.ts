@@ -75,6 +75,45 @@ export class GroupsController {
     return this.groupsService.findUserDirectMessages(userId);
   }
 
+  @Get('owner/pending-requests')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Solicitudes de unión pendientes de todos los grupos del owner',
+    description: 'Retorna todos los grupos del usuario autenticado que tienen solicitudes pendientes, agrupadas por grupo.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de grupos con sus solicitudes pendientes.',
+    schema: {
+      example: [
+        {
+          id_group: 1,
+          name: 'Grupo Cálculo I',
+          description: 'Grupo de estudio',
+          joinRequests: [
+            {
+              id_request: 5,
+              status: 'pending',
+              requested_at: '2026-04-26T10:00:00Z',
+              requester: {
+                id_user: 12,
+                full_name: 'Ana García',
+                picture: null,
+                email: 'ana@ucaldas.edu.co',
+                program: { name: 'Ingeniería de Sistemas' },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado.' })
+  getAllPendingRequestsForOwner(@GetClaim('sub') userId: number) {
+    const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.groupsService.getAllPendingRequestsForOwner(numericUserId);
+  }
+
   @Get('by-course/:courseId')
   @ApiOperation({ summary: 'Buscar grupos por materia específica' })
   @ApiResponse({ status: 200, description: 'Lista de grupos de la materia.' })
@@ -288,6 +327,65 @@ export class GroupsController {
     @GetClaim('sub') userId: number,
   ) {
     return this.groupsService.transferOwnership(groupId, newOwnerId, userId);
+  }
+
+  // =====================================================
+  // TRANSFERENCIA CON CONFIRMACIÓN (US-W02 — Paso 5)
+  // =====================================================
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/request-ownership-transfer/:candidateId')
+  @ApiOperation({
+    summary: 'US-W02: Solicitar transferencia de propiedad con confirmación',
+    description: 'El owner designa un candidato. El candidato queda en pending_owner_id hasta que acepte o el owner cancele.',
+  })
+  @ApiResponse({ status: 201, description: 'Solicitud enviada al candidato.' })
+  @ApiResponse({ status: 400, description: 'Ya existe una transferencia pendiente, candidato no es miembro, o intento de auto-transferencia.' })
+  @ApiResponse({ status: 403, description: 'Solo el propietario puede iniciar la transferencia.' })
+  @ApiResponse({ status: 404, description: 'Grupo o candidato no encontrado.' })
+  requestOwnershipTransfer(
+    @Param('id', ParseIntPipe) groupId: number,
+    @Param('candidateId', ParseIntPipe) candidateId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.groupsService.requestOwnershipTransfer(groupId, candidateId, numericUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/accept-ownership-transfer')
+  @ApiOperation({
+    summary: 'US-W02: Candidato acepta la transferencia de propiedad',
+    description: 'Solo el usuario en pending_owner_id puede llamar este endpoint. Ejecuta el cambio de owner y limpia el campo pendiente.',
+  })
+  @ApiResponse({ status: 200, description: 'Transferencia aceptada. Ahora eres el propietario.' })
+  @ApiResponse({ status: 400, description: 'No hay transferencia pendiente.' })
+  @ApiResponse({ status: 403, description: 'No eres el candidato designado.' })
+  @ApiResponse({ status: 404, description: 'Grupo no encontrado.' })
+  acceptOwnershipTransfer(
+    @Param('id', ParseIntPipe) groupId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.groupsService.acceptOwnershipTransfer(groupId, numericUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/cancel-ownership-transfer')
+  @ApiOperation({
+    summary: 'US-W02: Owner cancela la solicitud de transferencia pendiente',
+    description: 'Devuelve pending_owner_id a null. El owner queda libre de abandonar el grupo si lo desea.',
+  })
+  @ApiResponse({ status: 200, description: 'Transferencia cancelada.' })
+  @ApiResponse({ status: 400, description: 'No hay transferencia pendiente para cancelar.' })
+  @ApiResponse({ status: 403, description: 'Solo el propietario puede cancelar.' })
+  @ApiResponse({ status: 404, description: 'Grupo no encontrado.' })
+  cancelOwnershipTransfer(
+    @Param('id', ParseIntPipe) groupId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+    return this.groupsService.cancelOwnershipTransfer(groupId, numericUserId);
   }
 
   @UseGuards(JwtAuthGuard, GroupOwnershipGuard)

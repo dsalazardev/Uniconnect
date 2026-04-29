@@ -130,6 +130,14 @@ export const useUserNotifications = ({ token }: UseUserNotificationsOptions) => 
         // El solicitante fue rechazado: mostrar mensaje y quedarse en Grupos
         router.push('/(tabs)/groups');
         break;
+
+      case 'mention':
+        if (notification.related_entity_id) {
+          router.push(`/groups/${notification.related_entity_id}` as any);
+        } else {
+          router.push('/(tabs)/groups');
+        }
+        break;
     }
   }, [router, markAsRead]);
 

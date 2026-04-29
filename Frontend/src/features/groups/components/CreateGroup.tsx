@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -19,53 +18,61 @@ import { showToast } from "@/src/lib/toast";
 interface CreateGroupModalProps {
   visible: boolean;
   onClose: () => void;
+  /** Ahora es async: resuelve en éxito, lanza en error */
   onSave: (groupData: {
     name: string;
     description: string;
     id_course: number;
-  }) => void;
+  }) => Promise<void>;
+  isCreating?: boolean;
 }
 
 export const CreateGroupModal = ({
   visible,
   onClose,
   onSave,
+  isCreating = false,
 }: CreateGroupModalProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [showCourseDropdown, setShowCourseDropdown] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
-  // Obtener cursos disponibles
   const { data: courses, isLoading: loadingCourses } = useQuery<Course[]>({
     queryKey: ["owner-active-courses"],
     queryFn: courseService.getOwnActiveCourses,
     enabled: visible,
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
       showToast.error("Error", "El nombre del grupo es obligatorio");
       return;
     }
-
     if (!description.trim()) {
       showToast.error("Error", "La descripción del grupo es obligatoria");
       return;
     }
-
     if (!selectedCourseId) {
       showToast.error("Error", "Debes seleccionar un curso");
       return;
     }
 
-    onSave({
-      name: name.trim(),
-      description: description.trim(),
-      id_course: selectedCourseId,
-    });
+    setInlineError(null);
 
-    handleClose();
+    try {
+      await onSave({
+        name: name.trim(),
+        description: description.trim(),
+        id_course: selectedCourseId,
+      });
+      handleClose();
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "No se pudo crear el grupo";
+      setInlineError(message);
+    }
   };
 
   const handleClose = () => {
@@ -73,12 +80,14 @@ export const CreateGroupModal = ({
     setDescription("");
     setSelectedCourseId(null);
     setShowCourseDropdown(false);
+    setInlineError(null);
     onClose();
   };
 
   const selectCourse = (courseId: number) => {
     setSelectedCourseId(courseId);
     setShowCourseDropdown(false);
+    setInlineError(null);
   };
 
   const selectedCourse = courses?.find((c: Course) => c.id_course === selectedCourseId);
@@ -196,20 +205,37 @@ export const CreateGroupModal = ({
             </View>
           </ScrollView>
 
+          {/* Banner de error inline — visible sin cerrar el modal */}
+          {inlineError && (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle-outline" size={16} color="#FCA5A5" />
+              <Text style={styles.errorBannerText}>{inlineError}</Text>
+              <TouchableOpacity onPress={() => setInlineError(null)}>
+                <Ionicons name="close" size={14} color="#FCA5A5" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Footer */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
               onPress={handleClose}
+              disabled={isCreating}
             >
               <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
+              style={[styles.button, styles.saveButton, isCreating && styles.saveButtonDisabled]}
               onPress={handleSave}
+              disabled={isCreating}
             >
-              <Text style={styles.saveButtonText}>Crear Grupo</Text>
+              {isCreating ? (
+                <ActivityIndicator size="small" color="#1a1a1a" />
+              ) : (
+                <Text style={styles.saveButtonText}>Crear Grupo</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -365,9 +391,31 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: "#D9B97E",
   },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
   saveButtonText: {
     color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#FCA5A5",
+    fontWeight: "500",
   },
 });

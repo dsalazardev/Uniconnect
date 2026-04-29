@@ -41,6 +41,7 @@ export default function GroupsScreen() {
     updateGroup,
     isUpdating,
     isDeleting,
+    isCreating,
   } = useGroups();
 
   const {
@@ -67,13 +68,13 @@ export default function GroupsScreen() {
     setCreateModalVisible(true);
   };
 
-  const handleSaveNewGroup = (groupData: any) => {
-    createGroup(groupData, {
-      onSuccess: () => {
-        setCreateModalVisible(false);
-        // React Query invalidará automáticamente las queries
-      },
-    });
+  const handleSaveNewGroup = async (groupData: any) => {
+    try {
+      await createGroup(groupData);
+      setCreateModalVisible(false);
+    } catch {
+      // El error ya se muestra en el banner inline del modal — no hacer nada aquí
+    }
   };
 
   const handleEdit = (group: Group) => {
@@ -406,6 +407,7 @@ export default function GroupsScreen() {
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
         onSave={handleSaveNewGroup}
+        isCreating={isCreating}
       />
 
       <EditGroupModal

@@ -19,35 +19,31 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingData[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingMessagesRef = useRef<Set<string>>(new Set()); // Para rastrear mensajes optimistas
+  const pendingMessagesRef = useRef<Set<string>>(new Set());
+  // Cursor: id_message del mensaje más antiguo cargado
+  const oldestMessageIdRef = useRef<number | null>(null);
 
   // Cargar mensajes iniciales
   const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
       console.log(`[useChat] Cargando mensajes del grupo ${groupId}...`);
-      const data = await messagesService.getRecentMessages(groupId, 50, token);
-      console.log(`[useChat] ✅ Mensajes cargados: ${data?.length || 0} mensajes`);
-      // HOOK TRACKER: Verificar si los mensajes traen files
+      const { messages: data, hasMore: more } = await messagesService.getRecentMessages(groupId, 50, token);
+      console.log(`[useChat] ✅ Mensajes cargados: ${data?.length || 0}, hasMore: ${more}`);
+      // inverted FlatList: el índice 0 debe ser el más nuevo → invertir el array
+      setMessages(data ? [...data].reverse() : []);
+      setHasMore(more);
+      // Cursor: id del mensaje más antiguo = el último del array original (antes de invertir)
       if (data && data.length > 0) {
-        const conArchivos = data.filter((m: any) => m.files && m.files.length > 0);
-        console.log(`[Hook Tracker] Mensajes con files: ${conArchivos.length} de ${data.length}`);
-        if (conArchivos.length > 0) {
-          console.log('[Hook Tracker] Ejemplo de mensaje con files:', JSON.stringify(conArchivos[0], null, 2));
-        } else {
-          console.log('[Hook Tracker] NINGUNO tiene files. Ejemplo primer mensaje:', JSON.stringify(data[0], null, 2));
-        }
+        oldestMessageIdRef.current = data[0].id_message;
       }
-      setMessages(data || []);
       setError(null);
     } catch (err: any) {
       console.error(`[useChat] ❌ Error al cargar mensajes:`, err);
-      const errorMsg = err.message || 'Error al cargar mensajes';
-      console.error(`[useChat] Mensaje de error: ${errorMsg}`);
-      console.error(`[useChat] Status: ${err.response?.status}`);
-      console.error(`[useChat] Data: ${JSON.stringify(err.response?.data)}`);
-      setError(errorMsg);
+      setError(err.message || 'Error al cargar mensajes');
     } finally {
       setLoading(false);
     }
@@ -78,11 +74,10 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Escuchar nuevos mensajes
     const handleNewMessage = (rawMessage: any) => {
-      // WEBSOCKET TRACKER
-      console.log('[WebSocket Tracker] Nuevo mensaje recibido por WS:', JSON.stringify(rawMessage, null, 2));
-      console.log('[WebSocket Tracker] Tiene files?:', !!rawMessage.files, '| Cantidad:', rawMessage.files?.length || 0);
+      console.log('[WS] message:new recibido — id:', rawMessage.id_message, '| files:', rawMessage.files?.length ?? 0, '| text:', rawMessage.text_content?.slice(0, 30));
 
-      // Normalizar: el gateway emite { user, group, files } pero la UI espera { membership: { user, group }, files }
+      // Si tiene archivos pero no texto, es un mensaje de archivo puro — siempre agregar
+      const hasFiles = (rawMessage.files?.length ?? 0) > 0;
       const message: Message = {
         id_message: rawMessage.id_message,
         id_membership: rawMessage.id_membership,
@@ -102,10 +97,15 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
       const textContent = (message.text_content || '').trim();
 
+      // Mensajes con archivos (texto vacío) nunca son optimistas — siempre agregar directamente
+      if (hasFiles && !textContent) {
+        setMessages((prev) => [message, ...prev]);
+        return;
+      }
+
       // Si es un mensaje que ya agregamos optimísticamente, no lo duplicamos
       if (textContent && pendingMessagesRef.current.has(textContent)) {
         pendingMessagesRef.current.delete(textContent);
-        // Reemplazar el mensaje temporal con el del servidor (tiene id_message real)
         setMessages((prev) => {
           const tempIndex = prev.findIndex(
             (msg) => msg.id_message < 0 && msg.text_content === message.text_content
@@ -115,11 +115,10 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
             newMessages[tempIndex] = message;
             return newMessages;
           }
-          return [...prev, message];
+          return [message, ...prev];
         });
       } else {
-        // Mensaje de otro usuario, mensaje de archivos, o mensaje que no fue optimista
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => [message, ...prev]);
       }
     };
 
@@ -159,6 +158,22 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     websocketService.onMessageDeleted(handleMessageDeleted);
     websocketService.onUserTyping(handleUserTyping);
 
+    // Escuchar menciones al usuario actual
+    const handleMention = (data: {
+      id_message: number;
+      mentioned_user_id: number;
+      sender_name: string;
+      text_content: string;
+      id_group: number;
+    }) => {
+      if (data.mentioned_user_id === userId) {
+        console.log(`[useChat] 🔔 Mención recibida de ${data.sender_name}: "${data.text_content}"`);
+        // El resaltado visual lo maneja WithMentions en MessageBubble.
+        // Aquí se puede disparar una notificación push o badge en el futuro.
+      }
+    };
+    websocketService.on('message:mention', handleMention);
+
     // Cargar mensajes iniciales
     loadMessages();
 
@@ -169,6 +184,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off('message:edited', handleMessageEdited);
       websocketService.off('message:deleted', handleMessageDeleted);
       websocketService.off('user:typing', handleUserTyping);
+      websocketService.off('message:mention', handleMention);
     };
   }, [groupId, userId, token, serverUrl, loadMessages]);
 
@@ -205,8 +221,8 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       },
     };
 
-    // Agregar mensaje optimista a la UI inmediatamente
-    setMessages((prev) => [...prev, optimisticMessage]);
+    // Agregar mensaje optimista al inicio (índice 0 = más nuevo con inverted)
+    setMessages((prev) => [optimisticMessage, ...prev]);
     
     // Marcar este mensaje como pendiente
     pendingMessagesRef.current.add(text.trim());
@@ -257,10 +273,32 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     }
   }, [userId]);
 
-  // Cargar más mensajes (scroll infinito)
-  const loadMoreMessages = useCallback((page: number, limit: number = 20) => {
-    websocketService.loadHistory({ page, limit });
-  }, []);
+  // Cargar mensajes más antiguos (scroll hacia arriba — paginación por cursor)
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMore || oldestMessageIdRef.current === null) return;
+
+    setIsLoadingMore(true);
+    try {
+      const { messages: older, hasMore: more } = await messagesService.getRecentMessages(
+        groupId,
+        50,
+        token,
+        oldestMessageIdRef.current,
+      );
+      console.log(`[useChat] loadMore: ${older.length} mensajes más antiguos, hasMore: ${more}`);
+
+      if (older.length > 0) {
+        // Con inverted: los más antiguos van al FINAL del array
+        setMessages((prev) => [...prev, ...older.reverse()]);
+        oldestMessageIdRef.current = older[0].id_message;
+      }
+      setHasMore(more);
+    } catch (err: any) {
+      console.error('[useChat] Error al cargar más mensajes:', err.message);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [groupId, token, isLoadingMore, hasMore]);
 
   // Buscar mensajes
   const searchMessages = useCallback((query: string) => {
@@ -278,6 +316,8 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     error,
     isConnected,
     typingUsers,
+    hasMore,
+    isLoadingMore,
     sendMessage,
     editMessage,
     deleteMessage,

@@ -119,4 +119,18 @@ export const groupJoinRequestsEndpoints = {
   // Transferir propiedad del grupo
   transferOwnership: (groupId: number, newOwnerId: number) =>
     `${API_BASE_URL}/groups/${groupId}/transfer-ownership/${newOwnerId}`,
+
+  // ==================== TRANSFERENCIA CON CONFIRMACIÓN (US-W02) ====================
+
+  // Solicitar transferencia al candidato (owner → candidato)
+  requestOwnershipTransfer: (groupId: number, candidateId: number) =>
+    `${API_BASE_URL}/groups/${groupId}/request-ownership-transfer/${candidateId}`,
+
+  // Cancelar transferencia pendiente (solo owner)
+  cancelOwnershipTransfer: (groupId: number) =>
+    `${API_BASE_URL}/groups/${groupId}/cancel-ownership-transfer`,
+
+  // Aceptar transferencia (solo el candidato designado)
+  acceptOwnershipTransfer: (groupId: number) =>
+    `${API_BASE_URL}/groups/${groupId}/accept-ownership-transfer`,
 };

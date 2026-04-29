@@ -12,7 +12,8 @@ export type NotificationType =
   | 'user_joined_group'
   | 'group_join_request'
   | 'group_join_request_accepted'
-  | 'group_join_request_rejected';
+  | 'group_join_request_rejected'
+  | 'mention';
 
 export type Notification = {
   id_notification: number;

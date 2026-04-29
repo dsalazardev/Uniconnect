@@ -16,6 +16,7 @@ import { GroupInfoHeader } from './GroupInfoHeader';
 import { GroupMembersTab } from './GroupMembersTab';
 import { InviteToGroupModal } from './InviteToGroupModal';
 import { JoinRequestsList } from './JoinRequestsList';
+import { TransferInvitationBanner } from './TransferInvitationBanner';
 
 interface GroupInfoModalProps {
   groupId: number;
@@ -75,6 +76,14 @@ export const GroupInfoModal = ({ groupId, visible, onClose }: GroupInfoModalProp
         ) : groupInfo ? (
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             <GroupInfoHeader groupInfo={groupInfo} onJoinSuccess={onClose} />
+
+            {/* Banner de propuesta de administración — visible solo para el candidato */}
+            <TransferInvitationBanner
+              groupId={groupId}
+              groupName={groupInfo.name}
+              pendingOwnerId={groupInfo.pending_owner_id}
+              ownerName={groupInfo.owner?.full_name}
+            />
 
             {/* Solicitudes de unión – solo visible para el owner */}
             {groupInfo.isOwner && (

@@ -5,28 +5,27 @@ import { Message, MessageEditRequest, MessageCount, MessageSearchResponse } from
 class MessagesService {
   /**
    * Obtener mensajes recientes de un grupo
+   * @param beforeId cursor: id_message del mensaje más antiguo ya cargado (para paginación)
    */
-  async getRecentMessages(groupId: number, limit: number = 50, token: string): Promise<Message[]> {
+  async getRecentMessages(
+    groupId: number,
+    limit: number = 50,
+    token: string,
+    beforeId?: number,
+  ): Promise<{ messages: Message[]; hasMore: boolean }> {
     try {
-      const endpoint = messagesEndpoints.getRecentMessages(groupId, limit);
+      const endpoint = messagesEndpoints.getRecentMessages(groupId, limit, beforeId);
       console.log(`[MessagesService] GET ${endpoint}`);
       const response = await axios.get(endpoint, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(`[MessagesService] ✅ GET ${endpoint} - Status: ${response.status} - ${response.data?.length || 0} mensajes`);
-      // LOG DE AUDITORIA DE DATOS:
-      if (response.data && response.data.length > 0) {
-        console.log('[Data Tracker] Primer mensaje del historial:', JSON.stringify(response.data[0], null, 2));
-        console.log('[Data Tracker] Primer mensaje tiene files?:', !!response.data[0].files, '| Cantidad:', response.data[0].files?.length || 0);
-      }
+      console.log(
+        `[MessagesService] ✅ ${endpoint} - ${response.data?.messages?.length || 0} mensajes, hasMore: ${response.data?.hasMore}`,
+      );
       return response.data;
     } catch (error: any) {
-      const endpoint = messagesEndpoints.getRecentMessages(groupId, limit);
+      const endpoint = messagesEndpoints.getRecentMessages(groupId, limit, beforeId);
       console.error(`[MessagesService] ❌ GET ${endpoint} - Error:`, error.message);
-      console.error(`[MessagesService] Status: ${error.response?.status}`);
-      console.error(`[MessagesService] Data: ${JSON.stringify(error.response?.data)}`);
       throw error;
     }
   }

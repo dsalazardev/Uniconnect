@@ -67,11 +67,11 @@ class WebSocketService {
         console.log('Autenticando con datos pendientes...');
         this.authenticate(this.pendingAuthData);
         this.pendingAuthData = null;
-      } else if (this.currentUserId && this.currentMembershipId && this.currentGroupId) {
+      } else if (this.currentUserId && this.currentGroupId) {
         console.log('Re-autenticando sesión previa...');
         this.authenticate({
           id_user: this.currentUserId,
-          id_membership: this.currentMembershipId,
+          id_membership: this.currentMembershipId ?? undefined,
           id_group: this.currentGroupId,
         });
       }
@@ -295,6 +295,13 @@ class WebSocketService {
    */
   onNotificationReceived(callback: (data: any) => void) {
     this.socket?.on('notification:new', callback);
+  }
+
+  /**
+   * Suscribirse a cualquier evento del socket (genérico)
+   */
+  on(event: string, callback: (...args: any[]) => void) {
+    this.socket?.on(event, callback);
   }
 
   /**

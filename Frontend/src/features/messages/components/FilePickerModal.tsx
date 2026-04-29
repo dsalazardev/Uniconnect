@@ -21,6 +21,8 @@ interface SelectedFile {
   mimeType: string;
   size: number;
   isImage: boolean;
+  /** Solo en web: objeto File nativo del navegador */
+  file?: File;
 }
 
 interface FilePickerModalProps {
@@ -60,6 +62,7 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
           mimeType: asset.mimeType || 'image/jpeg',
           size: asset.fileSize || 0,
           isImage: true,
+          file: (asset as any).file ?? undefined,
         }));
 
         const allFiles = [...selectedFiles, ...files];
@@ -91,6 +94,8 @@ export const FilePickerModal: React.FC<FilePickerModalProps> = ({
           mimeType: asset.mimeType || 'application/octet-stream',
           size: asset.size || 0,
           isImage: (asset.mimeType || '').startsWith('image/'),
+          // En web, expo-document-picker expone el File nativo — lo preservamos
+          file: (asset as any).file ?? undefined,
         }));
 
         const allFiles = [...selectedFiles, ...files];

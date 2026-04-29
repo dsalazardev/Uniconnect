@@ -1,0 +1,25 @@
+# fly.toml - Uniconnect Frontend (Expo Web / nginx)
+app = 'uniconnect-frontend-uc'
+primary_region = 'iad'
+
+[build]
+  [build.args]
+    EXPO_PUBLIC_API_URL            = 'https://uniconnect-backend-core-black-wave-3099.fly.dev/api'
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID     = '121639712366-pfrjd8tif8f6no4htd5lskm6osfkf0jn.apps.googleusercontent.com'
+    EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID     = '121639712366-i35usri5h6ok8d3oo8d91s4r5ndc7qrm.apps.googleusercontent.com'
+    EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID = '860680710099-g5i5nunmdg3kgsf5bv0knug2cavg9oar.apps.googleusercontent.com'
+    EXPO_PUBLIC_AUTH0_DOMAIN       = 'dev-tuflbr5cbjtkf3zm.us.auth0.com'
+    EXPO_PUBLIC_AUTH0_CLIENT_ID    = 'fP8oFibh9VcVPS7Ly9HHb2vQBdFHDNO2'
+    EXPO_PUBLIC_AUTH0_AUDIENCE     = 'https://dev-tuflbr5cbjtkf3zm.us.auth0.com/api/v2/'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256
