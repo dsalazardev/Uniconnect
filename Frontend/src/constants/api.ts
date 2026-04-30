@@ -90,6 +90,20 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   async (config) => {
+    // ============================================================================
+    // AUTH GATEKEEPER: Wait for initialization to prevent 401 spam
+    // ============================================================================
+    const maxWait = 5000; // 5 seconds timeout
+    const startTime = Date.now();
+    
+    while (!authStore.isInitialized && Date.now() - startTime < maxWait) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    if (!authStore.isInitialized) {
+      console.warn('⚠️ [API Gatekeeper] Initialization timeout, proceeding anyway');
+    }
+
     const token = authStore.accessToken;
 
     // ⭐ DIAGNOSTIC: Log token status

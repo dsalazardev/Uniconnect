@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,13 +21,26 @@ interface GroupInfoModalProps {
   groupId: number;
   visible: boolean;
   onClose: () => void;
+  /** Si true (viene de notificación push), hace scroll automático al banner de aceptación */
+  scrollToAccept?: boolean;
 }
 
-export const GroupInfoModal = ({ groupId, visible, onClose }: GroupInfoModalProps) => {
-  // ✅ TODOS los hooks al inicio del componente (sin early return antes)
+export const GroupInfoModal = ({ groupId, visible, onClose, scrollToAccept = false }: GroupInfoModalProps) => {
   const { data: groupInfo, isLoading, error } = useGroupInfo(groupId);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const bannerYRef = useRef<number>(0);
+
+  // Cuando los datos cargan y viene de notificación, hacer scroll al banner
+  useEffect(() => {
+    if (scrollToAccept && groupInfo && !isLoading && bannerYRef.current > 0) {
+      // Pequeño delay para que el layout esté listo
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: bannerYRef.current, animated: true });
+      }, 300);
+    }
+  }, [scrollToAccept, groupInfo, isLoading]);
 
   // ✅ Modal maneja visible internamente, no necesitamos early return
   return (
@@ -74,16 +86,26 @@ export const GroupInfoModal = ({ groupId, visible, onClose }: GroupInfoModalProp
             <Text style={styles.errorText}>Error al cargar información</Text>
           </View>
         ) : groupInfo ? (
-          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
             <GroupInfoHeader groupInfo={groupInfo} onJoinSuccess={onClose} />
 
             {/* Banner de propuesta de administración — visible solo para el candidato */}
-            <TransferInvitationBanner
-              groupId={groupId}
-              groupName={groupInfo.name}
-              pendingOwnerId={groupInfo.pending_owner_id}
-              ownerName={groupInfo.owner?.full_name}
-            />
+            <View
+              onLayout={(e) => {
+                bannerYRef.current = e.nativeEvent.layout.y;
+              }}
+            >
+              <TransferInvitationBanner
+                groupId={groupId}
+                groupName={groupInfo.name}
+                pendingOwnerId={groupInfo.pending_owner_id}
+                ownerName={groupInfo.owner?.full_name}
+              />
+            </View>
 
             {/* Solicitudes de unión – solo visible para el owner */}
             {groupInfo.isOwner && (
@@ -105,7 +127,7 @@ export const GroupInfoModal = ({ groupId, visible, onClose }: GroupInfoModalProp
 
             <View style={styles.membersSection}>
               <Text style={styles.sectionTitle}>Miembros del Grupo</Text>
-              <GroupMembersTab groupInfo={groupInfo} />
+              <GroupMembersTab groupInfo={groupInfo} onClose={onClose} />
             </View>
           </ScrollView>
         ) : null}

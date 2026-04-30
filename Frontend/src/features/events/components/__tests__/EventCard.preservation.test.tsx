@@ -75,8 +75,8 @@ describe('Preservation Tests - EventCard Existing Behaviors', () => {
             location: fc.string({ minLength: 1, maxLength: 100 }),
             type: fc.constantFrom(...Object.values(EventType)),
             created_by: fc.integer({ min: 1, max: 1000 }),
-            createdAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).map(d => d.toISOString()),
-            updatedAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).map(d => d.toISOString()),
+            createdAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).filter(d => !isNaN(d.getTime())).map(d => d.toISOString()),
+            updatedAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).filter(d => !isNaN(d.getTime())).map(d => d.toISOString()),
           }),
           async (eventData) => {
             const event: Event = eventData;
@@ -143,8 +143,8 @@ describe('Preservation Tests - EventCard Existing Behaviors', () => {
             location: fc.string({ minLength: 1, maxLength: 100 }),
             type: fc.constantFrom(...Object.values(EventType)),
             created_by: fc.integer({ min: 1, max: 1000 }),
-            createdAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).map(d => d.toISOString()),
-            updatedAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).map(d => d.toISOString()),
+            createdAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).filter(d => !isNaN(d.getTime())).map(d => d.toISOString()),
+            updatedAt: fc.date({ min: new Date('2000-01-01'), max: new Date('2099-12-31') }).filter(d => !isNaN(d.getTime())).map(d => d.toISOString()),
           }),
           async (eventData) => {
             const event: Event = eventData;

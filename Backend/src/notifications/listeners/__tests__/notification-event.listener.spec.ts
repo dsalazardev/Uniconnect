@@ -1,19 +1,32 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationEventListener } from '../notification-event.listener';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationsService } from '../../notifications.service';
 import { createPrismaMock } from '../../../test/mocks/prisma.mock';
 
 describe('NotificationEventListener - Observer Pattern (Event Reactions)', () => {
   let listener: NotificationEventListener;
   let prisma: ReturnType<typeof createPrismaMock>;
+  let notificationsService: jest.Mocked<NotificationsService>;
 
   beforeEach(async () => {
     prisma = createPrismaMock();
+    
+    // Create mock for NotificationsService
+    notificationsService = {
+      createNotificationIdempotent: jest.fn(),
+      findAllForUser: jest.fn(),
+      getUnreadCount: jest.fn(),
+      markAsRead: jest.fn(),
+      markAllAsRead: jest.fn(),
+      saveExpoPushToken: jest.fn(),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationEventListener,
         { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notificationsService },
       ],
     }).compile();
 
@@ -265,7 +278,7 @@ describe('NotificationEventListener - Observer Pattern (Event Reactions)', () =>
 
   describe('handleGroupJoinRequestAccepted', () => {
     it('should create notification for requester', async () => {
-      prisma.notification.create.mockResolvedValue({ id_notification: 1 } as any);
+      notificationsService.createNotificationIdempotent.mockResolvedValue();
 
       await listener.handleGroupJoinRequestAccepted({
         id_request: 1,
@@ -275,17 +288,16 @@ describe('NotificationEventListener - Observer Pattern (Event Reactions)', () =>
         accepted_at: new Date(),
       });
 
-      expect(prisma.notification.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          id_user: 3,
-          notification_type: 'group_join_request_accepted',
-          related_entity_id: 1,
-        }),
+      expect(notificationsService.createNotificationIdempotent).toHaveBeenCalledWith({
+        id_user: 3,
+        message: 'Tu solicitud para unirte al grupo "Test Group" fue aceptada',
+        notification_type: 'group_join_request_accepted',
+        related_entity_id: 1,
       });
     });
 
     it('should not throw if BD fails', async () => {
-      prisma.notification.create.mockRejectedValue(new Error('DB Error'));
+      notificationsService.createNotificationIdempotent.mockRejectedValue(new Error('DB Error'));
 
       await expect(
         listener.handleGroupJoinRequestAccepted({

@@ -664,7 +664,11 @@ src/
    - **UI CONDICIONAL**: Botones de editar/eliminar solo visibles para creador o superadmin
    - **VALIDACIÓN**: EditEventModal valida event.id antes de enviar requests
 7. **Archivos**: Validación MIME, almacenamiento en S3, URLs presignadas
-8. **Notificaciones**: Push automáticas para eventos importantes
+8. **Notificaciones**: 
+   - Push automáticas para eventos importantes
+   - **IDEMPOTENCIA**: Sistema de prevención de duplicados con ventana de 5 segundos
+   - **CONSOLIDACIÓN DE EVENTOS**: Un solo evento por acción para evitar notificaciones redundantes
+   - **PATRÓN IMPLEMENTADO**: `createNotificationIdempotent()` con validación temporal y logging defensivo
 9. **Comunidad**: 
    - Vista de "Mis Amigos" muestra usuarios con conexión aceptada
    - Vista de "Comunidad General" muestra usuarios sin conexión aceptada
@@ -1070,6 +1074,117 @@ export class RolesService {
   }
 }
 ```
+
+### 🔔 PATRÓN DE NOTIFICACIONES: IDEMPOTENCIA Y CONSOLIDACIÓN DE EVENTOS
+
+#### 1. IDEMPOTENCIA DE NOTIFICACIONES (FIX-16)
+```typescript
+// ✅ PATRÓN OBLIGATORIO - Prevención de duplicados
+interface CreateNotificationData {
+  id_user: number;
+  message: string;
+  notification_type: string;
+  related_entity_id: number;
+}
+
+async createNotificationIdempotent(data: CreateNotificationData): Promise<void> {
+  // Ventana de 5 segundos para detectar duplicados
+  const fiveSecondsAgo = new Date(Date.now() - 5000);
+
+  // Buscar notificación duplicada en la ventana temporal
+  const existing = await this.prisma.notification.findFirst({
+    where: {
+      id_user: data.id_user,
+      related_entity_id: data.related_entity_id,
+      notification_type: data.notification_type,
+      created_at: { gte: fiveSecondsAgo },
+    },
+  });
+
+  if (existing) {
+    this.logger.warn(
+      `Duplicate notification prevented: user=${data.id_user}, type=${data.notification_type}`,
+    );
+    return;
+  }
+
+  // Crear notificación si no existe duplicado
+  await this.prisma.notification.create({
+    data: {
+      id_user: data.id_user,
+      message: data.message,
+      notification_type: data.notification_type,
+      related_entity_id: data.related_entity_id,
+      is_read: false,
+      created_at: new Date(),
+    },
+  });
+}
+```
+
+**Características**:
+- ✅ Ventana temporal de 5 segundos para detección de duplicados
+- ✅ Validación defensiva con logging de duplicados prevenidos
+- ✅ Índice de base de datos para optimizar búsquedas: `(id_user, created_at, notification_type)`
+- ✅ Tipado estricto sin `any`
+- ✅ Manejo de errores con try/catch
+
+#### 2. CONSOLIDACIÓN DE EVENTOS (FIX-16)
+```typescript
+// ✅ PATRÓN OBLIGATORIO - Un evento por acción
+// En GroupsService.acceptJoinRequest():
+// ❌ ANTES: Emitía 2 eventos (GROUP_JOIN_REQUEST_ACCEPTED + USER_JOINED_GROUP)
+// ✅ DESPUÉS: Emite solo GROUP_JOIN_REQUEST_ACCEPTED
+
+async acceptJoinRequest(requestId: number, userId: number) {
+  // ... validaciones ...
+  
+  // Crear membresía
+  await this.prisma.membership.create({
+    data: { id_user: requester.requester_id, id_group: request.id_group },
+  });
+
+  // ✅ Emitir SOLO un evento consolidado
+  this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED, {
+    id_request: requestId,
+    requester_id: requester.requester_id,
+    group_name: group.name,
+  });
+  
+  // ❌ NO emitir USER_JOINED_GROUP aquí (evita duplicados)
+}
+```
+
+**Beneficios**:
+- ✅ Una sola notificación por acción (no duplicadas)
+- ✅ Listener usa `createNotificationIdempotent()` para máxima seguridad
+- ✅ Flujo de invitaciones mantiene ambos eventos (consolidación selectiva)
+- ✅ Reducción de carga en base de datos y WebSocket
+
+#### 3. LISTENER CON IDEMPOTENCIA
+```typescript
+// ✅ PATRÓN OBLIGATORIO - Listener defensivo
+@OnEvent(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED)
+async handleGroupJoinRequestAccepted(payload: GroupJoinRequestAcceptedPayload) {
+  try {
+    // Usar método idempotente para máxima seguridad
+    await this.notificationsService.createNotificationIdempotent({
+      id_user: payload.requester_id,
+      message: `Tu solicitud para unirte al grupo "${payload.group_name}" fue aceptada`,
+      notification_type: 'group_join_request_accepted',
+      related_entity_id: payload.id_request,
+    });
+  } catch (error) {
+    this.logger.error('Error handling GROUP_JOIN_REQUEST_ACCEPTED event:', error);
+  }
+}
+```
+
+**Características**:
+- ✅ Try/catch defensivo
+- ✅ Logging de errores para debugging
+- ✅ Uso de `createNotificationIdempotent()` para prevención de duplicados
+- ✅ Tipado estricto de payloads
 
 ### 🚨 REGLAS ESTRICTAS DE IMPLEMENTACIÓN
 
@@ -1683,8 +1798,8 @@ EXPO_PUBLIC_AUTH0_AUDIENCE="xxx"
 
 ---
 
-**Última actualización**: 26 de Abril, 2026
-**Versión del documento**: 2.1.0
+**Última actualización**: 30 de Abril, 2026
+**Versión del documento**: 2.2.0
 **Mantenido por**: Sistema de Contexto Autónomo para IA
 
 ## 🔄 MIGRACIÓN TYPEORM - ESTADO ACTUAL

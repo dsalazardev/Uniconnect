@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -16,6 +15,7 @@ import {
   useRejectJoinRequest,
 } from '../hooks/usePendingJoinRequests';
 import { GroupJoinRequest } from '../types';
+import { ConfirmModal } from '@/src/components/ConfirmModal';
 
 interface JoinRequestsListProps {
   groupId: number;
@@ -23,62 +23,36 @@ interface JoinRequestsListProps {
 }
 
 export const JoinRequestsList = ({ groupId, onEmpty }: JoinRequestsListProps) => {
-  // ✅ TODOS los hooks al inicio del componente
   const { data: requests = [], isLoading, error } = useGroupJoinRequests(groupId);
   const acceptMutation = useAcceptJoinRequest();
   const rejectMutation = useRejectJoinRequest();
 
-  // ✅ useEffect movido al inicio, después de otros hooks
+  // ID de la solicitud pendiente de confirmación de rechazo
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+
   React.useEffect(() => {
-    if (requests && requests.length === 0 && !isLoading && !error) {
+    if (requests.length === 0 && !isLoading && !error) {
       onEmpty?.(true);
     } else {
       onEmpty?.(false);
     }
   }, [requests, isLoading, error, onEmpty]);
 
-  // ✅ Funciones de handlers (no son hooks)
   const handleAccept = async (requestId: number) => {
-    try {
-      await acceptMutation.mutateAsync({ groupId, requestId });
-      Alert.alert('Éxito', 'Solicitud aceptada. El usuario se ha unido al grupo.');
-    } catch (error: unknown) {
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error.response as { data?: { message?: string } })?.data?.message 
-        : 'No se pudo aceptar la solicitud';
-      Alert.alert('Error', errorMessage || 'No se pudo aceptar la solicitud');
-    }
+    await acceptMutation.mutateAsync({ groupId, requestId });
   };
 
-  const handleReject = async (requestId: number) => {
-    Alert.alert('Rechazar solicitud', '¿Deseas rechazar esta solicitud?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Rechazar',
-        onPress: async () => {
-          try {
-            await rejectMutation.mutateAsync({ groupId, requestId });
-            Alert.alert('Solicitud rechazada', 'Se ha notificado al usuario.');
-          } catch (error: unknown) {
-            const errorMessage = error && typeof error === 'object' && 'response' in error 
-              ? (error.response as { data?: { message?: string } })?.data?.message 
-              : 'No se pudo rechazar la solicitud';
-            Alert.alert('Error', errorMessage || 'No se pudo rechazar la solicitud');
-          }
-        },
-        style: 'destructive',
-      },
-    ]);
+  const doReject = async () => {
+    if (!rejectingId) return;
+    await rejectMutation.mutateAsync({ groupId, requestId: rejectingId });
+    setRejectingId(null);
   };
 
   const renderRequest = ({ item: request }: { item: GroupJoinRequest }) => (
     <View style={styles.requestCard}>
       <View style={styles.requesterInfo}>
         {request.requester.picture ? (
-          <Image
-            source={{ uri: request.requester.picture }}
-            style={styles.avatar}
-          />
+          <Image source={{ uri: request.requester.picture }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Ionicons name="person" size={24} color="#D9B97E" />
@@ -86,13 +60,9 @@ export const JoinRequestsList = ({ groupId, onEmpty }: JoinRequestsListProps) =>
         )}
 
         <View style={styles.infoContainer}>
-          <Text style={styles.requesterName}>
-            {request.requester.full_name}
-          </Text>
+          <Text style={styles.requesterName}>{request.requester.full_name}</Text>
           {request.requester.program && (
-            <Text style={styles.programName}>
-              {request.requester.program.name}
-            </Text>
+            <Text style={styles.programName}>{request.requester.program.name}</Text>
           )}
           <Text style={styles.email}>{request.requester.email}</Text>
         </View>
@@ -113,10 +83,10 @@ export const JoinRequestsList = ({ groupId, onEmpty }: JoinRequestsListProps) =>
 
         <TouchableOpacity
           style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => handleReject(request.id_request)}
+          onPress={() => setRejectingId(request.id_request)}
           disabled={acceptMutation.isPending || rejectMutation.isPending}
         >
-          {rejectMutation.isPending ? (
+          {rejectMutation.isPending && rejectingId === request.id_request ? (
             <ActivityIndicator size="small" color="#EF4444" />
           ) : (
             <Ionicons name="close" size={20} color="#EF4444" />
@@ -126,7 +96,6 @@ export const JoinRequestsList = ({ groupId, onEmpty }: JoinRequestsListProps) =>
     </View>
   );
 
-  // ✅ Conditional rendering en JSX - DESPUÉS de todos los hooks
   return (
     <>
       {isLoading && (
@@ -134,16 +103,14 @@ export const JoinRequestsList = ({ groupId, onEmpty }: JoinRequestsListProps) =>
           <ActivityIndicator size="large" color="#D9B97E" />
         </View>
       )}
-      
+
       {error && (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={48} color="#ff6b6b" />
           <Text style={styles.errorText}>Error al cargar solicitudes</Text>
         </View>
       )}
-      
-      {!isLoading && !error && requests.length === 0 && null}
-      
+
       {!isLoading && !error && requests.length > 0 && (
         <FlatList
           data={requests}
@@ -153,6 +120,18 @@ export const JoinRequestsList = ({ groupId, onEmpty }: JoinRequestsListProps) =>
           contentContainerStyle={styles.listContent}
         />
       )}
+
+      {/* Modal de confirmación para rechazar */}
+      <ConfirmModal
+        visible={rejectingId !== null}
+        title="Rechazar solicitud"
+        message="¿Deseas rechazar esta solicitud de acceso?"
+        confirmText="Rechazar"
+        destructive
+        webFallback
+        onConfirm={doReject}
+        onCancel={() => setRejectingId(null)}
+      />
     </>
   );
 };
@@ -196,9 +175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  infoContainer: {
-    flex: 1,
-  },
+  infoContainer: { flex: 1 },
   requesterName: {
     fontSize: 14,
     fontWeight: '600',
@@ -236,12 +213,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#ff6b6b',
-    fontSize: 14,
-    marginTop: 12,
-    fontWeight: '500',
-  },
-  emptyText: {
-    color: '#999',
     fontSize: 14,
     marginTop: 12,
     fontWeight: '500',

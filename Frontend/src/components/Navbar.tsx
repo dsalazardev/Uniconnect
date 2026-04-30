@@ -15,8 +15,6 @@ import { useResponsive } from "../hooks/useResponsive";
 import { useConnections } from "../features/connections/hooks/useConnections";
 import { NotificationIcon } from "src/features/notifications/components/NotificationIcon";
 import { useNotificationsStore } from "@/src/features/notifications/store/notifications.store";
-import { notificationsService } from "@/src/features/notifications/services/notifications.service";
-import { notificationObserver } from "@/src/features/notifications/services/notification-observer.service";
 import { AppState } from "react-native";
 
 export const Navbar = () => {
@@ -26,24 +24,7 @@ export const Navbar = () => {
   const { isMobile } = useResponsive();
   const { pendingRequests } = useConnections();
   const token = authStore.accessToken || '';
-  const setUnreadCount = useNotificationsStore(state => state.setUnreadCount);
-
-  // Cargar conteo de notificaciones no leídas (igual que useConnections carga pendingRequests)
-  const loadUnreadCount = async () => {
-    if (!token) return;
-    try {
-      const data = await notificationsService.getUnreadCount(token);
-      setUnreadCount(data.count);
-    } catch (error) {
-      console.log('Error cargando conteo de notificaciones:', error);
-    }
-  };
-
-  // Cargar conteo inicial
-  useEffect(() => {
-    if (!token) return;
-    loadUnreadCount();
-  }, [token]);
+  const fetchUnreadCount = useNotificationsStore(state => state.fetchUnreadCount);
 
   // Recargar cuando vuelve a foreground (AppState)
   useEffect(() => {
@@ -51,23 +32,12 @@ export const Navbar = () => {
 
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        loadUnreadCount();
+        fetchUnreadCount(token);
       }
     });
 
     return () => subscription.remove();
-  }, [token]);
-
-  // Observer pattern: actualizar cuando se marcan notificaciones como leídas
-  useEffect(() => {
-    if (!token) return;
-
-    const unsubscribe = notificationObserver.subscribe(() => {
-      loadUnreadCount();
-    });
-
-    return unsubscribe;
-  }, [token]);
+  }, [token, fetchUnreadCount]);
 
   const handleLogout = () => {
     authController.logout();

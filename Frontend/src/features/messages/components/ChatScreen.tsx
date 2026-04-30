@@ -209,13 +209,18 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const renderTypingIndicator = () => {
     if (typingUsers.length === 0) return null;
 
-    const typingNames = typingUsers.map((u) => u.full_name).join(', ');
-    
+    let typingText: string;
+    if (typingUsers.length === 1) {
+      typingText = `${typingUsers[0].full_name} está escribiendo...`;
+    } else if (typingUsers.length === 2) {
+      typingText = `${typingUsers[0].full_name} y ${typingUsers[1].full_name} están escribiendo...`;
+    } else {
+      typingText = `${typingUsers[0].full_name} y otros están escribiendo...`;
+    }
+
     return (
       <View style={styles.typingIndicator}>
-        <Text style={styles.typingText}>
-          {typingNames} {typingUsers.length === 1 ? 'está' : 'están'} escribiendo...
-        </Text>
+        <Text style={styles.typingText}>{typingText}</Text>
       </View>
     );
   };
@@ -316,6 +321,17 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             onChangeText={handleTextChange}
             multiline
             maxLength={1000}
+            // En web: Enter envía, Shift+Enter hace salto de línea
+            onKeyPress={
+              Platform.OS === 'web'
+                ? (e: any) => {
+                    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                      e.preventDefault?.();
+                      handleSend();
+                    }
+                  }
+                : undefined
+            }
           />
 
           <TouchableOpacity

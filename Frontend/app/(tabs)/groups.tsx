@@ -69,12 +69,8 @@ export default function GroupsScreen() {
   };
 
   const handleSaveNewGroup = async (groupData: any) => {
-    try {
-      await createGroup(groupData);
-      setCreateModalVisible(false);
-    } catch {
-      // El error ya se muestra en el banner inline del modal — no hacer nada aquí
-    }
+    await createGroup(groupData);
+    setCreateModalVisible(false);
   };
 
   const handleEdit = (group: Group) => {
@@ -165,7 +161,7 @@ export default function GroupsScreen() {
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={60} color="#ff4d4d" />
           <Text style={styles.errorText}>{errorMyGroups}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={reloadMyGroups}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => reloadMyGroups()}>
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -233,7 +229,7 @@ export default function GroupsScreen() {
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={60} color="#ff4d4d" />
           <Text style={styles.errorText}>{errorDiscover}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={reloadDiscover}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => reloadDiscover()}>
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
         </View>

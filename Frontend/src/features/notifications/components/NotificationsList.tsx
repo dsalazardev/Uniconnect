@@ -16,11 +16,10 @@ import { useNotificationsStore } from '../store/notifications.store';
 
 export function NotificationsList() {
     const authToken = authStore.accessToken;
-    const setUnreadCount = useNotificationsStore(state => state.setUnreadCount);
+    const unreadCount = useNotificationsStore(state => state.unreadCount);
 
     const {
         notifications,
-        unreadCount,
         loading,
         error,
         markAllAsRead,
@@ -29,11 +28,6 @@ export function NotificationsList() {
     } = useUserNotifications({ 
         token: authToken || ''
     });
-
-    // Sincronizar el conteo global con la store
-    React.useEffect(() => {
-        setUnreadCount(unreadCount);
-    }, [unreadCount, setUnreadCount]);
 
     const handleMarkAllAsRead = async () => {
         try {

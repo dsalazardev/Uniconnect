@@ -180,6 +180,8 @@ export interface GroupInfo {
   canManageMembers: boolean;
   isMember: boolean;
   isOwner: boolean;
+  hasPendingRequest?: boolean;
+  hasActiveInvitation?: boolean;
 
   // Miembros
   memberships: GroupMembership[];

@@ -1,17 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Alert,
+  Platform,
 } from 'react-native';
 import { observer } from 'mobx-react-lite';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { groupAdminStore } from '../store/GroupAdminStore';
 import { authStore } from '@/src/features/auth/store/AuthStore';
+import { ConfirmModal } from '@/src/components/ConfirmModal';
 
 interface TransferInvitationBannerProps {
   groupId: number;
@@ -32,95 +33,90 @@ export const TransferInvitationBanner = observer(
   ({ groupId, groupName, pendingOwnerId, ownerName }: TransferInvitationBannerProps) => {
     const queryClient = useQueryClient();
     const currentUserId = authStore.user?.id_user;
+    const [showAcceptConfirm, setShowAcceptConfirm] = React.useState(false);
+    const [showRejectConfirm, setShowRejectConfirm] = React.useState(false);
 
-    // Solo mostrar si el usuario actual es el candidato designado
     if (!pendingOwnerId || pendingOwnerId !== currentUserId) return null;
 
-    const handleAccept = () => {
-      Alert.alert(
-        'Aceptar administración',
-        `¿Aceptas convertirte en administrador de "${groupName}"?\n\n${ownerName ? `${ownerName} te ha designado como nuevo propietario.` : ''}`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Aceptar',
-            onPress: async () => {
-              const ok = await groupAdminStore.acceptOwnershipTransfer(groupId);
-              if (ok) {
-                queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
-                queryClient.invalidateQueries({ queryKey: ['myGroups'] });
-              } else if (groupAdminStore.error) {
-                Alert.alert('Error', groupAdminStore.error);
-                groupAdminStore.clearError();
-              }
-            },
-          },
-        ],
-      );
+    const doAccept = async () => {
+      setShowAcceptConfirm(false);
+      const ok = await groupAdminStore.acceptOwnershipTransfer(groupId);
+      if (ok) {
+        queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
+        queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+      }
     };
 
-    const handleReject = () => {
-      Alert.alert(
-        'Rechazar administración',
-        `¿Rechazas la propuesta de administración de "${groupName}"?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Rechazar',
-            style: 'destructive',
-            onPress: async () => {
-              const ok = await groupAdminStore.rejectOwnershipTransfer(groupId);
-              if (ok) {
-                queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
-              } else if (groupAdminStore.error) {
-                Alert.alert('Error', groupAdminStore.error);
-                groupAdminStore.clearError();
-              }
-            },
-          },
-        ],
-      );
+    const doReject = async () => {
+      setShowRejectConfirm(false);
+      const ok = await groupAdminStore.rejectOwnershipTransfer(groupId);
+      if (ok) {
+        queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
+      }
     };
 
     return (
-      <View style={styles.banner}>
-        <View style={styles.iconRow}>
-          <Ionicons name="shield-checkmark" size={20} color="#A78BFA" />
-          <Text style={styles.title}>Propuesta de administración</Text>
+      <>
+        <View style={styles.banner}>
+          <View style={styles.iconRow}>
+            <Ionicons name="shield-checkmark" size={20} color="#A78BFA" />
+            <Text style={styles.title}>Propuesta de administración</Text>
+          </View>
+
+          <Text style={styles.body}>
+            {ownerName
+              ? `${ownerName} te propone como nuevo administrador de este grupo.`
+              : 'Te han propuesto como nuevo administrador de este grupo.'}
+          </Text>
+
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={[styles.btn, styles.rejectBtn]}
+              onPress={() => setShowRejectConfirm(true)}
+              disabled={groupAdminStore.isDecliningTransfer || groupAdminStore.isAcceptingTransfer}
+            >
+              {groupAdminStore.isDecliningTransfer ? (
+                <ActivityIndicator size="small" color="#EF4444" />
+              ) : (
+                <Text style={styles.rejectText}>Rechazar</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.btn, styles.acceptBtn]}
+              onPress={() => setShowAcceptConfirm(true)}
+              disabled={groupAdminStore.isAcceptingTransfer || groupAdminStore.isDecliningTransfer}
+            >
+              {groupAdminStore.isAcceptingTransfer ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.acceptText}>Aceptar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
-        <Text style={styles.body}>
-          {ownerName
-            ? `${ownerName} te propone como nuevo administrador de este grupo.`
-            : 'Te han propuesto como nuevo administrador de este grupo.'}
-        </Text>
+        <ConfirmModal
+          visible={showAcceptConfirm}
+          title="Aceptar administración"
+          message={`¿Aceptas convertirte en administrador de "${groupName}"?${ownerName ? `\n\n${ownerName} te ha designado como nuevo propietario.` : ''}`}
+          confirmText="Aceptar"
+          onConfirm={doAccept}
+          onCancel={() => setShowAcceptConfirm(false)}
+          webFallback
+        />
 
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.btn, styles.rejectBtn]}
-            onPress={handleReject}
-            disabled={groupAdminStore.isAcceptingTransfer}
-          >
-            {groupAdminStore.isAcceptingTransfer ? (
-              <ActivityIndicator size="small" color="#EF4444" />
-            ) : (
-              <Text style={styles.rejectText}>Rechazar</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.btn, styles.acceptBtn]}
-            onPress={handleAccept}
-            disabled={groupAdminStore.isAcceptingTransfer}
-          >
-            {groupAdminStore.isAcceptingTransfer ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.acceptText}>Aceptar</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+        <ConfirmModal
+          visible={showRejectConfirm}
+          title="Rechazar administración"
+          message={`¿Rechazas la propuesta de administración de "${groupName}"?`}
+          confirmText="Rechazar"
+          destructive
+          onConfirm={doReject}
+          onCancel={() => setShowRejectConfirm(false)}
+          webFallback
+        />
+      </>
     );
   },
 );

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -19,13 +18,21 @@ import { GroupInfo } from '../types';
 import { TransferOwnershipModal } from './TransferOwnershipModal';
 import { useDirectMessage } from '../hooks/useDirectMessage';
 import { authStore } from '@/src/features/auth/store/AuthStore';
+import { ConfirmModal } from '@/src/components/ConfirmModal';
 
 interface GroupMembersTabProps {
   groupInfo: GroupInfo;
+  /** Cierra el modal padre — usado para navegar al DM sin dejar el modal abierto */
+  onClose?: () => void;
 }
 
 export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
   const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [removingMemberId, setRemovingMemberId] = useState<number | null>(null);
+  const [makingAdminId, setMakingAdminId] = useState<number | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<{ memberId: number; name: string } | null>(null);
+  const [confirmMakeAdmin, setConfirmMakeAdmin] = useState<{ memberId: number; name: string } | null>(null);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const removeMemberMutation = useRemoveMember();
   const makeAdminMutation = useMakeMemberAdmin();
   const leaveGroupMutation = useLeaveGroup();
@@ -33,80 +40,54 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
   const currentUserId = authStore.user?.id_user;
 
   const handleRemoveMember = (memberId: number, memberName: string) => {
-    Alert.alert(
-      'Sacar miembro',
-      `¿Estás seguro de que deseas sacar a ${memberName} del grupo?`,
-      [
-        { text: 'Cancelar', onPress: () => {} },
-        {
-          text: 'Sacar',
-          onPress: async () => {
-            try {
-              await removeMemberMutation.mutateAsync({
-                groupId: groupInfo.id_group,
-                memberId,
-              });
-              Alert.alert('Éxito', 'Miembro sacado del grupo');
-            } catch (error: unknown) {
-              Alert.alert('Error', 'No se pudo sacar el miembro');
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    );
+    setConfirmRemove({ memberId, name: memberName });
   };
 
   const handleMakeAdmin = (memberId: number, memberName: string) => {
-    Alert.alert(
-      'Hacer admin',
-      `¿Deseas convertir a ${memberName} en administrador?`,
-      [
-        { text: 'Cancelar', onPress: () => {} },
-        {
-          text: 'Hacer admin',
-          onPress: async () => {
-            try {
-              await makeAdminMutation.mutateAsync({
-                groupId: groupInfo.id_group,
-                memberId,
-              });
-              Alert.alert('Éxito', 'Miembro promovido a administrador');
-            } catch (error: unknown) {
-              Alert.alert('Error', 'No se pudo promocionar al miembro');
-            }
-          },
-        },
-      ]
-    );
+    setConfirmMakeAdmin({ memberId, name: memberName });
   };
 
   const handleLeaveGroup = () => {
     if (groupInfo.isOwner) {
-      // Abrir modal para transferir propiedad
+      // Si ya hay una transferencia pendiente, no abrir el modal
+      if (groupInfo.pending_owner_id) return;
       setTransferModalVisible(true);
       return;
     }
+    setConfirmLeave(true);
+  };
 
-    Alert.alert(
-      'Abandonar grupo',
-      '¿Estás seguro de que deseas abandonar este grupo?',
-      [
-        { text: 'Cancelar', onPress: () => {} },
-        {
-          text: 'Abandonar',
-          onPress: async () => {
-            try {
-              await leaveGroupMutation.mutateAsync(groupInfo.id_group);
-              Alert.alert('Éxito', 'Has abandonado el grupo');
-            } catch (error: unknown) {
-              Alert.alert('Error', 'No se pudo abandonar el grupo');
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    );
+  const doRemoveMember = async () => {
+    if (!confirmRemove) return;
+    try {
+      setRemovingMemberId(confirmRemove.memberId);
+      await removeMemberMutation.mutateAsync({
+        groupId: groupInfo.id_group,
+        memberId: confirmRemove.memberId,
+      });
+    } finally {
+      setRemovingMemberId(null);
+      setConfirmRemove(null);
+    }
+  };
+
+  const doMakeAdmin = async () => {
+    if (!confirmMakeAdmin) return;
+    try {
+      setMakingAdminId(confirmMakeAdmin.memberId);
+      await makeAdminMutation.mutateAsync({
+        groupId: groupInfo.id_group,
+        memberId: confirmMakeAdmin.memberId,
+      });
+    } finally {
+      setMakingAdminId(null);
+      setConfirmMakeAdmin(null);
+    }
+  };
+
+  const doLeaveGroup = async () => {
+    setConfirmLeave(false);
+    await leaveGroupMutation.mutateAsync(groupInfo.id_group);
   };
 
   const showActions = groupInfo.canManageMembers || groupInfo.isMember;
@@ -192,9 +173,9 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
                       onPress={() =>
                         handleMakeAdmin(member.id_user, member.user?.full_name || 'Miembro')
                       }
-                      disabled={makeAdminMutation.isPending}
+                      disabled={makingAdminId === member.id_user || removingMemberId === member.id_user}
                     >
-                      {makeAdminMutation.isPending ? (
+                      {makingAdminId === member.id_user ? (
                         <ActivityIndicator size="small" color="#D9B97E" />
                       ) : (
                         <Ionicons name="shield-outline" size={18} color="#D9B97E" />
@@ -206,9 +187,9 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
                       onPress={() =>
                         handleRemoveMember(member.id_user, member.user?.full_name || 'Miembro')
                       }
-                      disabled={removeMemberMutation.isPending}
+                      disabled={removingMemberId === member.id_user || makingAdminId === member.id_user}
                     >
-                      {removeMemberMutation.isPending ? (
+                      {removingMemberId === member.id_user ? (
                         <ActivityIndicator size="small" color="#ff6b6b" />
                       ) : (
                         <Ionicons name="close-circle-outline" size={18} color="#ff6b6b" />
@@ -223,10 +204,10 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
                 <TouchableOpacity
                   style={[
                     styles.leaveButton,
-                    groupInfo.isOwner && styles.leaveButtonDisabled,
+                    (groupInfo.isOwner && !!groupInfo.pending_owner_id) && styles.leaveButtonDisabled,
                   ]}
                   onPress={handleLeaveGroup}
-                  disabled={leaveGroupMutation.isPending || (groupInfo.isOwner && showActions)}
+                  disabled={leaveGroupMutation.isPending || (groupInfo.isOwner && !!groupInfo.pending_owner_id)}
                 >
                   {leaveGroupMutation.isPending ? (
                     <ActivityIndicator size="small" color="#ff6b6b" />
@@ -234,7 +215,11 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
                     <Ionicons name="exit-outline" size={18} color="#ff6b6b" />
                   )}
                   <Text style={styles.leaveButtonText}>
-                    {groupInfo.isOwner ? 'Transferir propiedad' : 'Abandonar grupo'}
+                    {groupInfo.isOwner
+                      ? groupInfo.pending_owner_id
+                        ? 'Transferencia pendiente...'
+                        : 'Abandonar propiedad'
+                      : 'Abandonar grupo'}
                   </Text>
                 </TouchableOpacity>
               ) : null
@@ -242,6 +227,37 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
           />
         </>
       )}
+
+      {/* Modales de confirmación — webFallback porque están dentro de GroupInfoModal */}
+      <ConfirmModal
+        visible={!!confirmRemove}
+        title="Sacar miembro"
+        message={`¿Sacar a ${confirmRemove?.name ?? ''} del grupo?`}
+        confirmText="Sacar"
+        destructive
+        webFallback
+        onConfirm={doRemoveMember}
+        onCancel={() => setConfirmRemove(null)}
+      />
+      <ConfirmModal
+        visible={!!confirmMakeAdmin}
+        title="Hacer administrador"
+        message={`¿Convertir a ${confirmMakeAdmin?.name ?? ''} en administrador?`}
+        confirmText="Confirmar"
+        webFallback
+        onConfirm={doMakeAdmin}
+        onCancel={() => setConfirmMakeAdmin(null)}
+      />
+      <ConfirmModal
+        visible={confirmLeave}
+        title="Abandonar grupo"
+        message="¿Estás seguro de que deseas abandonar este grupo?"
+        confirmText="Abandonar"
+        destructive
+        webFallback
+        onConfirm={doLeaveGroup}
+        onCancel={() => setConfirmLeave(false)}
+      />
 
       {/* Modal de transferir propiedad */}
       <TransferOwnershipModal

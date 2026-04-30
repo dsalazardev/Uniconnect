@@ -18,26 +18,37 @@ import { WEBSOCKET_URL } from '@/src/constants/api';
 import { GroupInfoModal } from '@/src/features/groups/components/GroupInfoModal';
 
 export default function GroupChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, autoOpenInfo, autoOpenAccept } = useLocalSearchParams<{
+    id: string;
+    autoOpenInfo?: string;
+    autoOpenAccept?: string;
+  }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Si viene de una notificación push con autoOpenInfo=true, abrir el modal directamente
   const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   const userId = authStore.user?.id_user;
   const token = authStore.accessToken || '';
+
+  // Si viene de notificación push, abrir el modal una vez que el grupo haya cargado
+  const pendingAutoOpen = autoOpenInfo === 'true';
 
   useEffect(() => {
     const loadGroupDetail = async () => {
       try {
         setLoading(true);
         const groupId = parseInt(id as string);
-        // Usar getGroupInfo que incluye toda la información necesaria
         const groupData = await groupsService.getGroupInfo(groupId, token);
         setGroup(groupData as any);
         setError(null);
+        // Abrir el modal automáticamente si viene de notificación push
+        if (pendingAutoOpen) {
+          setShowGroupInfo(true);
+        }
       } catch (err: any) {
         console.error('Error loading group:', err);
         setError(err.message || 'Error al cargar el grupo');
@@ -170,6 +181,7 @@ export default function GroupChatScreen() {
           groupId={group.id_group}
           visible={showGroupInfo}
           onClose={() => setShowGroupInfo(false)}
+          scrollToAccept={autoOpenAccept === 'true'}
         />
       )}
     </View>
