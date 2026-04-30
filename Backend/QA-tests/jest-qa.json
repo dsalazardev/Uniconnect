@@ -1,0 +1,14 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testMatch": ["<rootDir>/QA-tests/**/*.integration.spec.ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "QA-tests/tsconfig.json" }]
+  },
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/src/$1"
+  },
+  "collectCoverageFrom": ["src/**/*.(t|j)s"],
+  "coverageDirectory": "QA-tests/coverage"
+}
