@@ -1,18 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ExpoPushTokenDto } from './dto/expo-push-token.dto';
 
-interface CreateNotificationData {
-  id_user: number;
-  message: string;
-  notification_type: string;
-  related_entity_id: number;
-}
-
 @Injectable()
 export class NotificationsService {
-  private readonly logger = new Logger(NotificationsService.name);
-
   constructor(private readonly prisma: PrismaService) {}
 
   async findAllForUser(userId: number) {
@@ -40,67 +31,10 @@ export class NotificationsService {
   }
 
   async getUnreadCount(userId: number) {
-    try {
-      const count = await (this.prisma.notification as any).count({
-        where: { id_user: userId, is_read: false },
-      });
-
-      console.log(`User ${userId} has ${count} unread notifications`);
-      return { count };
-    } catch (error) {
-      console.error('[NotificationsService] Error getting unread count:', {
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      // Defensive: return 0 instead of crashing
-      return { count: 0 };
-    }
-  }
-
-  /**
-   * Create notification with idempotency check
-   * Prevents duplicate notifications within 5-second window
-   */
-  async createNotificationIdempotent(data: CreateNotificationData): Promise<void> {
-    try {
-      const fiveSecondsAgo = new Date(Date.now() - 5000);
-
-      // Check for duplicate in last 5 seconds
-      const existing = await (this.prisma.notification as any).findFirst({
-        where: {
-          id_user: data.id_user,
-          related_entity_id: data.related_entity_id,
-          notification_type: data.notification_type,
-          created_at: { gte: fiveSecondsAgo },
-        },
-      });
-
-      if (existing) {
-        this.logger.warn(
-          `Duplicate notification prevented: user=${data.id_user}, type=${data.notification_type}, entity=${data.related_entity_id}`,
-        );
-        return;
-      }
-
-      // Create notification
-      await (this.prisma.notification as any).create({
-        data: {
-          id_user: data.id_user,
-          message: data.message,
-          notification_type: data.notification_type,
-          related_entity_id: data.related_entity_id,
-          is_read: false,
-          created_at: new Date(),
-        },
-      });
-
-      this.logger.log(
-        `Created notification: user=${data.id_user}, type=${data.notification_type}`,
-      );
-    } catch (error) {
-      this.logger.error('Error creating idempotent notification:', error);
-      throw error;
-    }
+    const count = await (this.prisma.notification as any).count({
+      where: { id_user: userId, is_read: false },
+    });
+    return { count };
   }
 
   async markAsRead(userId: number, notificationId: number) {

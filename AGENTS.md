@@ -666,9 +666,21 @@ src/
 7. **Archivos**: Validación MIME, almacenamiento en S3, URLs presignadas
 8. **Notificaciones**: 
    - Push automáticas para eventos importantes
+   - **PATRÓN ÚNICO**: Consolidación a patrón Observer único (eliminación de EventEmitter redundante)
+     - **Antes**: `acceptJoinRequest()` emitía por dos canales (EventEmitter + Observer) → duplicados
+     - **Ahora**: `acceptJoinRequest()` emite solo por Observer (`studyGroupSubject.notify()`) → sin duplicados
+     - **Cambios**: Removido `eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED)` de `GroupsService.acceptJoinRequest()`
+     - **Cambios**: Removido `handleGroupJoinRequestAccepted()` de `NotificationEventListener` (dead code)
    - **IDEMPOTENCIA**: Sistema de prevención de duplicados con ventana de 5 segundos
-   - **CONSOLIDACIÓN DE EVENTOS**: Un solo evento por acción para evitar notificaciones redundantes
-   - **PATRÓN IMPLEMENTADO**: `createNotificationIdempotent()` con validación temporal y logging defensivo
+     - Clave de colisión: `[userId + related_entity_id]` (ignora variaciones de `notification_type`)
+     - Método: `createNotificationIdempotent()` en `NotificationsService`
+     - Índice BD: Composite index en `(id_user, created_at, notification_type)` para optimización
+     - Manejo: Si duplicado detectado, retorna registro existente en lugar de crear nuevo
+   - **OBSERVER PATTERN**: `PersistenceNotificationObserver` es el único mecanismo de creación de notificaciones
+     - Usa `createNotificationIdempotent()` para prevenir duplicados
+     - Logging defensivo para debugging en producción
+     - Tipado estricto (Zero-Any policy)
+   - **PRESERVATION**: Patrón Observer y Decorator se mantienen intactos; solo se eliminó redundancia EventEmitter
 9. **Comunidad**: 
    - Vista de "Mis Amigos" muestra usuarios con conexión aceptada
    - Vista de "Comunidad General" muestra usuarios sin conexión aceptada
@@ -833,6 +845,40 @@ export class GroupsService {
   }
 }
 ```
+
+#### 6. PATRÓN OBSERVER CONSOLIDADO: SINGLE NOTIFICATION CHANNEL
+
+**IMPORTANTE - Consolidación de Notificaciones (Abril 2026)**:
+- **Problema Resuelto**: Dual-channel notification mechanism (EventEmitter + Observer) causaba duplicados (IDs 287, 288)
+- **Solución Implementada**: Consolidación a patrón Observer único como mecanismo de notificación
+- **Cambios Realizados**:
+  - Removido `eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED)` de `GroupsService.acceptJoinRequest()`
+  - Removido `handleGroupJoinRequestAccepted()` de `NotificationEventListener` (dead code)
+  - Mantenido `studyGroupSubject.notify()` como único mecanismo de notificación
+- **Patrón Resultante**:
+  ```typescript
+  // ✅ PATRÓN ÚNICO - Solo Observer, sin EventEmitter redundante
+  async acceptJoinRequest(requestId: number, groupId: number, userId: number) {
+    // ... validaciones y transacción ...
+    
+    // ✅ ÚNICO MECANISMO: Observer pattern
+    this.studyGroupSubject.notify({
+      type: 'MEMBER_ACCEPTED',
+      payload: { id_request: requestId, id_group: groupId, group_name },
+      targetUserId: request.requester_id,
+      timestamp: new Date(),
+    });
+    
+    // ❌ REMOVIDO: eventEmitter.emit() - ya no existe
+    
+    return updatedRequest;
+  }
+  ```
+- **Beneficios**:
+  - ✅ Cero duplicados de notificaciones
+  - ✅ Arquitectura más limpia (single responsibility)
+  - ✅ Mantenimiento simplificado (una sola ruta de notificación)
+  - ✅ Idempotencia garantizada con `createNotificationIdempotent()`
 
 ### 🎨 FRONTEND: REACT NATIVE + MVC LOCAL
 

@@ -218,7 +218,7 @@ export const GroupMembersTab = ({ groupInfo }: GroupMembersTabProps) => {
                     {groupInfo.isOwner
                       ? groupInfo.pending_owner_id
                         ? 'Transferencia pendiente...'
-                        : 'Abandonar propiedad'
+                        : 'Transferir propiedad'
                       : 'Abandonar grupo'}
                   </Text>
                 </TouchableOpacity>

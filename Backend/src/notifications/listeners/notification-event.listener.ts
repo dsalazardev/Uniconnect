@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationsService } from '../notifications.service';
 import { MESSAGE_EVENTS } from '../../messages/events/message.events';
 import type {
   MessageSentPayload,
@@ -22,10 +21,7 @@ import type {
 export class NotificationEventListener {
   private readonly logger = new Logger(NotificationEventListener.name);
 
-  constructor(
-    private prisma: PrismaService,
-    private notificationsService: NotificationsService,
-  ) { }
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Escuchar evento de mensaje enviado
@@ -200,7 +196,7 @@ export class NotificationEventListener {
    */
   @OnEvent(MESSAGE_EVENTS.CONNECTION_REQUEST_SENT)
   async handleConnectionRequestSent(payload: ConnectionRequestSentPayload) {
-    console.log('[NotificationEventListener] RECEIVED CONNECTION_REQUEST_SENT:', {
+    console.log('👂 [NotificationEventListener] RECEIVED CONNECTION_REQUEST_SENT:', {
       payload,
       timestamp: new Date().toISOString(),
     });
@@ -221,7 +217,7 @@ export class NotificationEventListener {
         },
       });
 
-      console.log('[NotificationEventListener] NOTIFICATION CREATED:', {
+      console.log('✅ [NotificationEventListener] NOTIFICATION CREATED:', {
         id_notification: notification.id_notification,
         id_user: notification.id_user,
         related_entity_id: notification.related_entity_id,
@@ -233,7 +229,7 @@ export class NotificationEventListener {
         `Created notification for connection request ${payload.id_connection}`,
       );
     } catch (error) {
-      console.error('[NotificationEventListener] NOTIFICATION CREATE FAILED:', {
+      console.error('❌ [NotificationEventListener] NOTIFICATION CREATE FAILED:', {
         error,
         payload,
         errorMessage: error instanceof Error ? error.message : String(error),
@@ -286,11 +282,15 @@ export class NotificationEventListener {
         `Handling GROUP_JOIN_REQUEST_ACCEPTED event for request ${payload.id_request}`,
       );
 
-      await this.notificationsService.createNotificationIdempotent({
-        id_user: payload.requester_id,
-        message: `Tu solicitud para unirte al grupo "${payload.group_name}" fue aceptada`,
-        notification_type: 'group_join_request_accepted',
-        related_entity_id: payload.id_request,
+      await this.prisma.notification.create({
+        data: {
+          id_user: payload.requester_id,
+          message: `Tu solicitud para unirte al grupo "${payload.group_name}" fue aceptada`,
+          is_read: false,
+          created_at: new Date(),
+          related_entity_id: payload.id_request,
+          notification_type: 'group_join_request_accepted',
+        },
       });
 
       this.logger.log(

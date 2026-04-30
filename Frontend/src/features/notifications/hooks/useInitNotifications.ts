@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { notificationsService } from '../services/notifications.service';
 import { useNotificationsStore } from '../store/notifications.store';
 
 /**
@@ -6,7 +7,7 @@ import { useNotificationsStore } from '../store/notifications.store';
  * Debe ser usado en el componente raíz de la app (AppRoot o similar)
  */
 export const useInitNotifications = (token: string | null) => {
-  const { fetchUnreadCount, setUnreadCount } = useNotificationsStore();
+  const setUnreadCount = useNotificationsStore(state => state.setUnreadCount);
 
   useEffect(() => {
     if (!token) {
@@ -14,6 +15,16 @@ export const useInitNotifications = (token: string | null) => {
       return;
     }
 
-    fetchUnreadCount(token);
-  }, [token, fetchUnreadCount, setUnreadCount]);
+    const loadInitialCount = async () => {
+      try {
+        const { count } = await notificationsService.getUnreadCount(token);
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Error al cargar conteo inicial de notificaciones:', error);
+        setUnreadCount(0);
+      }
+    };
+
+    loadInitialCount();
+  }, [token, setUnreadCount]);
 };
