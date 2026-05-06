@@ -18,7 +18,7 @@ export const FileUploadExampleScreen = () => {
   const id_message = '4'; // Opcional
 
   const handleUploadSuccess = (uploadedFiles: FileData[]) => {
-    console.log('Files uploaded successfully:', uploadedFiles);
+    
     // Aquí puedes:
     // - Refrescar la lista de mensajes
     // - Actualizar el contexto/state

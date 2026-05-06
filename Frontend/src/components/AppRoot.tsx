@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity } from 'rea
 import { useAppInitialization, useTokenRefresh, authStore } from '@/src/features/auth';
 import { useInitNotifications } from '@/src/features/notifications/hooks/useInitNotifications';
 import { useRealtimeNotifications } from '@/src/features/notifications/hooks/useRealtimeNotifications';
+import { useRegisterPushToken } from '@/src/features/notifications/hooks/useNotifications';
 import { useRouter } from 'expo-router';
 
 interface AppRootProps {
@@ -15,10 +16,11 @@ export const AppRoot: React.FC<AppRootProps> = ({ children }) => {
   
   useTokenRefresh();
   useInitNotifications(authStore.accessToken);
-  useRealtimeNotifications(); // Conecta WebSocket para notificaciones en tiempo real
+  useRealtimeNotifications();
+  useRegisterPushToken(authStore.accessToken ?? '');
 
   const handleForceReset = () => {
-    console.log('🔄 Force reset triggered by user');
+    
     authStore.clearAuth();
     setTimeout(() => {
       router.replace('/(auth)/login');

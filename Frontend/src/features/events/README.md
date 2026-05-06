@@ -45,8 +45,8 @@ const response = await eventsService.getEvents(
 
 // Handle response
 if (response.success) {
-  console.log('Events:', response.data);
-  console.log('Metadata:', response.metadata);
+  
+  
 } else {
   console.error('Error:', response.error);
 }

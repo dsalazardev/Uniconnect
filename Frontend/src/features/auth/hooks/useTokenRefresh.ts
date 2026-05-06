@@ -11,7 +11,7 @@ export function useTokenRefresh() {
     const checkAndRefreshTokens = async () => {
       // Prevent concurrent refresh attempts
       if (isRefreshingRef.current) {
-        console.log('Refresh already in progress, skipping...');
+        
         return;
       }
 
@@ -30,11 +30,11 @@ export function useTokenRefresh() {
         // Prevent refreshing more than once per minute (safety measure)
         const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
         if (timeSinceLastRefresh < 60 * 1000) {
-          console.log('Refresh attempted too soon, skipping...');
+          
           return;
         }
 
-        console.log('Tokens expiring soon, refreshing...');
+        
         isRefreshingRef.current = true;
         try {
           await authController.refreshTokens();

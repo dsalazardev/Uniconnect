@@ -30,9 +30,9 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
-      console.log(`[useChat] Cargando mensajes del grupo ${groupId}...`);
+      
       const { messages: data, hasMore: more } = await messagesService.getRecentMessages(groupId, 50, token);
-      console.log(`[useChat] ✅ Mensajes cargados: ${data?.length || 0}, hasMore: ${more}`);
+      
       // inverted FlatList: el índice 0 debe ser el más nuevo → invertir el array
       setMessages(data ? [...data].reverse() : []);
       setHasMore(more);
@@ -52,9 +52,9 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   useEffect(() => {
     // Usar serverUrl proporccionado o la configuración centralizada
     const finalServerUrl = serverUrl || getServerUrl();
-    console.log(`[useChat] ========== INICIANDO HOOK ==========`);
-    console.log(`[useChat] groupId: ${groupId}, userId: ${userId}`);
-    console.log(`[useChat] Conectando a WebSocket en: ${finalServerUrl}`);
+    
+    
+    
 
     if (!websocketService.isConnected()) {
       websocketService.connect(finalServerUrl);
@@ -68,13 +68,12 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Escuchar conexión
     const handleUserConnected = (data: any) => {
-      console.log('Usuario conectado:', data);
       setIsConnected(true);
     };
 
     // Escuchar nuevos mensajes
     const handleNewMessage = (rawMessage: any) => {
-      console.log('[WS] message:new recibido — id:', rawMessage.id_message, '| files:', rawMessage.files?.length ?? 0, '| text:', rawMessage.text_content?.slice(0, 30));
+      
 
       // Si tiene archivos pero no texto, es un mensaje de archivo puro — siempre agregar
       const hasFiles = (rawMessage.files?.length ?? 0) > 0;
@@ -167,7 +166,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       id_group: number;
     }) => {
       if (data.mentioned_user_id === userId) {
-        console.log(`[useChat] 🔔 Mención recibida de ${data.sender_name}: "${data.text_content}"`);
+        
         // El resaltado visual lo maneja WithMentions en MessageBubble.
         // Aquí se puede disparar una notificación push o badge en el futuro.
       }
@@ -285,7 +284,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
         token,
         oldestMessageIdRef.current,
       );
-      console.log(`[useChat] loadMore: ${older.length} mensajes más antiguos, hasMore: ${more}`);
+      
 
       if (older.length > 0) {
         // Con inverted: los más antiguos van al FINAL del array

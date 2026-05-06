@@ -15,13 +15,10 @@ class MessagesService {
   ): Promise<{ messages: Message[]; hasMore: boolean }> {
     try {
       const endpoint = messagesEndpoints.getRecentMessages(groupId, limit, beforeId);
-      console.log(`[MessagesService] GET ${endpoint}`);
+      
       const response = await axios.get(endpoint, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(
-        `[MessagesService] ✅ ${endpoint} - ${response.data?.messages?.length || 0} mensajes, hasMore: ${response.data?.hasMore}`,
-      );
       return response.data;
     } catch (error: any) {
       const endpoint = messagesEndpoints.getRecentMessages(groupId, limit, beforeId);

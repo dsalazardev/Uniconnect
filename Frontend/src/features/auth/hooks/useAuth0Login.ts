@@ -35,17 +35,17 @@ export function useAuth0Login() {
 
   const redirectUri = isExpoGo && expoProxyRedirectUri ? expoProxyRedirectUri : nativeReturnUrl;
 
-  console.log('\n======================================================');
-  console.log('URL DEFINITIVA (LÓGICA YANET PROFE POSDATA: GRACIAS):');
-  console.log(redirectUri);
-  console.log('======================================================\n');
+  
+  
+  
+  
 
   // Generate PKCE pair on mount
   useEffect(() => {
     const initializePKCE = async () => {
       const pkceData = await generatePKCEPair();
       setPkce(pkceData);
-      console.log('PKCE pair generated for Auth0 authorization');
+      
     };
     initializePKCE();
   }, []);
@@ -77,21 +77,14 @@ export function useAuth0Login() {
   // Handle the authentication response
   useEffect(() => {
     if (!response) return;
-
-    console.log('useAuth0Login: Response received', {
-      type: response.type,
-      params: response.type === 'success' || response.type === 'error' ? response.params : undefined,
-      redirectUri,
-    });
-
     try {
       if (response.type === 'success') {
         const { code } = response.params;
 
-        console.log('Authorization code received:', code);
+        
 
         if (code && pkce?.codeVerifier) {
-          console.log('Sending code and code_verifier to AuthController...');
+          
           // handleAuthorizationCode gestiona setLoading(false) internamente
           authController.handleAuthorizationCode(code, redirectUri, pkce.codeVerifier);
         } else {
@@ -99,7 +92,7 @@ export function useAuth0Login() {
           const missingItems: string[] = [];
           if (!code) missingItems.push('code');
           if (!pkce?.codeVerifier) missingItems.push('code_verifier');
-          console.log('Missing required parameters:', missingItems);
+          
           authStore.setError(`Missing required parameters: ${missingItems.join(', ')}`);
           authStore.setLoading(false); // BUG FIX: faltaba esta llamada
         }
@@ -111,14 +104,9 @@ export function useAuth0Login() {
           response.params?.error ||
           'Error en la autenticación';
 
-        console.log('Auth0 Error:', {
-          error: response.params?.error,
-          error_description: response.params?.error_description,
-        });
-
         if (errorCode === 'access_denied') {
           // El usuario rechazó los permisos — acción voluntaria, sin toast
-          console.log('User declined authorization');
+          
           authStore.clearError();
           authStore.setLoading(false);
         } else {
@@ -130,7 +118,7 @@ export function useAuth0Login() {
 
       } else if (response.type === 'cancel' || response.type === 'dismiss') {
         // BUG FIX: 'dismiss' ocurre en Android (botón atrás) y en web (cerrar popup)
-        console.log(`User ${response.type}ed authentication`);
+        
         authStore.clearError();
         authStore.setLoading(false);
       }
@@ -150,7 +138,7 @@ export function useAuth0Login() {
       // Open the logout URL in a browser
       await WebBrowser.openBrowserAsync(logoutUrl);
       
-      console.log('Auth0 logout initiated');
+      
     } catch (error) {
       console.error('Error during Auth0 logout:', error);
       // Continue with local logout even if Auth0 logout fails

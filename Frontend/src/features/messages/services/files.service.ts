@@ -56,9 +56,6 @@ class FilesService {
         } as any);
       });
     }
-
-    console.log(`[FilesService] Subiendo ${files.length} archivo(s) al grupo ${groupId} (platform: ${Platform.OS})...`);
-
     try {
       // FETCH NATIVO: evita el bug de Axios con FormData en Android
       const response = await fetch(`${API_BASE_URL}/files/upload`, {
@@ -78,7 +75,7 @@ class FilesService {
       }
 
       const responseData = await response.json();
-      console.log(`[FilesService] Archivos subidos exitosamente`);
+      
       return responseData.data || [];
     } catch (error: any) {
       console.error(`[FilesService] Error subiendo archivos:`, error.message);
@@ -146,7 +143,7 @@ class FilesService {
      */
     async getPresignedDownloadUrl(fileId: number, token: string): Promise<string> {
       try {
-        console.log(`[FilesService] Solicitando URL prefirmada para archivo ${fileId}...`);
+        
 
         const response = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
           method: 'GET',
@@ -171,7 +168,7 @@ class FilesService {
           throw new Error('URL prefirmada no encontrada en la respuesta');
         }
 
-        console.log(`[FilesService] URL prefirmada obtenida exitosamente`);
+        
         return signedUrl;
       } catch (error: any) {
         console.error(`[FilesService] Error obteniendo URL prefirmada:`, error.message);
@@ -190,17 +187,17 @@ class FilesService {
       const WebBrowser = await import('expo-web-browser');
 
       try {
-        console.log(`[FilesService] Iniciando descarga de archivo: ${file.file_name}`);
+        
 
         // Obtener URL prefirmada del backend
         const signedUrl = await this.getPresignedDownloadUrl(file.id_file, token);
 
-        console.log(`[FilesService] Abriendo archivo en navegador...`);
+        
 
         // Abrir el archivo usando Expo WebBrowser
         await WebBrowser.openBrowserAsync(signedUrl);
 
-        console.log(`[FilesService] Archivo abierto exitosamente`);
+        
       } catch (error: any) {
         console.error(`[FilesService] Error descargando archivo:`, error.message);
 

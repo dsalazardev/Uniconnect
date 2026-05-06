@@ -143,15 +143,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleFilesSelected = async (files: any[]) => {
     try {
       setUploadingFiles(true);
-      console.log(`[ChatScreen] Iniciando subida de ${files.length} archivo(s):`, files.map(f => ({ name: f.name, size: f.size, type: f.mimeType })));
-
       const uploadedFiles = await filesService.uploadFiles(
         files,
         groupId,
         token
       );
 
-      console.log(`[ChatScreen] ✅ Subida exitosa. Archivos:`, uploadedFiles.length);
+      
       setShowFilePicker(false);
     } catch (error: any) {
       console.error(`[ChatScreen] ❌ Error en subida:`, error.message, error.response?.status);
@@ -198,7 +196,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onEdit={() => {
           // Implementar lógica de edición (abrir modal con input)
           // Por ahora solo lo dejamos preparado
-          console.log('Editar mensaje:', item.id_message);
+          
         }}
         onDelete={() => deleteMessage(item.id_message)}
         onFilePress={downloadFile}
@@ -209,26 +207,24 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const renderTypingIndicator = () => {
     if (typingUsers.length === 0) return null;
 
-    const typingNames = typingUsers.map((u) => u.full_name).join(', ');
-    
+    let typingText: string;
+    if (typingUsers.length === 1) {
+      typingText = `${typingUsers[0].full_name} está escribiendo...`;
+    } else if (typingUsers.length === 2) {
+      typingText = `${typingUsers[0].full_name} y ${typingUsers[1].full_name} están escribiendo...`;
+    } else {
+      typingText = `${typingUsers[0].full_name} y otros están escribiendo...`;
+    }
+
     return (
       <View style={styles.typingIndicator}>
-        <Text style={styles.typingText}>
-          {typingNames} {typingUsers.length === 1 ? 'está' : 'están'} escribiendo...
-        </Text>
+        <Text style={styles.typingText}>{typingText}</Text>
       </View>
     );
   };
 
   // Debug logs
   useEffect(() => {
-    console.log(`[ChatScreen] Estado actual:`, {
-      loading,
-      error,
-      messagesCount: messages.length,
-      isConnected,
-      typingUsersCount: typingUsers.length,
-    });
   }, [loading, error, messages.length, isConnected, typingUsers.length]);
 
   if (loading) {
@@ -251,8 +247,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     );
   }
 
-  console.log(`[ChatScreen] ✅ Renderizando chat con ${messages.length} mensajes`);
-  console.log(`[ChatScreen] Renderizando componentes: FlatList + InputContainer`);
+  
+  
 
   return (
     // Raíz: KeyboardAvoidingView con behavior='padding' en ambas plataformas
@@ -316,6 +312,17 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             onChangeText={handleTextChange}
             multiline
             maxLength={1000}
+            // En web: Enter envía, Shift+Enter hace salto de línea
+            onKeyPress={
+              Platform.OS === 'web'
+                ? (e: any) => {
+                    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                      e.preventDefault?.();
+                      handleSend();
+                    }
+                  }
+                : undefined
+            }
           />
 
           <TouchableOpacity

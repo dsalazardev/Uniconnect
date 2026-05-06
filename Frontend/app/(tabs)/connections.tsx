@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { useConnections } from '@/src/features/connections/hooks/useConnections';
 import { ConnectionRequestCard } from '@/src/features/connections/components/ConnectionRequestCard';
 import { useGroupInvitations } from '@/src/features/groups/hooks/useGroupInvitations';
@@ -20,7 +21,8 @@ import { authStore } from '@/src/features/auth';
 type TabType = 'solicitudes' | 'invitaciones';
 
 export default function ConnectionsScreen() {
-  const [activeTab, setActiveTab] = useState<TabType>('solicitudes');
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<TabType>(tab === 'invitaciones' ? 'invitaciones' : 'solicitudes');
   const queryClient = useQueryClient();
 
   // Obtener datos del usuario autenticado

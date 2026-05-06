@@ -274,7 +274,7 @@ socket.emit('user:typing', {
 ```typescript
 // Usuario conectado
 socket.on('user:connected', (data) => {
-  console.log('Conectado:', data);
+  
 });
 
 // Nuevo mensaje

@@ -16,7 +16,8 @@ export function useGroupInfo(groupId: number) {
       return groupsService.getGroupInfo(groupId, token);
     },
     enabled: !!token && !!groupId,
-    staleTime: 3 * 60 * 1000, // 3 minutos
+    staleTime: 0,
+    refetchInterval: 10000, // Refresca cada 10s para detectar pending_owner_id en tiempo real
   });
 }
 
@@ -75,16 +76,9 @@ export function useLeaveGroup() {
       return groupsService.leaveGroup(groupId, token);
     },
     onSuccess: (_data, groupId) => {
-      // Invalidar varios queries relacionados
-      queryClient.invalidateQueries({
-        queryKey: ['group-info', groupId],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['member-groups'],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['discover-groups'],
-      });
+      queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+      queryClient.invalidateQueries({ queryKey: ['discoverGroups'] });
     },
   });
 }

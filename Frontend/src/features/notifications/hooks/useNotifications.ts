@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { notificationsService } from '../services/notifications.service';
@@ -9,6 +10,7 @@ export function useRegisterPushToken(authToken: string) {
     if (!authToken) return;
 
     async function register() {
+      if (Platform.OS === 'web') return;
       if (!Device.isDevice) return;
 
       // Pedir permisos de notificaciones

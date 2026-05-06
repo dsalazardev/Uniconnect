@@ -97,17 +97,10 @@ export class EventsStore {
     this.setCreateError(null);
 
     // ⭐ DIAGNOSTIC: Log payload before sending
-    console.log('🔍 [EventsStore] Creating event with payload:', payload);
+    
 
     try {
       const response = await this.eventsService.createEvent(payload);
-
-      // ⭐ DIAGNOSTIC: Log response
-      console.log('🔍 [EventsStore] Create event response:', {
-        success: response.success,
-        hasData: !!response.data,
-        error: response.error,
-      });
 
       runInAction(() => {
         if (response.success && response.data) {
@@ -153,17 +146,10 @@ export class EventsStore {
     this.setUpdateError(null);
 
     // ⭐ DIAGNOSTIC: Log payload before sending
-    console.log('🔍 [EventsStore] Updating event with payload:', { id, payload });
+    
 
     try {
       const response = await this.eventsService.updateEvent(id, payload);
-
-      // ⭐ DIAGNOSTIC: Log response
-      console.log('🔍 [EventsStore] Update event response:', {
-        success: response.success,
-        hasData: !!response.data,
-        error: response.error,
-      });
 
       runInAction(() => {
         if (response.success && response.data) {

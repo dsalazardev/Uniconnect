@@ -50,7 +50,7 @@ export default observer(function OnboardingScreen() {
   const [currentStep, setCurrentStep] = useState(0);
 
   const { data: programs, isLoading: loadingPrograms, isError: programsError } = usePrograms();
-  const [selectedProgramId, setSelectedProgramId] = useState<number | null>(null);
+  const [selectedProgramId, setSelectedProgramId] = useState<number | undefined>(undefined);
   const [semesterText, setSemesterText] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ id_program?: string; current_semester?: string }>({});
 
@@ -68,12 +68,12 @@ export default observer(function OnboardingScreen() {
 
   const validate = (): boolean => {
     const errors: typeof fieldErrors = {};
-    if (!selectedProgramId) {
+    if (selectedProgramId === undefined) {
       errors.id_program = 'Selecciona un programa académico.';
     }
     const semester = parseInt(semesterText, 10);
     if (!semesterText || isNaN(semester) || semester < 1 || !Number.isInteger(semester)) {
-      errors.current_semester = 'Ingresa un semestre válido (número entero >= 1).';
+      errors.current_semester = 'Ingresa un semestre válido';
     }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -182,7 +182,7 @@ export default observer(function OnboardingScreen() {
                   style={styles.picker}
                   dropdownIconColor="#D9B97E"
                 >
-                  <Picker.Item label=" Selecciona tu programa " value={null} color="#999" />
+                  <Picker.Item label=" Selecciona tu programa " value={undefined} color="#888" />
                   {programs?.map((p) => (
                     <Picker.Item key={p.id_program} label={p.name} value={p.id_program} color="#1a1a1a" />
                   ))}
@@ -296,10 +296,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(217,185,126,0.45)',
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
     overflow: 'hidden',
   },
-  picker: { height: 52, color: '#fff', width: '100%' },
+  picker: { height: 52, color: '#1a1a1a', width: '100%' },
   input: {
     width: '100%',
     borderWidth: 1,
@@ -309,7 +309,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 16,
-    color: '#fff',
   },
   borderError: { borderColor: '#ef5350' },
   fieldError: { alignSelf: 'flex-start', fontSize: 12, color: '#ef5350', marginTop: 4 },

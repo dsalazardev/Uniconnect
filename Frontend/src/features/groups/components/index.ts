@@ -11,3 +11,5 @@ export { InviteToGroupModal } from './InviteToGroupModal';
 export { GroupAdminPanel } from './GroupAdminPanel';
 // Banner de transferencia de administración (US-W02 — CA-4)
 export { TransferInvitationBanner } from './TransferInvitationBanner';
+// Banner de transferencia de admin pendiente
+export { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';

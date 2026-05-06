@@ -23,7 +23,7 @@ export const useRealtimeNotifications = () => {
 
     // Handler para nuevas notificaciones
     const handleNotification = (data: any) => {
-      console.log('Nueva notificación recibida vía WebSocket:', data);
+      
       // Notificar al observer para actualizar el badge
       notificationObserver.notify();
     };

@@ -30,18 +30,11 @@ export const authService = {
 
   refreshTokens: async (refreshToken: string, userId: number) => {
     try {
-      console.log('[AuthService] Calling /auth/refresh endpoint');
+      
 
       const response = await api.post('/auth/refresh', {
         refresh_token: refreshToken,
         user_id: userId,
-      });
-      
-      console.log('[AuthService] Refresh response received:', {
-        success: response.data?.success,
-        statusCode: response.data?.statusCode,
-        hasAccessToken: !!response.data?.data?.access_token,
-        hasRefreshToken: !!response.data?.data?.auth0_tokens?.refresh_token,
       });
       
       return response.data;

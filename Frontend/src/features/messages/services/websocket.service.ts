@@ -28,7 +28,7 @@ class WebSocketService {
    */
   connect(serverUrl?: string) {
     if (this.socket?.connected) {
-      console.log('Ya conectado al WebSocket');
+      
       // Si hay autenticación pendiente, ejecutarla ahora
       if (this.pendingAuthData) {
         this.authenticate(this.pendingAuthData);
@@ -39,7 +39,7 @@ class WebSocketService {
 
     // Usar serverUrl si se proporciona, sino usar la configuración centralizada
     const url = serverUrl || getServerUrl();
-    console.log(`[WebSocket] Conectando a: ${url}`);
+    
 
     this.socket = io(url, {
       transports: ['websocket'],
@@ -59,16 +59,16 @@ class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      console.log('Conectado al WebSocket');
+      
       this.reconnectAttempts = 0;
       
       // Autenticar con datos pendientes o con sesión previa
       if (this.pendingAuthData) {
-        console.log('Autenticando con datos pendientes...');
+        
         this.authenticate(this.pendingAuthData);
         this.pendingAuthData = null;
       } else if (this.currentUserId && this.currentGroupId) {
-        console.log('Re-autenticando sesión previa...');
+        
         this.authenticate({
           id_user: this.currentUserId,
           id_membership: this.currentMembershipId ?? undefined,
@@ -78,7 +78,7 @@ class WebSocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Desconectado del WebSocket:', reason);
+      
       this.reconnectAttempts++;
     });
 
@@ -93,7 +93,7 @@ class WebSocketService {
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
-      console.log(`Reconectado después de ${attemptNumber} intentos`);
+      
       this.reconnectAttempts = 0;
     });
   }
@@ -108,18 +108,18 @@ class WebSocketService {
     this.currentGroupId = data.id_group;
 
     if (!this.socket?.connected) {
-      console.log('Socket no conectado aún, guardando datos de autenticación...');
+      
       this.pendingAuthData = data;
       return;
     }
 
-    console.log('Emitiendo autenticación al servidor...');
+    
     this.socket.emit('authenticate', data);
     
     // Escuchar respuesta de autenticación una sola vez
     this.socket.once('authenticate', (response: { success: boolean; id_membership?: number; error?: string }) => {
       if (response.success && response.id_membership) {
-        console.log('Autenticado correctamente, membership ID:', response.id_membership);
+        
         this.currentMembershipId = response.id_membership;
       } else {
         console.error('Error de autenticación:', response.error || 'No eres miembro de este grupo');
@@ -326,7 +326,7 @@ class WebSocketService {
       this.currentMembershipId = null;
       this.currentGroupId = null;
       this.pendingAuthData = null;
-      console.log('Desconectado del WebSocket');
+      
     }
   }
 

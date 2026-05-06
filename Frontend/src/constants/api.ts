@@ -52,7 +52,7 @@ let failedQueue: QueueCallback[] = [];
  * @param token - New access token or null if refresh failed
  */
 function processQueue(error: RefreshError | null, token: string | null = null): void {
-  console.log(`[API Queue] Processing queue: ${failedQueue.length} items, error=${error ? error.code : 'none'}, token=${token ? 'provided' : 'none'}`);
+  
   
   failedQueue.forEach((callback) => {
     if (error) {
@@ -92,21 +92,11 @@ api.interceptors.request.use(
   async (config) => {
     const token = authStore.accessToken;
 
-    // ⭐ DIAGNOSTIC: Log token status
-    console.log('🔍 [API Interceptor] Request:', {
-      url: config.url,
-      method: config.method,
-      hasToken: !!token,
-      tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
-      isExpired: authStore.isTokenExpired,
-      hasRefreshToken: authStore.hasRefreshToken,
-    });
-
     if (token) {
       // Check if token is expired and try to refresh
       // But only if we're not already refreshing (prevents circular/infinite refresh attempts)
       if (authStore.isTokenExpired && authStore.hasRefreshToken && !authStore.isRefreshing) {
-        console.log('Token expired, attempting refresh before request...');
+        
         
         // Import authController dynamically to avoid circular dependency
         const { authController } = await import('@/src/features/auth/controllers/AuthController');
@@ -115,15 +105,15 @@ api.interceptors.request.use(
         if (refreshSuccess) {
           // Use the new token
           config.headers.Authorization = `Bearer ${authStore.accessToken}`;
-          console.log('✅ [API Interceptor] Token refreshed successfully');
+          
         } else {
           // Refresh failed, request will fail with 401
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('❌ [API Interceptor] Token refresh failed, using old token');
+          
         }
       } else {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('✅ [API Interceptor] Token added to request');
+        
       }
     } else {
       console.warn('⚠️ [API Interceptor] No token available for request');
@@ -166,12 +156,7 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
       const token = authStore.accessToken;
-      
-      console.log('[API Interceptor] 401 Unauthorized detected', {
-        hasToken: !!token,
-        isRefreshing,
-        queueLength: failedQueue.length,
-      });
+    
 
       // Check if user was authenticated
       if (token && authStore.hasRefreshToken) {
@@ -180,7 +165,7 @@ api.interceptors.response.use(
         // ====================================================================
         if (!isRefreshing) {
           isRefreshing = true;
-          console.log('[API Interceptor] Mutex ACQUIRED - starting token refresh');
+          
 
           try {
             // Import authController dynamically to avoid circular dependency
@@ -192,7 +177,7 @@ api.interceptors.response.use(
             // ================================================================
             if (refreshResult.success && refreshResult.tokens?.accessToken) {
               const newToken = refreshResult.tokens.accessToken;
-              console.log('[API Interceptor] ✅ Token refreshed successfully, processing queue');
+              
 
               // Update original request with new token
               originalRequest.headers = originalRequest.headers || {};
@@ -237,13 +222,13 @@ api.interceptors.response.use(
             return Promise.reject(error);
           } finally {
             isRefreshing = false;
-            console.log('[API Interceptor] Mutex RELEASED');
+            
           }
         } else {
           // ====================================================================
           // FIX-10 REQ-1b: If already refreshing, queue this request
           // ====================================================================
-          console.log('[API Interceptor] Mutex BUSY - queueing request');
+          
 
           return new Promise((resolve, reject) => {
             failedQueue.push({

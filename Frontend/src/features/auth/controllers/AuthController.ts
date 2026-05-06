@@ -32,25 +32,12 @@ export class AuthController {
       authStore.setLoading(true);
       authStore.clearError();
 
-      console.log('AuthController: Starting authorization code exchange', {
-        code: authorizationCode.substring(0, 20) + '...',
-        redirectUri,
-        codeVerifier: codeVerifier.substring(0, 20) + '...',
-      });
-
-      console.log('Calling authService.exchangeAuthorizationCode...');
-      const fenResponse = await authService.exchangeAuthorizationCode(authorizationCode, redirectUri, codeVerifier);
       
-      console.log('BFF Response received:', {
-        success: fenResponse.success,
-        statusCode: fenResponse.statusCode,
-        message: fenResponse.message,
-        hasData: !!fenResponse.data,
-      });
+      const fenResponse = await authService.exchangeAuthorizationCode(authorizationCode, redirectUri, codeVerifier);
 
       // Validate FEN response format
       if (!fenResponse.success || fenResponse.statusCode !== 200) {
-        console.log('BFF returned error:', fenResponse.message);
+        
         const errorDetail = fenResponse.message || 'Autenticación fallida';
         authStore.setError(errorDetail);
         
@@ -66,14 +53,6 @@ export class AuthController {
       // Extract data from FEN response
       const { access_token, user, auth0_tokens } = fenResponse.data;
       
-      console.log('Login response data:', {
-        hasAccessToken: !!access_token,
-        hasUser: !!user,
-        hasAuth0Tokens: !!auth0_tokens,
-        hasRefreshToken: !!auth0_tokens?.refresh_token,
-        refreshToken: auth0_tokens?.refresh_token ? auth0_tokens.refresh_token.substring(0, 20) + '...' : 'none',
-      });
-      
       if (!access_token || !user) {
         console.error('Invalid FEN response - missing access_token or user:', {
           hasAccessToken: !!access_token,
@@ -82,7 +61,7 @@ export class AuthController {
         throw new Error('Invalid response format from BFF');
       }
 
-      console.log('Valid FEN response received, updating AuthStore...');
+      
       // Update AuthStore with the received data (MVC Local pattern)
       authStore.setAuth(access_token, user, auth0_tokens);
 
@@ -90,19 +69,15 @@ export class AuthController {
 
       // Route based on onboarding status from the backend
       if (user.needsOnboarding) {
-        console.log('User needs onboarding, navigating to onboarding screen...');
+        
         router.replace('/(auth)/onboarding');
       } else {
-        console.log('Navigating to authenticated area...');
+        
         router.replace('/(tabs)');
       }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error en la autenticación';
-      console.log('AuthController: Authentication error', {
-        message: errorMessage,
-        error: error instanceof Error ? error.stack : error,
-      });
       authStore.setError(errorMessage);
       
       // No mostrar toast si es error de red en login
@@ -123,9 +98,9 @@ export class AuthController {
       // 1. Call backend to invalidate tokens (if we have an access token)
       if (authStore.accessToken) {
         try {
-          console.log('Calling backend logout endpoint...');
+          
           await authService.logout(authStore.accessToken);
-          console.log('Backend logout successful');
+          
         } catch (backendError) {
           // Log but don't fail - continue with local cleanup
           console.error('Backend logout failed, continuing with local cleanup:', backendError);
@@ -144,13 +119,13 @@ export class AuthController {
         
         const logoutUrl = `https://${AUTH0_CONFIG.domain}/v2/logout?client_id=${AUTH0_CONFIG.clientId}&returnTo=${encodeURIComponent(redirectUri)}`;
         
-        // Open Auth0 logout URL in browser (clears Auth0 session cookies)
-        await WebBrowser.openBrowserAsync(logoutUrl);
+        // Open Auth0 logout URL silently (clears Auth0 session cookies without popup)
+        await fetch(logoutUrl, { method: 'GET', mode: 'no-cors' }).catch(() => {});
         
-        console.log('Auth0 session terminated successfully');
+        
       } catch (auth0Error) {
         // Log but don't fail if Auth0 logout has issues
-        console.log('Note: Auth0 logout URL could not be opened, but local session cleared');
+        
       }
 
       // 4. Show success message
@@ -193,7 +168,7 @@ export class AuthController {
     try {
       // Check if already refreshing to prevent simultaneous refresh attempts
       if (authStore.isRefreshing) {
-        console.log('Already refreshing tokens, skipping duplicate refresh attempt');
+        
         return {
           success: false,
           errorCode: 'UNKNOWN',
@@ -216,7 +191,7 @@ export class AuthController {
         };
       }
 
-      console.log('Attempting to refresh tokens...');
+      
       authStore.isRefreshing = true;
       authStore.setLoading(true);
       authStore.clearError();
@@ -253,14 +228,6 @@ export class AuthController {
       // Extract data from FEN response
       const { access_token, user, auth0_tokens } = fenResponse.data;
       
-      console.log('Refresh response data:', {
-        hasAccessToken: !!access_token,
-        hasUser: !!user,
-        hasAuth0Tokens: !!auth0_tokens,
-        hasRefreshToken: !!auth0_tokens?.refresh_token,
-        newRefreshToken: auth0_tokens?.refresh_token ? auth0_tokens.refresh_token.substring(0, 20) + '...' : 'none',
-      });
-      
       if (!access_token || !user) {
         console.error('Invalid refresh response format from BFF');
         
@@ -277,7 +244,7 @@ export class AuthController {
       // Update AuthStore with new tokens
       authStore.setAuth(access_token, user, auth0_tokens);
       
-      console.log('✅ Tokens refreshed successfully');
+      
       
       return {
         success: true,
@@ -346,13 +313,13 @@ export class AuthController {
     }
 
     // Token is expired, try to refresh
-    console.log('Token expired, attempting refresh...');
+    
     const result = await this.refreshTokens();
     return result.success;
   }
 
   async initializeAuth(): Promise<void> {
-    console.log('🔄 [initializeAuth] Starting initialization...');
+    
     
     // Wait for AuthStore to initialize from storage with timeout
     const maxWaitTime = 5000; // 5 seconds timeout
@@ -369,49 +336,49 @@ export class AuthController {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
 
-    console.log('✅ [initializeAuth] AuthStore initialized');
+    
 
     // If we have a stored session, validate it
     if (authStore.isAuthenticated) {
-      console.log('🔍 [initializeAuth] Found stored session, validating...');
+      
       
       // Check if we need to refresh tokens
       if (authStore.isTokenExpired && authStore.hasRefreshToken) {
-        console.log('🔄 [initializeAuth] Stored session expired, attempting refresh...');
+        
         const result = await this.refreshTokens();
         
         if (!result.success) {
-          console.log('❌ [initializeAuth] Refresh failed, clearing auth');
+          
           authStore.clearAuth();
           return;
         }
         
-        console.log('✅ [initializeAuth] Token refreshed successfully');
+        
       } else if (authStore.isTokenExpired && !authStore.hasRefreshToken) {
-        console.log('⚠️ [initializeAuth] Stored session expired and no refresh token, clearing auth...');
+        
         authStore.clearAuth();
         return;
       } else {
-        console.log('✅ [initializeAuth] Stored session is valid');
+        
       }
 
       // Fetch fresh profile to get up-to-date needsOnboarding status
       if (authStore.isAuthenticated) {
         try {
-          console.log('🔄 [initializeAuth] Fetching fresh profile...');
+          
           const profile = await authService.getUserProfile();
           authStore.setNeedsOnboarding(profile.needsOnboarding ?? false);
-          console.log('✅ [initializeAuth] Profile fetched, needsOnboarding:', profile.needsOnboarding);
+          
         } catch (error) {
           console.warn('⚠️ [initializeAuth] Failed to fetch profile, using cached needsOnboarding');
           // Use persisted needsOnboarding — don't fail initialization
         }
       }
     } else {
-      console.log('ℹ️ [initializeAuth] No stored session found');
+      
     }
     
-    console.log('✅ [initializeAuth] Initialization complete');
+    
   }
 
   async completeOnboarding(id_program: number, current_semester: number): Promise<void> {

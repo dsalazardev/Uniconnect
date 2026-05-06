@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "uniconnect_g",
-    "slug": "uniconnect_g",
+    "name": "Uniconnect G1",
+    "slug": "Uniconnect",
     "scheme": "uniconnect",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -25,14 +25,17 @@
     "android": {
       "package": "com.damaluja.uniconnect",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/Logo_de_la_Universidad_de_Caldas.svg.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/Logo_de_la_Universidad_de_Caldas.svg.png",
+      "notification": {
+        "vapidPublicKey": "BD67LBSw94PI4m9B9mDkaRCJCVx3OUlLpC0Xs8RGrYbi-8yNjMxHo4aEsdSq-jms8qk9rxtEJ7bLL3kstUbEW2k"
+      }
     },
     "plugins": [
       "expo-web-browser",

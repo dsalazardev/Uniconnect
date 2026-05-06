@@ -31,9 +31,9 @@ export async function runMessagingDiagnostics(): Promise<DiagnosticResult> {
     errors,
   };
 
-  console.log('🔍 Iniciando diagnóstico de mensajería...');
-  console.log(`   WebSocket URL: ${WEBSOCKET_URL}`);
-  console.log(`   API URL: ${API_BASE_URL}`);
+  
+  
+  
 
   try {
     // 1. Verificar conectividad API
@@ -51,8 +51,6 @@ export async function runMessagingDiagnostics(): Promise<DiagnosticResult> {
       result.apiHealthy = response.ok;
       if (!response.ok) {
         errors.push(`⚠️ API respondió con estado: ${response.status}`);
-      } else {
-        console.log('✅ API accesible');
       }
     } catch (apiError: any) {
       errors.push(`❌ Error conectando a API: ${apiError.message}`);
@@ -61,7 +59,7 @@ export async function runMessagingDiagnostics(): Promise<DiagnosticResult> {
 
     // 2. Verificar WebSocket
     if (!websocketService.isConnected()) {
-      console.log('⏳ Conectando al WebSocket...');
+      
       websocketService.connect(WEBSOCKET_URL);
       
       // Esperar a que conecte
@@ -77,26 +75,19 @@ export async function runMessagingDiagnostics(): Promise<DiagnosticResult> {
             clearTimeout(timeout);
             result.wsConnected = true;
             result.wsConnectionTime = Date.now() - startTime;
-            console.log(`✅ WebSocket conectado en ${result.wsConnectionTime}ms`);
+            
             resolve(null);
           }
         }, 100);
       });
     } else {
       result.wsConnected = true;
-      console.log('✅ WebSocket ya estaba conectado');
+      
     }
   } catch (error: any) {
     errors.push(`❌ Error en diagnóstico: ${error.message}`);
     console.error('Error en diagnóstico:', error);
   }
-
-  if (errors.length === 0) {
-    console.log('✅ Diagnóstico completado sin errores');
-  } else {
-    console.log(`⚠️ Diagnóstico completado con ${errors.length} problema(s)`);
-  }
-
   return result;
 }
 
@@ -110,7 +101,7 @@ export async function testMessageSend(
   testMessage: string = '🧪 Mensaje de prueba'
 ): Promise<boolean> {
   try {
-    console.log(`📤 Enviando mensaje de prueba al grupo ${groupId}...`);
+    
     
     // Autenticar si no está autenticado
     if (!websocketService.isConnected()) {
@@ -130,7 +121,7 @@ export async function testMessageSend(
       text_content: testMessage,
     });
 
-    console.log('✅ Mensaje de prueba enviado');
+    
     return true;
   } catch (error: any) {
     console.error('❌ Error al enviar mensaje de prueba:', error);
@@ -153,25 +144,7 @@ export function checkEnvironmentVariables(): {
   };
 }
 
-/**
- * Log detallado de estado de WebSocket
- */
-export function logWebSocketStatus(): void {
-  console.log('📊 Estado del WebSocket:');
-  console.log(`   Conectado: ${websocketService.isConnected()}`);
-  console.log(`   Grupo actual: ${websocketService.getCurrentGroupId()}`);
-  console.log(`   Usuario actual: ${websocketService.getCurrentUserId()}`);
-}
 
-/**
- * Ver todas las URLs configuradas
- */
-export function logConfiguredUrls(): void {
-  console.log('🔗 URLs Configuradas:');
-  console.log(`   API Base: ${API_BASE_URL}`);
-  console.log(`   WebSocket: ${WEBSOCKET_URL}`);
-  console.log(`   Env - EXPO_PUBLIC_API_URL: ${process.env.EXPO_PUBLIC_API_URL || 'no configurada'}`);
-}
 
 /**
  * Prueba específica del endpoint de mensajes recientes
@@ -183,11 +156,6 @@ export async function testRecentMessagesEndpoint(
 ): Promise<{ success: boolean; messageCount: number; error?: string }> {
   try {
     const endpoint = `${API_BASE_URL}/messages/group/${groupId}/recent?limit=${limit}`;
-    console.log(`🔍 Probando endpoint de mensajes recientes...`);
-    console.log(`   URL: ${endpoint}`);
-    console.log(`   Grupo ID: ${groupId}`);
-    console.log(`   Token: ${token ? token.substring(0, 20) + '...' : 'NO PRESENTE'}`);
-
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: {
@@ -196,7 +164,7 @@ export async function testRecentMessagesEndpoint(
       },
     });
 
-    console.log(`   Status: ${response.status}`);
+    
     
     if (!response.ok) {
       const errorData = await response.text();
@@ -207,8 +175,8 @@ export async function testRecentMessagesEndpoint(
 
     const data = await response.json();
     const messageCount = Array.isArray(data) ? data.length : 0;
-    console.log(`✅ Éxito - ${messageCount} mensajes obtenidos`);
-    console.log(`   Mensajes:`, data);
+    
+    
     
     return { success: true, messageCount };
   } catch (error: any) {

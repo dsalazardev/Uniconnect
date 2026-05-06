@@ -28,7 +28,10 @@ class GroupsService {
       return response.data;
     } catch (error: any) {
       console.error('Error al crear grupo:', error);
-      throw new Error(error.response?.data?.message || 'No se pudo crear el grupo');
+      // NestJS puede devolver message como string o array
+      const raw = error.response?.data?.message;
+      const message = Array.isArray(raw) ? raw[0] : raw || 'No se pudo crear el grupo';
+      throw new Error(message);
     }
   }
 
@@ -215,13 +218,6 @@ class GroupsService {
     try {
       const endpoint = groupInvitationsEndpoints.respondToInvitation(invitationId);
       const payload = { status: response };
-      
-      console.log('[GroupsService] Responding to invitation', { 
-        invitationId, 
-        response, 
-        endpoint, 
-        payload 
-      });
       
       const res = await axios.patch(
         endpoint,
@@ -452,6 +448,14 @@ class GroupsService {
     return response.data;
   }
 
+  async getGroupJoinRequests(groupId: number, token: string): Promise<{ id_user: number }[]> {
+    const response = await axios.get(
+      groupJoinRequestsEndpoints.getGroupPendingRequests(groupId),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  }
+
   async acceptGroupInvitation(groupId: number, invitationId: number, token: string) {
     const res = await axios.patch(
       groupInvitationsEndpoints.acceptGroupInvitation(groupId, invitationId),
@@ -583,6 +587,23 @@ class GroupsService {
     } catch (error: any) {
       console.error('[GroupsService] acceptOwnershipTransfer error:', error);
       throw new Error(error.response?.data?.message || 'No se pudo aceptar la transferencia.');
+    }
+  }
+
+  /**
+   * DELETE /groups/:id/decline-ownership-transfer
+   * El candidato declina la propuesta.
+   */
+  async declineOwnershipTransfer(groupId: number, token: string): Promise<{ message: string }> {
+    try {
+      const response = await axios.delete(
+        groupJoinRequestsEndpoints.declineOwnershipTransfer(groupId),
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('[GroupsService] declineOwnershipTransfer error:', error);
+      throw new Error(error.response?.data?.message || 'No se pudo declinar la transferencia.');
     }
   }
 }

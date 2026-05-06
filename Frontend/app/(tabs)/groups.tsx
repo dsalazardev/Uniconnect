@@ -69,12 +69,8 @@ export default function GroupsScreen() {
   };
 
   const handleSaveNewGroup = async (groupData: any) => {
-    try {
-      await createGroup(groupData);
-      setCreateModalVisible(false);
-    } catch {
-      // El error ya se muestra en el banner inline del modal — no hacer nada aquí
-    }
+    await createGroup(groupData);
+    setCreateModalVisible(false);
   };
 
   const handleEdit = (group: Group) => {
@@ -146,10 +142,6 @@ export default function GroupsScreen() {
     return acc;
   }, {});
 
-  const hasReachedLimit = Object.values(groupsPerCourse).some(
-    (count: any) => count >= 3
-  );
-
   const renderMisGruposTab = () => {
     if (loadingMyGroups) {
       return (
@@ -165,7 +157,7 @@ export default function GroupsScreen() {
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={60} color="#ff4d4d" />
           <Text style={styles.errorText}>{errorMyGroups}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={reloadMyGroups}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => reloadMyGroups()}>
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -233,7 +225,7 @@ export default function GroupsScreen() {
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={60} color="#ff4d4d" />
           <Text style={styles.errorText}>{errorDiscover}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={reloadDiscover}>
+          <TouchableOpacity style={styles.retryButton} onPress={() => reloadDiscover()}>
             <Text style={styles.retryText}>Reintentar</Text>
           </TouchableOpacity>
         </View>
@@ -286,19 +278,30 @@ export default function GroupsScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => handleRequestJoin(item.id_group)}
-                disabled={joinMutation.isPending && joinMutation.variables === item.id_group || pendingRequests.has(item.id_group)}
+                disabled={
+                  (joinMutation.isPending && joinMutation.variables === item.id_group) ||
+                  pendingRequests.has(item.id_group) ||
+                  item.user_request_status === 'join_requested' ||
+                  item.user_request_status === 'invited'
+                }
                 style={[
                   styles.joinButton,
-                  pendingRequests.has(item.id_group) && styles.joinButtonSent
+                  (pendingRequests.has(item.id_group) || item.user_request_status === 'join_requested') && styles.joinButtonSent,
+                  item.user_request_status === 'invited' && styles.joinButtonInvited,
                 ]}
                 accessibilityLabel="Solicitar unirse al grupo"
               >
                 {joinMutation.isPending && joinMutation.variables === item.id_group ? (
                   <ActivityIndicator size={16} color="#D9B97E" />
-                ) : pendingRequests.has(item.id_group) ? (
+                ) : item.user_request_status === 'invited' ? (
+                  <>
+                    <Ionicons name="mail-outline" size={16} color="#aaa" />
+                    <Text style={styles.joinButtonTextSent}>Invitación pendiente</Text>
+                  </>
+                ) : pendingRequests.has(item.id_group) || item.user_request_status === 'join_requested' ? (
                   <>
                     <Ionicons name="checkmark-outline" size={16} color="#aaa" />
-                    <Text style={styles.joinButtonTextSent}>Enviada</Text>
+                    <Text style={styles.joinButtonTextSent}>Solicitud enviada</Text>
                   </>
                 ) : (
                   <>
@@ -343,15 +346,6 @@ export default function GroupsScreen() {
         )}
       </View>
 
-      {/* Límite de grupos warning */}
-      {hasReachedLimit && activeTab === "misGrupos" && (
-        <View style={styles.warningBanner}>
-          <Ionicons name="information-circle" size={20} color="#D9B97E" />
-          <Text style={styles.warningText}>
-            Has alcanzado el límite de 3 grupos por materia
-          </Text>
-        </View>
-      )}
 
       {/* Tabs */}
       <View style={styles.tabsContainer}>
@@ -408,6 +402,7 @@ export default function GroupsScreen() {
         onClose={() => setCreateModalVisible(false)}
         onSave={handleSaveNewGroup}
         isCreating={isCreating}
+        groupsPerCourse={groupsPerCourse}
       />
 
       <EditGroupModal
@@ -468,22 +463,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
-  },
-  warningBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(217, 185, 126, 0.15)",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(217, 185, 126, 0.3)",
-    gap: 10,
-  },
-  warningText: {
-    fontSize: 14,
-    color: "#D9B97E",
-    fontWeight: "500",
-    flex: 1,
   },
   tabsContainer: {
     flexDirection: "row",
@@ -661,6 +640,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(217, 185, 126, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(217, 185, 126, 0.3)',
+  },
+  joinButtonInvited: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
   },
   joinButtonText: {
     color: '#1a1a1a',

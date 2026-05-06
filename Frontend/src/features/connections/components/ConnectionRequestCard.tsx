@@ -42,7 +42,7 @@ export const ConnectionRequestCard = ({ request, onUpdated }: ConnectionRequestC
       Alert.alert('¡Solicitud aceptada!', `${request.requester.full_name} ahora es tu conexión.`);
       onUpdated?.();
     } catch (error: any) {
-      console.log(error);
+      
       Alert.alert('Error', error?.response?.data?.message || 'No se pudo aceptar la solicitud.');
     } finally {
       setIsAccepting(false);
@@ -56,7 +56,7 @@ export const ConnectionRequestCard = ({ request, onUpdated }: ConnectionRequestC
       Alert.alert('Solicitud rechazada', `Has rechazado la solicitud de ${request.requester.full_name}.`);
       onUpdated?.();
     } catch (error: any) {
-      console.log(error);
+      
       Alert.alert('Error', error?.response?.data?.message || 'No se pudo rechazar la solicitud.');
     } finally {
       setIsRejecting(false);

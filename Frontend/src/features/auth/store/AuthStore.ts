@@ -97,14 +97,6 @@ export class AuthStore {
         expires_at: Date.now() + (validExpiresIn * 1000)
       };
       
-      console.log('Auth tokens stored:', {
-        hasAccessToken: !!auth0TokensData.access_token,
-        hasIdToken: !!auth0TokensData.id_token,
-        hasRefreshToken: !!auth0TokensData.refresh_token,
-        expiresIn: validExpiresIn,
-        expiresAt: this.auth0Tokens?.expires_at ? new Date(this.auth0Tokens.expires_at).toISOString() : 'unknown',
-      });
-      
       if (!auth0TokensData.refresh_token) {
         console.warn('WARNING: No refresh_token received from backend!');
       }
@@ -179,7 +171,7 @@ export class AuthStore {
         this.auth0Tokens = authData.auth0Tokens;
         this.needsOnboarding = authData.needsOnboarding ?? false;
         
-        console.log('Auth state restored from storage');
+        
       }
     } catch (error) {
       console.error('Failed to restore auth state from storage:', error);
@@ -198,7 +190,7 @@ export class AuthStore {
       };
       
       await secureStorage.setItem('uniconnect-auth', JSON.stringify(authData));
-      console.log('Auth state persisted to storage');
+      
     } catch (error) {
       console.error('Failed to persist auth state to storage:', error);
     }
@@ -207,7 +199,7 @@ export class AuthStore {
   private async clearFromStorage() {
     try {
       await secureStorage.removeItem('uniconnect-auth');
-      console.log('Auth state cleared from storage');
+      
     } catch (error) {
       console.error('Failed to clear auth state from storage:', error);
     }

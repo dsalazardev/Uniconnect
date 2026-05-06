@@ -10,7 +10,7 @@ import { Button, AuthButton } from '../index';
  */
 export const ElementsDemo: React.FC = () => {
   const handlePress = (buttonType: string) => {
-    console.log(`${buttonType} button pressed`);
+    
   };
 
   return (

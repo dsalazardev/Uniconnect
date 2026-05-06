@@ -25,6 +25,8 @@ interface CreateGroupModalProps {
     id_course: number;
   }) => Promise<void>;
   isCreating?: boolean;
+  /** Mapa courseId → cantidad de grupos del usuario para ese curso */
+  groupsPerCourse?: Record<number, number>;
 }
 
 export const CreateGroupModal = ({
@@ -32,12 +34,16 @@ export const CreateGroupModal = ({
   onClose,
   onSave,
   isCreating = false,
+  groupsPerCourse = {},
 }: CreateGroupModalProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [showCourseDropdown, setShowCourseDropdown] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+
+  const selectedCourseAtLimit =
+    selectedCourseId != null && (groupsPerCourse[selectedCourseId] ?? 0) >= 3;
 
   const { data: courses, isLoading: loadingCourses } = useQuery<Course[]>({
     queryKey: ["owner-active-courses"],
@@ -88,6 +94,9 @@ export const CreateGroupModal = ({
     setSelectedCourseId(courseId);
     setShowCourseDropdown(false);
     setInlineError(null);
+    if ((groupsPerCourse[courseId] ?? 0) >= 3) {
+      setInlineError('Ya perteneces a 3 grupos para esta materia. No puedes crear otro.');
+    }
   };
 
   const selectedCourse = courses?.find((c: Course) => c.id_course === selectedCourseId);
@@ -227,9 +236,9 @@ export const CreateGroupModal = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.saveButton, isCreating && styles.saveButtonDisabled]}
+              style={[styles.button, styles.saveButton, (isCreating || selectedCourseAtLimit) && styles.saveButtonDisabled]}
               onPress={handleSave}
-              disabled={isCreating}
+              disabled={isCreating || selectedCourseAtLimit}
             >
               {isCreating ? (
                 <ActivityIndicator size="small" color="#1a1a1a" />

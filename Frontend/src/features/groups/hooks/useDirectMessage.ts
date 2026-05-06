@@ -25,7 +25,7 @@ export function useDirectMessage() {
     try {
       const response = await groupsService.findOrCreateDirectMessage(targetUserId, token);
       const groupId = response.group.id_group;
-      router.push(`/groups/${groupId}` as any);
+      router.replace(`/groups/${groupId}` as any);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'No se pudo abrir el chat privado.';

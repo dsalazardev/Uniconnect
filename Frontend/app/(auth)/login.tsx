@@ -8,7 +8,7 @@ export default function LoginScreen() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <LinearGradient
-        colors={['#1a1a1a', '#363636', '#2a2a2a']}
+        colors={['#1a1a1a', '#363636', '#2a2a2a ']}
         style={styles.container}
       >
         <View style={styles.contentContainer}>
@@ -44,6 +44,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a1a',
   },
   contentContainer: {
     flex: 1,

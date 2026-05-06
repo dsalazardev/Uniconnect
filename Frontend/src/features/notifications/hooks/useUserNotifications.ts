@@ -97,11 +97,15 @@ export const useUserNotifications = ({ token }: UseUserNotificationsOptions) => 
         break;
 
       case 'message':
-        router.push('/(tabs)/groups');
+        if (notification.related_entity_id) {
+          router.push(`/groups/${notification.related_entity_id}` as any);
+        } else {
+          router.push('/(tabs)/groups');
+        }
         break;
 
       case 'group_invitation':
-        router.push('/(tabs)/connections');
+        router.push('/(tabs)/connections?tab=invitaciones' as any);
         break;
 
       case 'group_invitation_accepted':
@@ -116,24 +120,40 @@ export const useUserNotifications = ({ token }: UseUserNotificationsOptions) => 
         }
         break;
 
-      case 'group_join_request':
+      case 'join_request':
         // El owner recibe esto: ir a la pantalla de grupos para gestionar solicitudes
         router.push('/(tabs)/groups');
         break;
 
-      case 'group_join_request_accepted':
-        // El solicitante fue aceptado: ir a Mis Grupos
+      case 'member_accepted':
+        // El owner aceptó tu solicitud: ir a Mis Grupos
         router.push('/(tabs)/groups');
         break;
 
-      case 'group_join_request_rejected':
-        // El solicitante fue rechazado: mostrar mensaje y quedarse en Grupos
+      case 'member_removed':
+        // El owner eliminó tu membresía: ir a Mis Grupos
         router.push('/(tabs)/groups');
         break;
 
       case 'mention':
         if (notification.related_entity_id) {
           router.push(`/groups/${notification.related_entity_id}` as any);
+        } else {
+          router.push('/(tabs)/groups');
+        }
+        break;
+
+      case 'admin_transfer_requested':
+        // El candidato recibe esto: ir al grupo con el modal de info abierto para aceptar/rechazar
+        if (notification.related_entity_id) {
+          router.push({
+            pathname: '/groups/[id]',
+            params: {
+              id: String(notification.related_entity_id),
+              autoOpenInfo: 'true',
+              autoOpenAccept: 'true',
+            },
+          } as any);
         } else {
           router.push('/(tabs)/groups');
         }

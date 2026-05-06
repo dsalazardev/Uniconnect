@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { groupsService } from '../services/groups.service';
 import { authStore } from '@/src/features/auth/store/AuthStore';
 import { GroupJoinRequest, GroupMembership, GroupWithJoinRequests } from '../types';
+import { QueryClient } from '@tanstack/react-query';
 
 // ============================================================================
 // GroupAdminStore — Estado reactivo para el panel de administración de grupos
@@ -30,6 +31,7 @@ export class GroupAdminStore {
   pendingTransferCandidateId: number | null = null;
   isTransferLoading: boolean = false;
   isAcceptingTransfer: boolean = false;
+  isDecliningTransfer: boolean = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -122,7 +124,7 @@ export class GroupAdminStore {
 
     try {
       await groupsService.acceptJoinRequest(groupId, requestId, token);
-      console.log(`[GroupAdminStore] Request ${requestId} accepted ✅`);
+      
     } catch (err: unknown) {
       const message = (() => {
         if (err instanceof Error) return err.message;
@@ -157,7 +159,7 @@ export class GroupAdminStore {
 
     try {
       await groupsService.rejectJoinRequest(groupId, requestId, token);
-      console.log(`[GroupAdminStore] Request ${requestId} rejected ✅`);
+      
     } catch (err) {
       // Rollback
       runInAction(() => {
@@ -203,8 +205,9 @@ export class GroupAdminStore {
   /**
    * Solicita la transferencia de ownership al candidato.
    * POST /groups/:id/request-ownership-transfer/:candidateId
+   * Invalida el caché del grupo para reflejar el nuevo pending_owner_id en la UI.
    */
-  async requestOwnershipTransfer(groupId: number, candidateId: number): Promise<void> {
+  async requestOwnershipTransfer(groupId: number, candidateId: number, queryClient?: QueryClient): Promise<void> {
     const token = authStore.accessToken;
     if (!token) return;
 
@@ -221,7 +224,14 @@ export class GroupAdminStore {
         this.isTransferLoading = false;
       });
 
-      console.log(`[GroupAdminStore] Ownership transfer requested → candidate ${candidateId} ✅`);
+      // Invalidar caché del grupo para que la UI refleje pending_owner_id actualizado
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
+        queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+        queryClient.invalidateQueries({ queryKey: ['createdGroups'] });
+      }
+
+      
     } catch (err) {
       runInAction(() => {
         this.error = err instanceof Error ? err.message : 'No se pudo solicitar la transferencia.';
@@ -252,7 +262,7 @@ export class GroupAdminStore {
         this.isTransferLoading = false;
       });
 
-      console.log(`[GroupAdminStore] Ownership transfer cancelled ✅`);
+      
     } catch (err) {
       runInAction(() => {
         this.error = err instanceof Error ? err.message : 'No se pudo cancelar la transferencia.';
@@ -282,7 +292,7 @@ export class GroupAdminStore {
         this.isAcceptingTransfer = false;
       });
 
-      console.log(`[GroupAdminStore] Ownership transfer accepted ✅`);
+      
       return true;
     } catch (err) {
       runInAction(() => {
@@ -295,32 +305,31 @@ export class GroupAdminStore {
   }
 
   /**
-   * El candidato rechaza la transferencia (usa cancelOwnershipTransfer del owner
-   * o simplemente ignora — aquí lo implementamos como cancelación desde el candidato).
-   * DELETE /groups/:id/cancel-ownership-transfer
+   * El candidato rechaza/declina la transferencia.
+   * DELETE /groups/:id/decline-ownership-transfer
    */
   async rejectOwnershipTransfer(groupId: number): Promise<boolean> {
     const token = authStore.accessToken;
     if (!token) return false;
 
     runInAction(() => {
-      this.isAcceptingTransfer = true;
+      this.isDecliningTransfer = true;
       this.error = null;
     });
 
     try {
-      await groupsService.cancelOwnershipTransfer(groupId, token);
+      await groupsService.declineOwnershipTransfer(groupId, token);
 
       runInAction(() => {
-        this.isAcceptingTransfer = false;
+        this.isDecliningTransfer = false;
       });
 
-      console.log(`[GroupAdminStore] Ownership transfer rejected ✅`);
+      
       return true;
     } catch (err) {
       runInAction(() => {
-        this.error = err instanceof Error ? err.message : 'No se pudo rechazar la transferencia.';
-        this.isAcceptingTransfer = false;
+        this.error = err instanceof Error ? err.message : 'No se pudo declinar la transferencia.';
+        this.isDecliningTransfer = false;
       });
       console.error('[GroupAdminStore] rejectOwnershipTransfer error:', err);
       return false;
@@ -338,6 +347,7 @@ export class GroupAdminStore {
     this.pendingTransferCandidateId = null;
     this.isTransferLoading = false;
     this.isAcceptingTransfer = false;
+    this.isDecliningTransfer = false;
   }
 
   // ---------------------------------------------------------------------------

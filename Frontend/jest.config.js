@@ -15,5 +15,6 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^expo-secure-store$': '<rootDir>/__mocks__/expo-secure-store.js',
   },
 };

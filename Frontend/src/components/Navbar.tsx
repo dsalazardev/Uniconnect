@@ -9,7 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { authStore, authController } from "@/src/features/auth";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useResponsive } from "../hooks/useResponsive";
 import { useConnections } from "../features/connections/hooks/useConnections";
@@ -22,6 +22,7 @@ import { AppState } from "react-native";
 export const Navbar = () => {
   const user = authStore.user;
   const router = useRouter();
+  const pathname = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
   const { isMobile } = useResponsive();
   const { pendingRequests } = useConnections();
@@ -35,7 +36,7 @@ export const Navbar = () => {
       const data = await notificationsService.getUnreadCount(token);
       setUnreadCount(data.count);
     } catch (error) {
-      console.log('Error cargando conteo de notificaciones:', error);
+      
     }
   };
 
@@ -110,7 +111,17 @@ export const Navbar = () => {
       <View style={styles.rightSection}>
         {/* Botón de notificaciones */}
         <NotificationIcon
-          onPress={() => navigateTo("/(tabs)/notifications")}
+          onPress={() => {
+            if (pathname === '/notifications') {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)');
+              }
+            } else {
+              router.push('/(tabs)/notifications');
+            }
+          }}
           color="#D9B97E"
         />
 

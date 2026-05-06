@@ -8,9 +8,9 @@ export function useAppInitialization() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        console.log('Initializing app authentication...');
+        
         await authController.initializeAuth();
-        console.log('App authentication initialized successfully');
+        
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to initialize app';
         console.error('App initialization error:', error);

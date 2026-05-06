@@ -38,7 +38,7 @@ const EventsScreen: React.FC = observer(() => {
 
   // Load events on component mount
   useEffect(() => {
-    console.log('🚀 EventsScreen mounted');
+    
     eventsStore.loadEvents();
   }, []);
 
@@ -47,11 +47,11 @@ const EventsScreen: React.FC = observer(() => {
   // ⭐ FIX: Use null-safe access with fallback to roleName from JWT
   const canCreateEvents = React.useMemo(() => {
     const userRole = authStore.user?.role?.name || authStore.user?.roleName;
-    console.log('🔍 DEBUG - User role:', userRole);
+    
     return userRole ? ['admin', 'superadmin'].includes(userRole) : false;
   }, [authStore.user?.role?.name, authStore.user?.roleName]);
 
-  console.log('🎨 Rendering EventsScreen - canCreateEvents:', canCreateEvents);
+  
 
   /**
    * ⭐ NUEVO: Handle event creation
@@ -59,15 +59,6 @@ const EventsScreen: React.FC = observer(() => {
    */
   const handleCreateEvent = async (payload: CreateEventPayload) => {
     // ⭐ DIAGNOSTIC: Log auth state before creating event
-    console.log('🔍 [CreateEvent] Auth state:', {
-      isAuthenticated: authStore.isAuthenticated,
-      hasToken: !!authStore.accessToken,
-      token: authStore.accessToken,
-      tokenPreview: authStore.accessToken ? authStore.accessToken.substring(0, 20) + '...' : 'none',
-      userId: authStore.user?.id_user,
-      userRole: authStore.user?.role?.name || authStore.user?.roleName,
-      canCreateEvents,
-    });
 
     const success = await eventsStore.createEvent(payload);
 
@@ -89,7 +80,7 @@ const EventsScreen: React.FC = observer(() => {
    * Opens edit modal with selected event
    */
   const handleEdit = (event: Event) => {
-    console.log('🔍 [EditEvent] Opening edit modal for event:', event.id_event);
+    
     setSelectedEvent(event);
     setEditModalVisible(true);
   };
@@ -99,7 +90,7 @@ const EventsScreen: React.FC = observer(() => {
    * Calls store action and handles success/error
    */
   const handleSave = async (id: number, payload: UpdateEventPayload) => {
-    console.log('🔍 [UpdateEvent] Updating event:', id, payload);
+    
     
     const success = await eventsStore.updateEvent(id, payload);
 

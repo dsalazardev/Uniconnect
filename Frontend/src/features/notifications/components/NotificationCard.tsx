@@ -24,11 +24,11 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         return { name: 'checkmark-circle' as const, color: '#8B5CF6' };
       case 'user_joined_group':
         return { name: 'people' as const, color: '#F59E0B' };
-      case 'group_join_request':
+      case 'join_request':
         return { name: 'person-add-outline' as const, color: '#F97316' };
-      case 'group_join_request_accepted':
+      case 'member_accepted':
         return { name: 'checkmark-circle' as const, color: '#22C55E' };
-      case 'group_join_request_rejected':
+      case 'member_removed':
         return { name: 'close-circle' as const, color: '#EF4444' };
       case 'mention':
         return { name: 'at-circle' as const, color: '#38BDF8' };

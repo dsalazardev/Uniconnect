@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { authStore } from '@/src/features/auth';
@@ -7,6 +8,20 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { observer } from 'mobx-react-lite';
 import { reaction } from 'mobx';
+
+// Configurar cómo se muestran las notificaciones cuando la app está en primer plano
+// Solo aplica en nativo — en web no hay soporte de push nativo
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 const queryClient = new QueryClient();
 
@@ -19,7 +34,15 @@ const RootNavigationWrapper = observer(() => {
   const [isMounted, setIsMounted] = useState(false);
   const [isRouterReady, setIsRouterReady] = useState(false);
 
-  // Subscribe to auth state changes using MobX
+  // Ref para el listener de tap en notificaciones — evita duplicados
+  const notificationResponseListener = useRef<Notifications.EventSubscription | null>(null);
+  // Ref al router para que el listener siempre use la instancia actualizada
+  const routerRef = useRef(router);
+
+  // Mantener routerRef siempre actualizado
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
   useEffect(() => {
     const disposer = reaction(
       () => ({ token: authStore.accessToken, needsOnboarding: authStore.needsOnboarding }),
@@ -54,13 +77,13 @@ const RootNavigationWrapper = observer(() => {
     try {
       // Solo navegar si realmente necesitamos cambiar de ruta
       if (!token && !inAuthGroup) {
-        console.log('No authenticated, redirecting to login...');
+        
         router.replace('/(auth)/login');
       } else if (token && needsOnboarding && !inOnboarding) {
-        console.log('Needs onboarding, redirecting...');
+        
         router.replace('/(auth)/onboarding');
       } else if (token && !needsOnboarding && inAuthGroup) {
-        console.log('Authenticated and onboarded, redirecting to tabs...');
+        
         router.replace('/(tabs)');
       }
     } catch (error) {
@@ -71,8 +94,9 @@ const RootNavigationWrapper = observer(() => {
 
   useEffect(() => {
     async function getExpoToken() {
+      if (Platform.OS === 'web') return;
       if (!Device.isDevice) {
-        console.log('Usa un dispositivo físico');
+        
         return;
       }
 
@@ -88,17 +112,69 @@ const RootNavigationWrapper = observer(() => {
       }
 
       if (finalStatus !== 'granted') {
-        console.log("Permiso denegado");
+        
         return;
       }
 
       //const token = (await Notifications.getExpoPushTokenAsync()).data;
 
-      //console.log('EXPO PUSH TOKEN:', token);
+      //
     }
 
     getExpoToken();
   }, []);
+
+  // Listener para cuando el usuario toca una notificación push (app en foreground/background)
+  // y lectura de la última notificación pendiente (cold start / app cerrada)
+  // Solo disponible en dispositivos nativos — no en web
+  // Espera a isRouterReady para garantizar que el router puede navegar
+  useEffect(() => {
+    if (Platform.OS === 'web' || !isRouterReady) return;
+
+    const handleNotificationData = (data: Record<string, unknown>) => {
+      
+
+      const screen = data?.screen as string | undefined;
+      const params = data?.params as Record<string, unknown> | undefined;
+
+      if (screen === 'GroupInfo' && params?.groupId) {
+        const groupId = Number(params.groupId);
+        const autoOpenAccept = params.autoOpenAccept === true;
+
+        
+
+        routerRef.current.push({
+          pathname: '/groups/[id]',
+          params: {
+            id: String(groupId),
+            autoOpenInfo: 'true',
+            autoOpenAccept: String(autoOpenAccept),
+          },
+        } as any);
+      }
+    };
+
+    // 1. Cold start: leer la notificación que abrió la app (si existe)
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response?.notification?.request?.content?.data) {
+        handleNotificationData(
+          response.notification.request.content.data as Record<string, unknown>,
+        );
+      }
+    });
+
+    // 2. App en foreground/background: escuchar taps en tiempo real
+    notificationResponseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        handleNotificationData(
+          response.notification.request.content.data as Record<string, unknown>,
+        );
+      });
+
+    return () => {
+      notificationResponseListener.current?.remove();
+    };
+  }, [isRouterReady]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 });

@@ -15,6 +15,10 @@ interface GroupInfoHeaderProps {
 
 export const GroupInfoHeader = ({ groupInfo, onJoinSuccess }: GroupInfoHeaderProps) => {
   const createdDate = new Date(groupInfo.created_at).toLocaleDateString();
+  
+  // Derivar el estado del grupo basado en pending_owner_id
+  const groupStatus = groupInfo.pending_owner_id ? 'TransferenciaAdminPendiente' : 'Activo';
+  const statusColor = groupInfo.pending_owner_id ? '#F59E0B' : '#22C55E';
 
   return (
     <View style={styles.container}>
@@ -53,6 +57,13 @@ export const GroupInfoHeader = ({ groupInfo, onJoinSuccess }: GroupInfoHeaderPro
         <View style={styles.detailItem}>
           <Ionicons name="calendar-outline" size={16} color="#D9B97E" />
           <Text style={styles.detailText}>Creado: {createdDate}</Text>
+        </View>
+
+        <View style={styles.detailItem}>
+          <Ionicons name="ellipse" size={16} color={statusColor} />
+          <Text style={[styles.detailText, { color: statusColor }]}>
+            {groupStatus}
+          </Text>
         </View>
       </View>
 

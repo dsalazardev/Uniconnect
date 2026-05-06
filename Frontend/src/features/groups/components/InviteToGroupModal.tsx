@@ -67,6 +67,17 @@ export const InviteToGroupModal = ({
     enabled: !!groupId && !!token,
   });
 
+  // Obtener solicitudes de unión pendientes para deshabilitar esos usuarios
+  const { data: joinRequests = [] } = useQuery({
+    queryKey: ['group-join-requests', groupId],
+    queryFn: () => groupsService.getGroupJoinRequests(groupId, token),
+    enabled: !!groupId && !!token,
+  });
+  const pendingRequesterIds = React.useMemo(
+    () => new Set((joinRequests as { id_user: number }[]).map((r) => r.id_user)),
+    [joinRequests]
+  );
+
   // Filtrar conexiones que compartan la misma materia del grupo y no sean miembros aún
   const filteredUsers = React.useMemo(() => {
     if (!invitables) return [];
@@ -211,44 +222,56 @@ export const InviteToGroupModal = ({
         <FlatList
           data={filteredUsers}
           keyExtractor={(item) => item.id_user.toString()}
-          renderItem={({ item: user }) => (
-            <TouchableOpacity
-              style={[
-                styles.userCard,
-                selectedUsers.includes(user.id_user) && styles.userCardSelected,
-              ]}
-              onPress={() => handleToggleUser(user.id_user)}
-            >
-              <View style={styles.userInfo}>
-                {user.picture ? (
-                  <Image source={{ uri: user.picture }} style={styles.avatar} />
+          renderItem={({ item: user }) => {
+            const hasPendingRequest = pendingRequesterIds.has(user.id_user);
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.userCard,
+                  selectedUsers.includes(user.id_user) && styles.userCardSelected,
+                  hasPendingRequest && styles.userCardDisabled,
+                ]}
+                onPress={() => !hasPendingRequest && handleToggleUser(user.id_user)}
+                disabled={hasPendingRequest}
+              >
+                <View style={styles.userInfo}>
+                  {user.picture ? (
+                    <Image source={{ uri: user.picture }} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Ionicons name="person" size={24} color="#D9B97E" />
+                    </View>
+                  )}
+
+                  <View style={styles.userDetails}>
+                    <Text style={styles.userName}>{user.full_name}</Text>
+                    {user.program && (
+                      <Text style={styles.program}>{user.program.name}</Text>
+                    )}
+                    {user.email && <Text style={styles.email}>{user.email}</Text>}
+                    {hasPendingRequest && (
+                      <Text style={styles.pendingRequestLabel}>Solicitud de unión pendiente</Text>
+                    )}
+                  </View>
+                </View>
+
+                {hasPendingRequest ? (
+                  <Ionicons name="time-outline" size={20} color="#666" />
                 ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={24} color="#D9B97E" />
+                  <View
+                    style={[
+                      styles.checkbox,
+                      selectedUsers.includes(user.id_user) && styles.checkboxSelected,
+                    ]}
+                  >
+                    {selectedUsers.includes(user.id_user) && (
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                    )}
                   </View>
                 )}
-
-                <View style={styles.userDetails}>
-                  <Text style={styles.userName}>{user.full_name}</Text>
-                  {user.program && (
-                    <Text style={styles.program}>{user.program.name}</Text>
-                  )}
-                  {user.email && <Text style={styles.email}>{user.email}</Text>}
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.checkbox,
-                  selectedUsers.includes(user.id_user) && styles.checkboxSelected,
-                ]}
-              >
-                {selectedUsers.includes(user.id_user) && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                )}
-              </View>
-            </TouchableOpacity>
-          )}
+              </TouchableOpacity>
+            );
+          }}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -350,6 +373,14 @@ const styles = StyleSheet.create({
   userCardSelected: {
     borderColor: '#D9B97E',
     backgroundColor: 'rgba(217, 185, 126, 0.1)',
+  },
+  userCardDisabled: {
+    opacity: 0.5,
+  },
+  pendingRequestLabel: {
+    fontSize: 11,
+    color: '#F97316',
+    marginTop: 2,
   },
   userInfo: {
     flexDirection: 'row',

@@ -133,4 +133,8 @@ export const groupJoinRequestsEndpoints = {
   // Aceptar transferencia (solo el candidato designado)
   acceptOwnershipTransfer: (groupId: number) =>
     `${API_BASE_URL}/groups/${groupId}/accept-ownership-transfer`,
+
+  // Declinar transferencia (solo el candidato designado)
+  declineOwnershipTransfer: (groupId: number) =>
+    `${API_BASE_URL}/groups/${groupId}/decline-ownership-transfer`,
 };

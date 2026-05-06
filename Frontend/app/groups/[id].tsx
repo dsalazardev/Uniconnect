@@ -10,7 +10,9 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChatScreen } from '@/src/features/messages/components/ChatScreen';
+import { websocketService } from '@/src/features/messages/services/websocket.service';
 import { authStore } from '@/src/features/auth';
 import { groupsService } from '@/src/features/groups/services/groups.service';
 import { Group } from '@/src/features/groups/types';
@@ -18,26 +20,54 @@ import { WEBSOCKET_URL } from '@/src/constants/api';
 import { GroupInfoModal } from '@/src/features/groups/components/GroupInfoModal';
 
 export default function GroupChatScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, autoOpenInfo, autoOpenAccept } = useLocalSearchParams<{
+    id: string;
+    autoOpenInfo?: string;
+    autoOpenAccept?: string;
+  }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Si viene de una notificación push con autoOpenInfo=true, abrir el modal directamente
   const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   const userId = authStore.user?.id_user;
   const token = authStore.accessToken || '';
+
+  // Si viene de notificación push, abrir el modal una vez que el grupo haya cargado
+  const pendingAutoOpen = autoOpenInfo === 'true';
+
+  // Escuchar expulsión/salida en tiempo real
+  useEffect(() => {
+    const groupId = parseInt(id as string);
+
+    const handleAccessRevoked = (data: { id_group: number; group_name: string }) => {
+      if (data.id_group !== groupId) return;
+      queryClient.invalidateQueries({ queryKey: ['myGroups'] });
+      router.replace('/(tabs)/groups');
+    };
+
+    websocketService.on('group:access_revoked', handleAccessRevoked);
+    return () => {
+      websocketService.off('group:access_revoked', handleAccessRevoked);
+    };
+  }, [id, queryClient, router]);
 
   useEffect(() => {
     const loadGroupDetail = async () => {
       try {
         setLoading(true);
         const groupId = parseInt(id as string);
-        // Usar getGroupInfo que incluye toda la información necesaria
         const groupData = await groupsService.getGroupInfo(groupId, token);
         setGroup(groupData as any);
         setError(null);
+        // Abrir el modal automáticamente si viene de notificación push
+        if (pendingAutoOpen) {
+          setShowGroupInfo(true);
+        }
       } catch (err: any) {
         console.error('Error loading group:', err);
         setError(err.message || 'Error al cargar el grupo');
@@ -170,6 +200,7 @@ export default function GroupChatScreen() {
           groupId={group.id_group}
           visible={showGroupInfo}
           onClose={() => setShowGroupInfo(false)}
+          scrollToAccept={autoOpenAccept === 'true'}
         />
       )}
     </View>

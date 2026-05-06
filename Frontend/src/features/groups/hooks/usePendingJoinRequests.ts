@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { groupsService } from '../services/groups.service';
 import { authStore } from '@/src/features/auth/store/AuthStore';
-import { GroupJoinRequest, GroupWithJoinRequests } from '../types';
+import { GroupJoinRequest } from '../types';
 
 /**
  * Hook para obtener solicitudes pendientes de un grupo específico (para el owner)
@@ -16,7 +16,7 @@ export function useGroupJoinRequests(groupId: number) {
       return groupsService.getGroupJoinRequests(groupId, token);
     },
     enabled: !!token && !!groupId,
-    staleTime: 1 * 60 * 1000, // 1 minuto
+    staleTime: 0, // Siempre fresco — las acciones de aceptar/rechazar deben verse al instante
   });
 }
 
@@ -33,12 +33,12 @@ export function usePendingJoinRequests() {
       return groupsService.getPendingJoinRequests(token);
     },
     enabled: !!token,
-    staleTime: 2 * 60 * 1000, // 2 minutos
+    staleTime: 0,
   });
 }
 
 /**
- * Hook para aceptar una solicitud de acceso a un grupo
+ * Hook para aceptar una solicitud — actualización optimista inmediata
  */
 export function useAcceptJoinRequest() {
   const queryClient = useQueryClient();
@@ -49,33 +49,38 @@ export function useAcceptJoinRequest() {
       if (!token) throw new Error('No authentication token');
       return groupsService.acceptJoinRequest(groupId, requestId, token);
     },
-    onSuccess: (data, { groupId }) => {
-      // Invalidar las solicitudes pendientes
-      queryClient.invalidateQueries({
-        queryKey: ['pending-join-requests'],
-      });
-      // Invalidar solicitudes del grupo específico
-      queryClient.invalidateQueries({
-        queryKey: ['group-join-requests', groupId],
-      });
-      // Invalidar info del grupo
-      queryClient.invalidateQueries({
-        queryKey: ['group-info', groupId],
-      });
-      // Invalidar miembros del grupo
-      queryClient.invalidateQueries({
-        queryKey: ['group-members', groupId],
-      });
-      // Invalidar "Mis Grupos" para que aparezca el nuevo miembro
-      queryClient.invalidateQueries({
-        queryKey: ['myGroups'],
-      });
+    onMutate: async ({ groupId, requestId }) => {
+      // Cancelar refetches en vuelo para evitar sobreescribir el optimistic update
+      await queryClient.cancelQueries({ queryKey: ['group-join-requests', groupId] });
+
+      // Snapshot para rollback
+      const previous = queryClient.getQueryData<GroupJoinRequest[]>(['group-join-requests', groupId]);
+
+      // Quitar la solicitud del cache inmediatamente
+      queryClient.setQueryData<GroupJoinRequest[]>(
+        ['group-join-requests', groupId],
+        (old) => (old ?? []).filter((r) => r.id_request !== requestId),
+      );
+
+      return { previous, groupId };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback si falla
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['group-join-requests', context.groupId], context.previous);
+      }
+    },
+    onSettled: (_data, _err, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: ['group-join-requests', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['pending-join-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['myGroups'] });
     },
   });
 }
 
 /**
- * Hook para rechazar una solicitud de acceso a un grupo
+ * Hook para rechazar una solicitud — actualización optimista inmediata
  */
 export function useRejectJoinRequest() {
   const queryClient = useQueryClient();
@@ -86,15 +91,28 @@ export function useRejectJoinRequest() {
       if (!token) throw new Error('No authentication token');
       return groupsService.rejectJoinRequest(groupId, requestId, token);
     },
-    onSuccess: (_data, { groupId }) => {
-      // Invalidar las solicitudes pendientes
-      queryClient.invalidateQueries({
-        queryKey: ['pending-join-requests'],
-      });
-      // Invalidar info del grupo
-      queryClient.invalidateQueries({
-        queryKey: ['group-info', groupId],
-      });
+    onMutate: async ({ groupId, requestId }) => {
+      await queryClient.cancelQueries({ queryKey: ['group-join-requests', groupId] });
+
+      const previous = queryClient.getQueryData<GroupJoinRequest[]>(['group-join-requests', groupId]);
+
+      // Quitar la solicitud del cache inmediatamente
+      queryClient.setQueryData<GroupJoinRequest[]>(
+        ['group-join-requests', groupId],
+        (old) => (old ?? []).filter((r) => r.id_request !== requestId),
+      );
+
+      return { previous, groupId };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['group-join-requests', context.groupId], context.previous);
+      }
+    },
+    onSettled: (_data, _err, { groupId }) => {
+      queryClient.invalidateQueries({ queryKey: ['group-join-requests', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['pending-join-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
     },
   });
 }

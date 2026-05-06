@@ -150,12 +150,6 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({
       return;
     }
 
-    // ⭐ DIAGNOSTIC: Log event ID before sending
-    console.log('🔍 [EditEventModal] Submitting update for event:', {
-      eventId: event.id_event,
-      idType: typeof event.id_event,
-    });
-
     // Emit data to parent via onSave prop
     const payload: UpdateEventPayload = {
       title: title.trim(),

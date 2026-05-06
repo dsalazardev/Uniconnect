@@ -136,7 +136,7 @@ export default function GroupsScreenWithTabs() {
           <GroupCard
             group={item}
             onPress={() => handleGroupPress(item.id_group)}
-            onEdit={() => console.log('Edit group', item.id_group)}
+            onEdit={() => }
             onDelete={() => handleDeleteGroup(item.id_group)}
           />
         )}

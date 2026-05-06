@@ -6,6 +6,8 @@ export interface Group {
   owner_id: number;
   created_at: string;
   is_direct_message?: boolean;
+  /** Estado del usuario actual respecto a este grupo (devuelto por /discover) */
+  user_request_status?: 'none' | 'join_requested' | 'invited';
   course: Course;
   owner?: {
     id_user: number;
@@ -180,6 +182,8 @@ export interface GroupInfo {
   canManageMembers: boolean;
   isMember: boolean;
   isOwner: boolean;
+  hasPendingRequest?: boolean;
+  hasActiveInvitation?: boolean;
 
   // Miembros
   memberships: GroupMembership[];
