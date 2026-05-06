@@ -1,0 +1,12 @@
+name: fix-android-sharedarraybuffer-crash
+title: Fix Android SharedArrayBuffer Crash
+owner: TBD
+reviewers:
+  - TBD
+status: draft
+applyRequires:
+  - tasks
+description: |
+  Fix the runtime crash seen on Android Hermes when the JS bundle references
+  `SharedArrayBuffer`. Produce a reproducible diagnosis, a remediation plan
+  (override, reinstall, verify) and CI checks to prevent regressions.
