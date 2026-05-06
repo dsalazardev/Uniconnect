@@ -15,12 +15,17 @@
 - **Testing**: Jest 30.x + Supertest + Fast-Check (Property-Based Testing)
 - **Documentación**: Swagger/OpenAPI
 
-### Frontend (Uniconnect-Frontend)
-- **Framework**: React Native 0.81.x con Expo 54.x
-- **Navegación**: Expo Router 6.x
-- **Estado**: Zustand 5.x + MobX 6.x (híbrido)
-- **HTTP Client**: Axios 1.13.x + TanStack Query 5.x
-- **UI**: Expo Vector Icons + Linear Gradient
+### Frontend (Uniconnect Multi-Frontend Monorepo)
+- **Arquitectura**: Monorepo con código compartido (@uniconnect/shared)
+- **Frontend-mobile**: React Native 0.81.x con Expo 54.x
+- **Frontend-web**: React 19.x con Vite 8.x ✅ Scaffoldeado (Mayo 2026) ✅ Navegación Implementada (Mayo 2026)
+- **Navegación Mobile**: Expo Router 6.x
+- **Navegación Web**: React Router 7.x ✅ Instalado (Mayo 2026)
+- **Estado**: MobX 6.x (migrado de Zustand)
+- **HTTP Client**: Axios 1.13.x con Factory Pattern + DI
+- **Shared Package**: TypeScript 5.7.x con strict mode
+- **UI Mobile**: Expo Vector Icons + Linear Gradient
+- **UI Web**: CSS Modules [EN DESARROLLO]
 - **Testing**: Jest + React Native Testing Library + Fast-Check
 
 ## 🚨 REGLAS DE INGENIERÍA ESTRICTAS
@@ -642,6 +647,339 @@ src/
 - **Ubicación**: `src/features/events/services/events.service.ts` (línea 223 deleteEvent, línea 352 validateFENResponse)
 - **Documentación**: `.kiro/specs/fix-11-delete-validation/` (requirements.md, design.md, tasks.md)
 - **Store**: `src/features/events/store/events.store.ts` deleteEvent() filtra evento del estado local cuando eliminación es exitosa
+
+## 🏢 ARQUITECTURA MONOREPO (Multi-Frontend)
+
+> **NUEVA ARQUITECTURA (Mayo 2026)**: Uniconnect migró a una arquitectura de monorepo con código compartido entre múltiples frontends.
+
+### Estructura del Workspace
+```
+uniconnect/
+├── Backend/                      # NestJS Backend (sin cambios)
+├── Frontend-mobile/              # React Native + Expo (mobile)
+│   ├── src/
+│   │   ├── features/            # Features específicas de mobile
+│   │   ├── constants/           # Configuración mobile (api.ts)
+│   │   └── ...
+│   └── package.json
+├── Frontend-web/                 # React + Vite (web) ✅ Navegación Completa (Mayo 2026)
+│   ├── src/
+│   │   ├── components/          # Layout y componentes compartidos
+│   │   ├── features/            # Features específicas de web (Fases 12-25 completadas)
+│   │   └── ...
+│   ├── vite.config.ts           # Alias @/ → ./src configurado
+│   ├── tsconfig.app.json        # strict: true, paths @/*
+│   ├── .env                     # VITE_API_URL, VITE_WEBSOCKET_URL, Auth0
+│   └── package.json             # react-router-dom, mobx, axios, @uniconnect/shared
+├── shared/                       # Paquete compartido (@uniconnect/shared)
+│   ├── src/
+│   │   ├── types/               # Types compartidos (FENResponse, Event, User, etc.)
+│   │   ├── api/
+│   │   │   ├── endpoints/       # Constantes de endpoints
+│   │   │   └── client.ts        # Axios Factory con DI
+│   │   ├── services/            # Services con DI (9 servicios completados)
+│   │   ├── validators/          # Zod validators (3 archivos, 22 tests)
+│   │   └── utils/               # Utilidades compartidas (2 archivos)
+│   ├── package.json
+│   └── tsconfig.json
+└── package.json                  # Root workspace config
+```
+
+### Paquete Shared (@uniconnect/shared)
+
+**Propósito**: Código compartido entre Frontend-mobile y Frontend-web sin duplicación.
+
+**Contenido Actual (Mayo 2026)**:
+- ✅ **Types** (10 archivos): FENResponse, Event, User, Group, Message, Notification, Connection, Course, Program, Student
+  - **Nota**: `Program` exportado desde barrel raíz (`shared/src/types/index.ts` → `programs.ts`)
+  - **Nota**: `GroupJoinRequest` incluye propiedad `group?` opcional (con `id_group`, `name`, `description?`, `course?`)
+  - **Nota**: `PaginationMetadata` es el nombre correcto (no `Metadata`)
+- ✅ **API Endpoints** (9 archivos): Constantes de rutas para auth, events, groups, messages, notifications, connections, courses, programs, students
+- ✅ **Axios Factory** (`client.ts`): Factory function con dependency injection para crear instancias de Axios configuradas
+- ✅ **Services con DI** (9 archivos completados): EventsService, GroupsService, MessagesService, NotificationsService, ConnectionsService, CoursesService, ProgramsService, StudentsService, AuthService
+  - Todos implementan patrón de Dependency Injection con `AxiosInstance` en constructor
+  - 100% agnósticos de plataforma (sin imports de React Native, Expo, MobX, Zustand)
+  - Tokens manejados automáticamente por interceptores de Axios
+  - Validación FEN implementada donde aplica
+  - Zero-Any Policy cumplida en todos los servicios
+- ✅ **Validators con Zod** (3 archivos completados): fen.validator.ts, events.validator.ts, groups.validator.ts
+  - Esquemas Zod para validación de respuestas FEN
+  - Funciones `validateFENResponse()` y `safeFENResponseValidation()`
+  - Esquemas para Event, Group, Membership, GroupInvitation, GroupJoinRequest
+  - DTOs validados con Zod (CreateEventDTO, UpdateEventDTO, CreateGroupDTO, etc.)
+  - 22/22 tests unitarios passing
+  - Zero-Any Policy cumplida
+- ✅ **Utils** (2 archivos completados): debug.ts, websocket.config.ts
+  - Utilidades de diagnóstico de mensajería con dependency injection
+  - Configuración de WebSocket agnóstica de plataforma
+  - Todas las dependencias externas inyectadas (URLs, servicios)
+  - Zero-Any Policy cumplida
+
+**Contenido Pendiente**:
+- ⏳ Frontend-web features y componentes (Fases 12-25)
+- ⏳ Tests para Frontend-web (Fase 27)
+
+### Axios Factory con Dependency Injection
+
+**Ubicación**: `shared/src/api/client.ts`
+
+**Características**:
+- ✅ **Dependency Injection**: AuthProvider interface para desacoplar de stores específicos
+- ✅ **Token Refresh Mutex (FIX-10)**: Previene múltiples llamadas concurrentes a `/auth/refresh`
+- ✅ **Promise Queueing**: Encola peticiones 401 mientras se refresca el token
+- ✅ **FEN Validation Interceptor**: Valida estructura de respuestas FENResponse
+- ✅ **Automatic Bearer Token**: Inyecta token automáticamente en headers
+- ✅ **401 Retry Logic**: Reintenta peticiones fallidas con nuevo token
+- ✅ **Graceful Degradation**: Manejo robusto de errores de refresh
+- ✅ **Zero-Any Policy**: 100% tipado estricto sin `any`
+- ✅ **Platform Agnostic**: Sin dependencias de React Native o Web
+
+**Uso**:
+```typescript
+import { createApiClient, AuthProvider } from '@uniconnect/shared';
+
+// Implementar AuthProvider interface
+const authProvider: AuthProvider = {
+  getAccessToken: () => authStore.accessToken,
+  isTokenExpired: () => authStore.isTokenExpired,
+  hasRefreshToken: () => authStore.hasRefreshToken,
+  isRefreshing: () => authStore.isRefreshing,
+  refreshTokens: () => authController.refreshTokens(),
+  clearAuth: () => authStore.clearAuth(),
+};
+
+// Crear instancia de Axios
+const api = createApiClient({
+  baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8007/api',
+  authProvider,
+  timeout: 10000,
+  enableFENValidation: true,
+  debug: false,
+});
+```
+
+**AuthProvider Interface**:
+```typescript
+export interface AuthProvider {
+  getAccessToken: () => string | null;
+  isTokenExpired: () => boolean;
+  hasRefreshToken: () => boolean;
+  isRefreshing: () => boolean;
+  refreshTokens: () => Promise<TokenRefreshResult>;
+  clearAuth: () => void;
+}
+```
+
+### Reglas de Desarrollo en Monorepo
+
+1. **Código Compartido en `shared/`**:
+   - ✅ Types, interfaces, DTOs
+   - ✅ API endpoints (constantes de rutas)
+   - ✅ Axios factory y configuración HTTP
+   - ✅ Services con dependency injection
+   - ✅ Validators (Zod schemas)
+   - ✅ Utilidades sin dependencias de plataforma
+   - ❌ NO componentes UI (específicos de plataforma)
+   - ❌ NO hooks de React (específicos de plataforma)
+   - ❌ NO stores (específicos de plataforma)
+
+2. **Código Específico de Plataforma**:
+   - **Frontend-mobile**: Componentes React Native, hooks, stores, navegación Expo Router
+   - **Frontend-web**: Componentes React DOM, hooks, stores, navegación React Router
+
+3. **Dependency Injection Obligatoria**:
+   - Services deben aceptar `AxiosInstance` en constructor
+   - Axios Factory usa `AuthProvider` interface
+   - NO importar stores directamente en `shared/`
+
+4. **Validación con Zod Obligatoria**:
+   - Usar esquemas Zod de `shared/src/validators/` para validar respuestas del backend
+   - Función `validateFENResponse(data, schema)` para validación estricta
+   - Función `safeFENResponseValidation(data, schema)` para validación segura sin excepciones
+   - Esquemas disponibles: `EventSchema`, `GroupSchema`, `MembershipSchema`, `GroupInvitationSchema`, etc.
+   - DTOs validados: `CreateEventDTOSchema`, `UpdateEventDTOSchema`, `CreateGroupDTOSchema`, etc.
+   - Ejemplo de uso:
+     ```typescript
+     import { validateFENResponse, EventArraySchema } from '@uniconnect/shared';
+     
+     const response = await api.get('/events');
+     const validated = validateFENResponse(response.data, EventArraySchema);
+     ```
+
+5. **Zero-Any Policy en Shared**:
+   - Verificar con `cd shared && npx tsc --noEmit`
+   - Tipado estricto obligatorio en todo el paquete
+
+6. **Utilidades con Dependency Injection**:
+   - Todas las utilidades en `shared/src/utils/` deben ser agnósticas de plataforma
+   - URLs, servicios y configuraciones deben ser inyectadas como parámetros
+   - Usar interfaces para abstraer dependencias externas
+   - Ejemplo de uso:
+     ```typescript
+     import { runMessagingDiagnostics, type DiagnosticConfig } from '@uniconnect/shared';
+     
+     const config: DiagnosticConfig = {
+       websocketUrl: WEBSOCKET_URL,
+       apiUrl: API_BASE_URL,
+       websocketService: myWebSocketService,
+     };
+     
+     const result = await runMessagingDiagnostics(config);
+     ```
+
+7. **Instalación de Shared Package**:
+   ```json
+   // Frontend-mobile/package.json y Frontend-web/package.json
+   {
+     "dependencies": {
+       "@uniconnect/shared": "file:../shared"
+     }
+   }
+   ```
+
+### Scripts de Workspace
+
+**Root package.json**:
+```json
+{
+  "workspaces": ["shared", "Frontend-mobile", "Frontend-web"],
+  "scripts": {
+    "dev:mobile": "cd Frontend-mobile && npx expo start",
+    "dev:web": "cd Frontend-web && npm run dev",
+    "dev:backend": "cd Backend && npm run start:dev",
+    "build:shared": "cd shared && npm run build",
+    "build:web": "cd Frontend-web && npm run build",
+    "test:mobile": "cd Frontend-mobile && npm test",
+    "test:web": "cd Frontend-web && npm test",
+    "test:all": "npm run test:mobile && npm run test:web",
+    "typecheck:shared": "cd shared && npx tsc --noEmit",
+    "typecheck:web": "cd Frontend-web && npx tsc --noEmit",
+    "typecheck:all": "npm run typecheck:shared && npm run typecheck:web"
+  },
+  "overrides": {
+    "pretty-format": "29.7.0",
+    "jest-matcher-utils": "29.7.0",
+    "jest-diff": "29.7.0",
+    "@expo/metro-runtime": {
+      "pretty-format": "29.7.0"
+    },
+    "expo": {
+      "pretty-format": "29.7.0"
+    },
+    "react-native": {
+      "pretty-format": "29.7.0"
+    }
+  }
+}
+```
+
+**Nota Crítica sobre Overrides**:
+- **npm workspaces** usa `overrides` (NO `resolutions` que es sintaxis de Yarn)
+- Los overrides en el package.json raíz fuerzan versiones específicas en TODO el árbol de dependencias
+- Necesario para resolver conflictos de compatibilidad con Hermes Engine (ej: pretty-format@30.x usa SharedArrayBuffer no soportado)
+- Los overrides se aplican recursivamente a todas las subdependencias transitivas
+
+### Services con Dependency Injection (Completado Mayo 2026)
+
+**Ubicación**: `shared/src/services/`
+
+Todos los servicios han sido migrados al paquete compartido siguiendo el patrón de Dependency Injection. Cada servicio:
+- ✅ Acepta `AxiosInstance` en el constructor
+- ✅ Es 100% agnóstico de plataforma (sin imports de React Native, Expo, MobX, Zustand)
+- ✅ **No maneja tokens manualmente** (delegado a interceptores de Axios)
+- ✅ **CAMBIO ARQUITECTÓNICO**: Los métodos NO reciben `token` como parámetro (vs. servicios antiguos que sí lo recibían)
+- ✅ Mantiene validación FEN donde aplica
+- ✅ Cumple con Zero-Any Policy
+
+**Servicios Migrados (9 total)**:
+1. **EventsService** - Gestión de eventos académicos con validación FEN triple-layer
+2. **GroupsService** - Grupos de estudio, invitaciones, join requests, ownership transfer
+3. **MessagesService** - Mensajería, búsqueda, edición, eliminación
+4. **NotificationsService** - Notificaciones push, contadores, marcado como leído
+5. **ConnectionsService** - Red social de conexiones entre estudiantes
+6. **CoursesService** - Gestión de cursos y materias
+7. **ProgramsService** - Programas académicos
+8. **StudentsService** - Perfiles de estudiantes y comunidad (sin lógica de authStore)
+9. **AuthService** - Autenticación, refresh tokens, onboarding
+
+**Patrón de Uso**:
+```typescript
+import { EventsService } from '@uniconnect/shared';
+import { api } from './constants/api'; // Instancia de Axios configurada
+
+// Instanciar servicio con DI
+const eventsService = new EventsService(api);
+
+// ❌ ANTIGUO (con token explícito)
+// const response = await eventsService.getEvents(filters, pagination, token);
+
+// ✅ NUEVO (sin token - manejado por interceptores)
+const response = await eventsService.getEvents(filters, pagination);
+```
+
+**Ejemplo de Implementación**:
+```typescript
+// shared/src/services/events.service.ts
+export class EventsService {
+  private readonly api: AxiosInstance;
+
+  constructor(axiosInstance: AxiosInstance) {
+    this.api = axiosInstance;
+  }
+
+  // Nota: NO recibe token como parámetro
+  async getEvents(filters: EventFilters, pagination: PaginationParams): Promise<FENResponse<Event[]>> {
+    const response = await this.api.get(EVENTS_ENDPOINTS.GET_EVENTS, { params });
+    return this.validateFENResponse<Event[]>(response.data);
+  }
+}
+  }
+}
+```
+
+### Estado de Migración (Mayo 2026)
+
+**Completado**:
+- ✅ Estructura de monorepo creada
+- ✅ Paquete `shared` inicializado con TypeScript strict
+- ✅ Types migrados (10 archivos) — **`Program` ahora exportado desde barrel raíz de types**
+- ✅ API Endpoints migrados (9 archivos)
+- ✅ Axios Factory implementado con DI
+- ✅ Services migrados (9 archivos) con Dependency Injection
+- ✅ Validators con Zod implementados (3 archivos, 22 tests passing)
+- ✅ Utils migrados (2 archivos) con Dependency Injection
+- ✅ **Frontend-mobile integrado con shared package** (Fase 9 - Mayo 2026)
+  - ✅ Todos los tipos re-exportados desde @uniconnect/shared (9 features)
+  - ✅ Todos los endpoints importados desde @uniconnect/shared (9 features)
+  - ✅ Servicios instanciados con DI pattern (9 archivos services/index.ts)
+  - ✅ Todas las importaciones actualizadas (~50+ archivos)
+  - ✅ Tests passing: 41/41 (100%)
+  - ✅ Jest configurado para transformar código de shared package
+  - ✅ Zero-Any Policy mantenida
+- ✅ **Fase 9.5 completada** — 0 errores TypeScript en Frontend-mobile (Mayo 2026)
+  - ✅ Eliminado parámetro `token` de todas las llamadas a servicios de @uniconnect/shared
+  - ✅ Type guards implementados en `GroupInvitationCard` para `GroupInvitation | GroupJoinRequest`
+  - ✅ Rutas de importación corregidas (services/index.ts en lugar de archivos directos)
+  - ✅ `GroupJoinRequest` extendido con propiedad `group?` opcional en shared/src/types/groups.ts
+  - ✅ `Program` agregado al barrel export de shared/src/types/index.ts
+  - ✅ `notificationObserver` re-exportado desde notifications/services/index.ts
+  - ✅ `npx tsc --noEmit` → Exit Code 0 absoluto (consola limpia)
+- ✅ **Frontend-web scaffoldeado** (Fases 10-11 - Mayo 2026)
+  - ✅ Vite 8.x + React 19.x + TypeScript 6.x
+  - ✅ Dependencias: `react-router-dom@7.6`, `mobx@6.13`, `mobx-react-lite@4.1`, `axios@1.9`
+  - ✅ `@uniconnect/shared: file:../shared` enlazado y funcional
+  - ✅ `vite.config.ts` con alias `@/` → `./src`
+  - ✅ `.env` con `VITE_API_URL`, `VITE_WEBSOCKET_URL`, Auth0 vars
+  - ✅ `tsconfig.app.json` con `strict: true`, `noImplicitAny: true`, `paths: {"@/*": ["./src/*"]}`
+  - ✅ `npx tsc --noEmit` → Exit Code 0
+
+**En Progreso**:
+- ⏳ **Fase 12+**: Estructura de features, hooks, stores y componentes para Frontend-web
+
+**Pendiente**:
+- ⏳ Adaptación de componentes React Native → React DOM
+- ⏳ Configuración de React Router v7 (rutas)
+- ⏳ Tests para Frontend-web (Vitest)
 
 ## 🛠️ REGLAS DE NEGOCIO IMPLEMENTADAS
 
@@ -1683,9 +2021,64 @@ EXPO_PUBLIC_AUTH0_AUDIENCE="xxx"
 
 ---
 
-**Última actualización**: 26 de Abril, 2026
-**Versión del documento**: 2.1.0
+**Última actualización**: 6 de Mayo, 2026
+**Versión del documento**: 2.3.6
 **Mantenido por**: Sistema de Contexto Autónomo para IA
+
+**Cambios en esta versión**:
+- **Fix Definitivo SharedArrayBuffer (6 Mayo 2026)**: Solución a nivel monorepo con overrides
+  - **Problema Resuelto**: Crasheo persistente con `Property 'SharedArrayBuffer' doesn't exist` en Hermes Engine
+  - **Causa Raíz Identificada**: pretty-format@30.x.x usa SharedArrayBuffer (no soportado en Hermes) + dependencias transitivas (jest@30.x, @types/jest) + `resolutions` ignorado por npm workspaces
+  - **Solución Definitiva**: Agregado bloque `overrides` en package.json raíz para forzar pretty-format@29.7.0 en TODO el árbol de dependencias
+  - **Overrides Aplicados**: pretty-format, jest-matcher-utils, jest-diff, @expo/metro-runtime, expo, react-native
+  - **Resultado**: 1404 paquetes instalados, pretty-format@29.7.0 deduped en todas las subdependencias, sin referencias a SharedArrayBuffer
+  - **Documentación**: Actualizada sección Troubleshooting con solución definitiva y nota crítica sobre resolutions vs overrides
+  - **Archivo Modificado**: `package.json` (raíz del monorepo)
+- **Fix SharedArrayBuffer Crash (6 Mayo 2026)**: Reparación crítica de dependencia
+  - **Problema Resuelto**: Crasheo de React Native por error de `SharedArrayBuffer` en `pretty-format`
+  - **Causa**: Versión incompatible de `pretty-format` (>29.7.0) usando características no soportadas en React Native
+  - **Solución**: Forzada instalación de versión segura `pretty-format@29.7.0` + limpieza de cachés (.expo, metro)
+  - **Resultado**: Aplicación inicia sin errores, cachés reconstruidas con versión compatible
+  - **Documentación**: Agregada nueva sección en Troubleshooting con procedimiento de reparación
+  - **Archivo Modificado**: `Frontend/Frontend-mobile/package.json` (devDependencies)
+- **Fix Metro Bundler Monorepo (6 Mayo 2026)**: Reparación crítica de configuración
+  - **Problema Resuelto**: `Unable to resolve "expo-router/entry-classic"` en Expo
+  - **Causa**: `workspaceRoot` en `metro.config.js` apuntaba a `Frontend/` en lugar de `uniconnect/` (raíz del monorepo)
+  - **Solución**: Cambiado `path.resolve(projectRoot, "..")` → `path.resolve(projectRoot, "../..")` para subir 2 niveles
+  - **Resultado**: Metro ahora encuentra correctamente las dependencias hoisted en `uniconnect/node_modules/`
+  - **Documentación**: Agregada nueva sección en Troubleshooting con diagnóstico y solución
+  - **Archivo Modificado**: `Frontend/Frontend-mobile/metro.config.js`
+- **Fase 9.5 completada**: 0 errores TypeScript en Frontend-mobile (de 165 a 0)
+  - `GroupJoinRequest` extendido con `group?` opcional en `shared/src/types/groups.ts`
+  - `Program` agregado al barrel export de `shared/src/types/index.ts`
+  - `notificationObserver` re-exportado desde `notifications/services/index.ts`
+  - Type guards implementados en `GroupInvitationCard` para union types
+  - Rutas de importación corregidas en ~15 archivos (services/index.ts pattern)
+- **Fases 10-11 completadas**: Frontend-web scaffoldeado con Vite 8.x + React 19.x
+  - Dependencias instaladas: react-router-dom@7.6, mobx@6.13, axios@1.9
+  - `@uniconnect/shared` enlazado y funcional
+  - `vite.config.ts` con alias `@/`, `tsconfig.app.json` con strict mode y paths
+  - `npx tsc --noEmit` → Exit Code 0 en Frontend-web
+- **Fix Crítico Vite Runtime (6 Mayo 2026)**: Reparación de exports y imports para Vite
+  - **Shared Package Exports**: Corregido orden de exports en `types/index.ts` (courses antes de groups)
+  - **Course Duplicate Export**: Eliminada definición duplicada de `Course` en `groups.ts`, ahora importa desde `courses.ts`
+  - **TypeScript Config**: Removido `erasableSyntaxOnly` (incompatible con enums) y `verbatimModuleSyntax` (problemas con Axios)
+  - **EventType Imports**: Separados imports de tipos y valores en 6 archivos (EventCard, EventDetail, EventList, EventFilters, CreateEventModal, EditEventModal)
+  - **Patrón Establecido**: `import type { Event } from '@uniconnect/shared';` + `import { EventType } from '@uniconnect/shared';`
+  - **Resultado**: Error "does not provide an export named 'Event'" resuelto, errores de build reducidos de 101 a ~60
+- **Limpieza Profunda de Monorepo (6 Mayo 2026)**: Procedimiento de reparación para errores de Android
+  - **Problema Resuelto**: "No matching variant of project :react-native-async-storage_async-storage was found"
+  - **Causa**: Caché de Gradle corrupto + hoisting de NPM con módulos fantasma
+  - **Solución**: Eliminación completa de node_modules, `./gradlew clean`, reinstalación con `--legacy-peer-deps`
+  - **Resultado**: BUILD SUCCESSFUL, 1349 paquetes instalados, 23 módulos Expo detectados correctamente
+  - **Documentación**: Procedimiento agregado a sección Troubleshooting de AGENTS.md
+- **Navegación Frontend-web Implementada (6 Mayo 2026)**: Reparación crítica de usabilidad
+  - **Problema Resuelto**: Usuario atrapado en página vacía sin navegación
+  - **Componente Layout**: Navbar con enlaces a todas las rutas principales (/events, /groups, /messages, /students, /connections, /courses, /programs, /notifications, /profile)
+  - **Router Actualizado**: Ruta raíz (/) redirige a /events, eliminados placeholders inútiles
+  - **Componentes Conectados**: EventList, GroupList, MessageList y todos los componentes reales conectados al router
+  - **Autenticación**: Layout muestra navbar solo si usuario autenticado, botón de logout funcional
+  - **Resultado**: Aplicación web completamente navegable con menú persistente en todas las pantallas
 
 ## 🔄 MIGRACIÓN TYPEORM - ESTADO ACTUAL
 
@@ -1904,3 +2297,565 @@ EXPO_PUBLIC_AUTH0_AUDIENCE="xxx"
   - Logging mejorado facilita debugging de problemas en producción
   - Recovery path permite corregir estados inconsistentes existentes
 
+
+
+---
+
+## 🏢 ARQUITECTURA MONOREPO (Mayo 2026)
+
+### Estructura Real del Proyecto
+
+```
+uniconnect/
+├── package.json                 # Workspace root con scripts globales
+├── README.md                    # Documentación maestra
+├── MIGRATION_GUIDE.md           # Guía de migración al monorepo
+├── .gitignore                   # Patrones globales
+├── node_modules/
+│   └── @uniconnect/
+│       └── shared -> ../../Frontend/shared  # Symlink del workspace
+├── Backend/                     # NestJS Backend (sin cambios)
+├── Frontend/
+│   ├── Frontend-mobile/         # React Native + Expo
+│   │   ├── src/
+│   │   ├── package.json
+│   │   └── node_modules/
+│   │       └── @uniconnect/shared  # Enlazado
+│   ├── Frontend-web/            # React + Vite
+│   │   ├── src/
+│   │   ├── package.json
+│   │   ├── vitest.config.ts
+│   │   └── node_modules/
+│   │       └── @uniconnect/shared  # Enlazado
+│   └── shared/                  # Paquete compartido (@uniconnect/shared)
+│       ├── src/
+│       │   ├── types/          # Types compartidos (10 archivos)
+│       │   ├── api/            # Endpoints y Axios factory
+│       │   ├── services/       # Services con DI (9 servicios)
+│       │   ├── validators/     # Zod validators (3 archivos)
+│       │   └── utils/          # Utilidades (2 archivos)
+│       ├── package.json
+│       └── tsconfig.json
+└── openspec/                    # Documentación de cambios
+```
+
+### Scripts del Workspace Root
+
+Todos los comandos se ejecutan desde la raíz del repositorio:
+
+```bash
+# Desarrollo
+npm run dev:backend    # NestJS en localhost:8007
+npm run dev:mobile     # Expo en localhost:8081
+npm run dev:web        # Vite en localhost:5173
+
+# Build
+npm run build:shared   # Compila TypeScript del paquete compartido
+npm run build:web      # Build de producción del frontend web
+
+# Testing
+npm run test:mobile    # Tests de Frontend-mobile (Jest)
+npm run test:web       # Tests de Frontend-web (Vitest)
+npm run test:all       # Todos los tests en secuencia
+
+# Type Checking
+npm run typecheck:shared   # Verifica tipos en shared
+npm run typecheck:web      # Verifica tipos en Frontend-web
+npm run typecheck:all      # Verifica todos los workspaces
+```
+
+### Paquete Compartido (@uniconnect/shared)
+
+#### Contenido Actual (Mayo 2026)
+
+**Types** (10 archivos):
+- `common.ts` - FENResponse, PaginationMetadata, ErrorDetails
+- `events.ts` - Event, EventFilters, CreateEventDTO, UpdateEventDTO
+- `users.ts` - User, Role, TokenPayload
+- `groups.ts` - Group, Membership, GroupInvitation, GroupJoinRequest
+- `messages.ts` - Message, MessageSearchResponse
+- `notifications.ts` - Notification, NotificationType, UnreadCountResponse
+- `connections.ts` - Connection, ConnectionRequest, ConnectionStatus
+- `courses.ts` - Course, CreateCourseDto, UpdateCourseDto
+- `programs.ts` - Program, CreateProgramDto, UpdateProgramDto
+- `students.ts` - Student, StudentProfile, CommonCourse
+
+**API Endpoints** (9 archivos):
+- Constantes de rutas para auth, events, groups, messages, notifications, connections, courses, programs, students
+
+**Axios Factory** (`client.ts`):
+- Factory function con dependency injection
+- Token refresh mutex (FIX-10)
+- Promise queueing para 401
+- FEN validation interceptor
+- Automatic Bearer token injection
+
+**Services con DI** (9 archivos):
+- `EventsService` - Gestión de eventos con validación FEN triple-layer
+- `GroupsService` - Grupos, invitaciones, join requests, ownership transfer
+- `MessagesService` - Mensajería, búsqueda, edición, eliminación
+- `NotificationsService` - Notificaciones push, contadores, marcado como leído
+- `ConnectionsService` - Red social de conexiones
+- `CoursesService` - Gestión de cursos
+- `ProgramsService` - Programas académicos
+- `StudentsService` - Perfiles de estudiantes y comunidad
+- `AuthService` - Autenticación, refresh tokens, onboarding
+
+**Validators con Zod** (3 archivos):
+- `fen.validator.ts` - Esquemas y funciones de validación FEN
+- `events.validator.ts` - Esquemas para Event y DTOs
+- `groups.validator.ts` - Esquemas para Group, Membership, Invitations
+
+**Utils** (2 archivos):
+- `debug.ts` - Utilidades de diagnóstico con DI
+- `websocket.config.ts` - Configuración de WebSocket agnóstica
+
+#### Patrón de Uso del Paquete Compartido
+
+**1. Importar Types**:
+```typescript
+import { Event, User, Group, FENResponse } from '@uniconnect/shared';
+```
+
+**2. Importar Endpoints**:
+```typescript
+import { EVENTS_ENDPOINTS, GROUPS_ENDPOINTS } from '@uniconnect/shared';
+```
+
+**3. Crear Cliente API con Dependency Injection**:
+```typescript
+import { createApiClient, AuthProvider } from '@uniconnect/shared';
+
+// Implementar AuthProvider interface
+const authProvider: AuthProvider = {
+  getAccessToken: () => authStore.accessToken,
+  isTokenExpired: () => authStore.isTokenExpired,
+  hasRefreshToken: () => authStore.hasRefreshToken,
+  isRefreshing: () => authStore.isRefreshing,
+  refreshTokens: () => authController.refreshTokens(),
+  clearAuth: () => authStore.clearAuth(),
+};
+
+// Crear instancia de Axios
+const api = createApiClient({
+  baseURL: process.env.VITE_API_URL || 'http://localhost:8007/api',
+  authProvider,
+  timeout: 10000,
+  enableFENValidation: true,
+  debug: false,
+});
+```
+
+**4. Instanciar Services con DI**:
+```typescript
+import { EventsService, GroupsService } from '@uniconnect/shared';
+
+// Instanciar con Axios configurado
+const eventsService = new EventsService(api);
+const groupsService = new GroupsService(api);
+
+// Usar servicios (tokens manejados automáticamente)
+const events = await eventsService.getEvents(filters, pagination);
+const groups = await groupsService.getCreatedGroups(userId);
+```
+
+**5. Validar con Zod**:
+```typescript
+import { validateFENResponse, EventArraySchema } from '@uniconnect/shared';
+
+const response = await api.get('/events');
+const validated = validateFENResponse(response.data, EventArraySchema);
+```
+
+### Reglas de Desarrollo en Monorepo
+
+#### Código Compartido en `shared/`
+
+**✅ PERMITIDO**:
+- Types, interfaces, DTOs
+- API endpoints (constantes de rutas)
+- Axios factory y configuración HTTP
+- Services con dependency injection
+- Validators (Zod schemas)
+- Utilidades sin dependencias de plataforma
+
+**❌ PROHIBIDO**:
+- Componentes UI (específicos de plataforma)
+- Hooks de React (específicos de plataforma)
+- Stores (específicos de plataforma)
+- Imports de `react-native`, `expo`, `react-dom`
+
+#### Código Específico de Plataforma
+
+**Frontend-mobile**:
+- Componentes React Native
+- Hooks con Expo Router
+- Stores con MobX
+- Navegación con Expo Router 6.x
+
+**Frontend-web**:
+- Componentes React DOM
+- Hooks con React Router
+- Stores con MobX
+- Navegación con React Router 7.x
+- Estilos con CSS Modules
+
+#### Dependency Injection Obligatoria
+
+**Services**:
+```typescript
+// ✅ CORRECTO - Service con DI
+export class EventsService {
+  private readonly api: AxiosInstance;
+
+  constructor(axiosInstance: AxiosInstance) {
+    this.api = axiosInstance;
+  }
+
+  async getEvents(filters: EventFilters): Promise<FENResponse<Event[]>> {
+    const response = await this.api.get(EVENTS_ENDPOINTS.GET_EVENTS, { params: filters });
+    return this.validateFENResponse<Event[]>(response.data);
+  }
+}
+
+// ❌ INCORRECTO - Import directo de store
+import { authStore } from '@/features/auth';  // NO hacer esto en shared/
+```
+
+**Axios Factory**:
+```typescript
+// ✅ CORRECTO - AuthProvider interface
+export interface AuthProvider {
+  getAccessToken: () => string | null;
+  isTokenExpired: () => boolean;
+  hasRefreshToken: () => boolean;
+  isRefreshing: () => boolean;
+  refreshTokens: () => Promise<TokenRefreshResult>;
+  clearAuth: () => void;
+}
+
+// Cada plataforma implementa su AuthProvider
+const api = createApiClient({ authProvider, baseURL, ... });
+```
+
+#### Validación con Zod Obligatoria
+
+```typescript
+import { validateFENResponse, EventSchema } from '@uniconnect/shared';
+
+// Validación estricta (lanza error si falla)
+const validated = validateFENResponse(response.data, EventSchema);
+
+// Validación segura (retorna result object)
+const result = safeFENResponseValidation(response.data, EventSchema);
+if (!result.success) {
+  console.error(result.error);
+}
+```
+
+#### Zero-Any Policy en Shared
+
+```bash
+# Verificar tipos en shared
+cd Frontend/shared && npx tsc --noEmit
+
+# Debe retornar Exit Code 0 (sin errores)
+```
+
+### Reglas de Adaptación: React Native → React DOM
+
+#### Componentes UI
+
+| React Native | React DOM | Notas |
+|--------------|-----------|-------|
+| `<View>` | `<div>` | Contenedor genérico |
+| `<Text>` | `<p>`, `<span>`, `<h1-h6>` | Según semántica |
+| `<TouchableOpacity>` | `<button>`, `<div onClick>` | Interacción |
+| `<FlatList>` | `<ul>` + `map()` | Listas |
+| `<Image>` | `<img>` | Imágenes |
+| `<TextInput>` | `<input>`, `<textarea>` | Inputs |
+| `<ScrollView>` | `<div>` con `overflow: auto` | Scroll |
+| `<ActivityIndicator>` | `<div>` con spinner CSS | Loading |
+
+#### Navegación
+
+| React Native | React DOM |
+|--------------|-----------|
+| `useRouter()` (Expo Router) | `useNavigate()` (React Router) |
+| `router.push('/path')` | `navigate('/path')` |
+| `useLocalSearchParams()` | `useParams()` |
+| `router.back()` | `navigate(-1)` |
+
+#### Estilos
+
+| React Native | React DOM |
+|--------------|-----------|
+| `StyleSheet.create()` | CSS Modules (`.module.css`) |
+| `style={styles.container}` | `className={styles.container}` |
+| `flexDirection: 'row'` | `display: flex; flex-direction: row;` |
+
+#### Alertas y Modals
+
+| React Native | React DOM |
+|--------------|-----------|
+| `Alert.alert()` | `window.alert()`, `window.confirm()` |
+| Custom Modal | HTML `<dialog>` o componente custom |
+
+#### Iconos
+
+| React Native | React DOM |
+|--------------|-----------|
+| `<Ionicons name="..." />` | Emojis Unicode o SVG icons |
+
+### Instalación y Setup
+
+#### Primera Vez
+
+```bash
+# 1. Clonar repositorio
+git clone <repo-url>
+cd uniconnect
+
+# 2. Instalar dependencias del monorepo (desde raíz)
+npm install --legacy-peer-deps
+
+# 3. Verificar symlinks
+ls -la node_modules/@uniconnect/shared
+# Debe mostrar: shared -> ../../Frontend/shared
+
+# 4. Configurar variables de entorno
+# Backend/.env
+# Frontend/Frontend-mobile/.env
+# Frontend/Frontend-web/.env
+
+# 5. Verificar tipos
+npm run typecheck:all
+
+# 6. Ejecutar tests
+npm run test:web
+```
+
+#### Desarrollo Diario
+
+```bash
+# Terminal 1: Backend
+npm run dev:backend
+
+# Terminal 2: Frontend Mobile
+npm run dev:mobile
+
+# Terminal 3: Frontend Web
+npm run dev:web
+```
+
+#### Agregar Dependencias
+
+```bash
+# Dependencia en shared
+cd Frontend/shared && npm install <package>
+
+# Dependencia en Frontend-mobile
+cd Frontend/Frontend-mobile && npm install <package>
+
+# Dependencia en Frontend-web
+cd Frontend/Frontend-web && npm install <package>
+
+# Reconstruir symlinks desde raíz
+cd ../.. && npm install --legacy-peer-deps
+```
+
+### Beneficios del Monorepo
+
+1. **Código Compartido**: Types, Services, Validators sin duplicación
+2. **Dependency Injection**: Axios Factory con AuthProvider interface
+3. **Type Safety**: Zero-Any Policy en todos los workspaces
+4. **Scripts Centralizados**: Comandos globales desde la raíz
+5. **Workspace Linking**: Cambios en `shared` se reflejan automáticamente
+6. **Desarrollo Paralelo**: Mobile y Web comparten lógica de negocio
+7. **Testing Unificado**: `test:all` ejecuta todos los tests
+8. **Type Checking Global**: `typecheck:all` valida todo el monorepo
+
+### Troubleshooting
+
+#### Symlinks rotos
+
+```bash
+# Reconstruir symlinks
+npm install --legacy-peer-deps
+```
+
+#### Cambios en shared no se reflejan
+
+```bash
+# Desde raíz
+npm run build:shared
+
+# O reiniciar dev server
+npm run dev:web  # o dev:mobile
+```
+
+#### Errores de TypeScript en imports
+
+```bash
+# Verificar que el alias @/ esté configurado
+# Frontend-web/tsconfig.json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+
+# Frontend-web/vite.config.ts
+resolve: {
+  alias: {
+    '@': path.resolve(__dirname, './src'),
+  },
+}
+```
+
+#### Conflictos de peer dependencies
+
+```bash
+# Usar flag legacy-peer-deps
+npm install --legacy-peer-deps
+```
+
+#### Metro bundler no resuelve dependencias hoisted (Expo)
+
+**Síntomas**: `Unable to resolve "expo-router/entry-classic"` o errores similares al iniciar Expo
+
+**Causa**: Metro bundler configurado incorrectamente para monorepos - `workspaceRoot` apuntando al nivel incorrecto
+
+**Solución**:
+
+Verificar que `Frontend/Frontend-mobile/metro.config.js` tenga la configuración correcta:
+
+```javascript
+const projectRoot = __dirname;
+// ✅ CORRECTO: Sube 2 niveles para llegar a uniconnect/ (raíz del monorepo)
+const workspaceRoot = path.resolve(projectRoot, "../..");
+
+// ❌ INCORRECTO: Solo sube 1 nivel (queda en Frontend/)
+// const workspaceRoot = path.resolve(projectRoot, "..");
+
+const config = getDefaultConfig(projectRoot);
+
+// Configuración obligatoria para monorepos
+config.watchFolders = [workspaceRoot];
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(workspaceRoot, "node_modules"),
+];
+config.resolver.disableHierarchicalLookup = true;
+```
+
+**Después del fix**:
+```bash
+# Limpiar caché de Metro
+cd Frontend/Frontend-mobile
+npx expo start -c
+```
+
+**Resultado esperado**: Metro encuentra correctamente las dependencias hoisted en `uniconnect/node_modules/`
+
+#### Crasheo por SharedArrayBuffer en React Native (pretty-format)
+
+**Síntomas**: Aplicación React Native crashea con error `Property 'SharedArrayBuffer' doesn't exist` originado en `metroRequire` y `loadModuleImplementation`
+
+**Causa Raíz**: 
+- `pretty-format@30.x.x` usa `SharedArrayBuffer` que NO está soportado por Hermes Engine
+- Dependencias transitivas (jest@30.x, @types/jest, @expo/metro-runtime) traen pretty-format@30.x
+- En monorepos npm, `resolutions` (sintaxis Yarn) es ignorado - se debe usar `overrides`
+
+**Solución Definitiva (Nivel Monorepo)**:
+
+```bash
+# 1. Agregar overrides en package.json RAÍZ del monorepo
+# Editar package.json y agregar:
+{
+  "overrides": {
+    "pretty-format": "29.7.0",
+    "jest-matcher-utils": "29.7.0",
+    "jest-diff": "29.7.0",
+    "@expo/metro-runtime": {
+      "pretty-format": "29.7.0"
+    },
+    "expo": {
+      "pretty-format": "29.7.0"
+    },
+    "react-native": {
+      "pretty-format": "29.7.0"
+    }
+  }
+}
+
+# 2. Destruir TODAS las cachés y node_modules (desde raíz)
+rm -rf node_modules Frontend/Frontend-mobile/node_modules Frontend/Frontend-web/node_modules Frontend/shared/node_modules
+rm -rf Frontend/Frontend-mobile/.expo
+rm -rf node_modules/.cache
+rm -rf package-lock.json Frontend/*/package-lock.json
+
+# 3. Reinstalar monorepo completo
+npm install --legacy-peer-deps
+
+# 4. Verificar versión forzada
+npm ls pretty-format | grep "29.7.0"
+
+# 5. Iniciar con caché limpia
+cd Frontend/Frontend-mobile
+npx expo start -c
+```
+
+**Verificación**:
+```bash
+# Confirmar que NO hay SharedArrayBuffer en el código
+grep -r "SharedArrayBuffer" node_modules/pretty-format/
+# Debe retornar: (vacío - sin resultados)
+
+# Confirmar versión instalada
+cat node_modules/pretty-format/package.json | grep version
+# Debe mostrar: "version": "29.7.0"
+```
+
+**Resultado esperado**: 
+- pretty-format@29.7.0 forzado en TODO el árbol de dependencias
+- Sin referencias a SharedArrayBuffer en el código
+- Aplicación inicia sin errores en Hermes Engine
+
+**Nota Crítica**: `resolutions` (Yarn) NO funciona en npm workspaces. Siempre usar `overrides` en el package.json raíz.
+
+#### Errores de compilación Android tras migración a monorepo
+
+**Síntomas**: "No matching variant of project :react-native-async-storage_async-storage was found"
+
+**Causa**: Caché de Gradle corrupto + hoisting de NPM con módulos fantasma
+
+**Solución (Limpieza Profunda)**:
+
+```bash
+# 1. Eliminar todos los node_modules (desde raíz del monorepo)
+rm -rf node_modules Frontend/Frontend-mobile/node_modules Frontend/Frontend-web/node_modules Frontend/shared/node_modules
+
+# 2. Limpiar caché de Gradle
+cd Frontend/Frontend-mobile/android
+chmod +x gradlew
+./gradlew clean
+
+# 3. Reinstalar dependencias (desde raíz del monorepo)
+cd ../../..
+npm install --legacy-peer-deps
+
+# 4. Verificar build de Android
+cd Frontend/Frontend-mobile/android
+./gradlew assembleDebug
+```
+
+**Resultado esperado**: BUILD SUCCESSFUL con todos los módulos Expo detectados correctamente
+
+---
+
+**Última actualización del Monorepo**: 6 de Mayo, 2026  
+**Versión de la Arquitectura**: 2.0.1  
+**Estado**: ✅ Producción (Frontend-web completado)

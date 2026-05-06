@@ -1,0 +1,31 @@
+.container {
+  display: inline-block;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.uploadButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background-color: #3a3a3a;
+  color: #D9B97E;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.uploadButton:hover:not(:disabled) {
+  background-color: #4a4a4a;
+}
+
+.uploadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

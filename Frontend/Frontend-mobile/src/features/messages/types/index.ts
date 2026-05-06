@@ -1,0 +1,20 @@
+// Re-export types from shared package
+export type {
+  MessageFile,
+  Message,
+  SendMessageDto,
+  EditMessageDto,
+  MessageHistoryResponse,
+  MessageSearchResponse,
+  TypingIndicator,
+  MessageSendData,
+  MessageEditData,
+  MessageDeleteData,
+  TypingData,
+  MessagesHistoryData,
+  SearchMessagesData,
+  AuthenticateData,
+  SessionStatsResponse,
+  MessageEditRequest,
+  MessageCount,
+} from '@uniconnect/shared';

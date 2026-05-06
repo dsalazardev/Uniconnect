@@ -1,0 +1,134 @@
+.container {
+  min-height: 100vh;
+  background-color: #363636;
+  padding: 20px;
+}
+
+.card {
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 32px;
+  border: 1px solid rgba(217, 185, 126, 0.3);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(217, 185, 126, 0.2);
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+  border: 3px solid #D9B97E;
+}
+
+.avatarPlaceholder {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: rgba(217, 185, 126, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  border: 3px solid #D9B97E;
+}
+
+.avatarIcon {
+  font-size: 48px;
+}
+
+.name {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.email {
+  font-size: 15px;
+  color: #aaa;
+  margin: 0;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #D9B97E;
+  margin: 0 0 16px 0;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(217, 185, 126, 0.1);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-size: 14px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.actions {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.logoutButton {
+  padding: 12px 32px;
+  background-color: #D9B97E;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.logoutButton:hover {
+  background-color: #c9a96e;
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.errorIcon {
+  font-size: 60px;
+  margin-bottom: 16px;
+}
+
+.errorText {
+  font-size: 16px;
+  color: #ff4d4d;
+  text-align: center;
+  margin: 0;
+}

@@ -1,0 +1,22 @@
+// Re-export types from shared package
+export type {
+  Group,
+  Course,
+  Program,
+  CreateGroupData,
+  UpdateGroupData,
+  GroupMembership,
+  GroupInvitation,
+  SendInvitationDto,
+  RespondInvitationDto,
+  GroupCreateRequest,
+  GroupInvitationRequest,
+  GroupInvitationResponse,
+  GroupJoinRequest,
+  GroupWithJoinRequests,
+  GroupInfo,
+  JoinRequestDto,
+  JoinRequestResponse,
+  DirectMessageResponse,
+  OwnershipTransferResponse,
+} from '@uniconnect/shared';

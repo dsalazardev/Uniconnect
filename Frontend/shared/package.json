@@ -1,0 +1,32 @@
+{
+  "name": "@uniconnect/shared",
+  "version": "1.0.0",
+  "description": "Platform-agnostic shared code for UniConnect frontends",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
+  },
+  "keywords": [
+    "uniconnect",
+    "shared",
+    "types",
+    "services"
+  ],
+  "author": "UniConnect Team",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/runtime": "^7.29.2",
+    "axios": "^1.13.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.6.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "typescript": "~5.9.2"
+  }
+}

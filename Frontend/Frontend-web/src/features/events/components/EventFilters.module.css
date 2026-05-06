@@ -1,0 +1,94 @@
+.container {
+  background-color: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.clearButton:hover {
+  background-color: #f3f4f6;
+  border-radius: 4px;
+}
+
+.clearIcon {
+  color: #0056b3;
+  font-size: 16px;
+}
+
+.clearText {
+  color: #0056b3;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filterSection {
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.select {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #0056b3;
+}
+
+.activeFiltersInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e7f3ff;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.infoIcon {
+  font-size: 16px;
+}
+
+.infoText {
+  font-size: 13px;
+  color: #0056b3;
+  flex: 1;
+}

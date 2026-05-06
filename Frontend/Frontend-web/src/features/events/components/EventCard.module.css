@@ -1,0 +1,103 @@
+.card {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  border: 1px solid rgba(217, 185, 126, 0.2);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.editButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 8px;
+  background-color: rgba(217, 185, 126, 0.15);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  z-index: 1;
+  font-size: 16px;
+}
+
+.editButton:hover {
+  background-color: rgba(217, 185, 126, 0.25);
+}
+
+.deleteButton {
+  position: absolute;
+  top: 12px;
+  right: 56px;
+  padding: 8px;
+  background-color: rgba(255, 77, 77, 0.15);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  z-index: 1;
+  font-size: 16px;
+}
+
+.deleteButton:hover {
+  background-color: rgba(255, 77, 77, 0.25);
+}
+
+.typeBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.typeText {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.description {
+  font-size: 14px;
+  color: #aaa;
+  line-height: 20px;
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.detailsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  font-size: 16px;
+}
+
+.detailText {
+  font-size: 13px;
+  color: #aaa;
+  flex: 1;
+}

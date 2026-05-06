@@ -1,0 +1,99 @@
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.emptyText {
+  font-size: 16px;
+  color: #666;
+  text-align: center;
+  margin: 0;
+}
+
+.memberCard {
+  background-color: rgba(54, 54, 54, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(217, 185, 126, 0.2);
+}
+
+.memberInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatarPlaceholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: rgba(217, 185, 126, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatarIcon {
+  font-size: 24px;
+}
+
+.infoContainer {
+  flex: 1;
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.memberName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.adminBadge {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ownerBadge {
+  background-color: rgba(217, 185, 126, 0.2);
+  color: #D9B97E;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.email {
+  font-size: 13px;
+  color: #aaa;
+}
