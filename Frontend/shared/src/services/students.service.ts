@@ -76,7 +76,7 @@ export class StudentsService {
    * Get student profile by ID
    */
   async getStudentProfile(userId: number): Promise<StudentProfile> {
-    const response = await this.api.get(`${STUDENTS_ENDPOINTS.GET_STUDENT_PROFILE}/${userId}`);
+    const response = await this.api.get(STUDENTS_ENDPOINTS.GET_STUDENT_PROFILE(userId));
     return response.data;
   }
 }

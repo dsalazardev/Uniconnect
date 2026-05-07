@@ -154,25 +154,93 @@ export class AuthStore {
   private async initializeFromStorage() {
     try {
       const storedAuth = await secureStorage.getItem('uniconnect-auth');
-      if (storedAuth) {
-        const authData = JSON.parse(storedAuth);
-        
-        // ⭐ FIX: Detect and clean legacy cached data without role structure
-        if (authData.user && authData.user.id_role && !authData.user.role && !authData.user.roleName) {
-          console.warn('Legacy cached data detected without role structure - clearing auth');
-          await this.clearFromStorage();
+      if (!storedAuth) {
+        this.isInitialized = true;
+        return;
+      }
+
+      // Attempt to parse stored value; if parsing fails, clear storage and abort
+      let authData: any = null;
+      try {
+        authData = JSON.parse(storedAuth);
+      } catch (parseErr) {
+        console.warn('Failed to parse stored auth payload; clearing stored auth.');
+        await this.clearFromStorage();
+        this.isInitialized = true;
+        return;
+      }
+
+      // If stored payload is large, attempt to migrate to a compact snapshot
+      try {
+        if (storedAuth.length > 2048) {
+          // Build compact snapshot from whatever fields are available
+          const compact = {
+            accessToken: authData.accessToken ?? authData.access_token ?? null,
+            refreshToken: authData?.auth0Tokens?.refresh_token ?? authData?.refreshToken ?? null,
+            user: authData.user
+              ? {
+                  id_user: authData.user.id_user,
+                  full_name: authData.user.full_name ?? authData.user.fullName ?? '',
+                  email: authData.user.email ?? '',
+                  picture: authData.user.picture ?? null,
+                  id_role: authData.user.id_role ?? authData.user.idRole ?? null,
+                }
+              : null,
+            expires_at: authData?.auth0Tokens?.expires_at ?? authData?.expires_at ?? null,
+            needsOnboarding: authData.needsOnboarding ?? false,
+          };
+
+          await secureStorage.setItem('uniconnect-auth', JSON.stringify(compact));
+
+          // Restore minimal state
+          this.accessToken = compact.accessToken;
+          this.user = compact.user as User | null;
+          this.auth0Tokens = compact.refreshToken ? { refresh_token: compact.refreshToken, expires_at: compact.expires_at } : null;
+          this.needsOnboarding = compact.needsOnboarding ?? false;
           this.isInitialized = true;
           return;
         }
-        
-        // Restore auth state
-        this.accessToken = authData.accessToken;
-        this.user = authData.user;
-        this.auth0Tokens = authData.auth0Tokens;
-        this.needsOnboarding = authData.needsOnboarding ?? false;
-        
-        
+      } catch (migrateError) {
+        console.warn('Failed to migrate large auth blob; clearing stored auth.', migrateError);
+        await this.clearFromStorage();
+        this.isInitialized = true;
+        return;
       }
+
+      // Legacy structure check: detect old role shape without role object
+      if (authData.user && authData.user.id_role && !authData.user.role && !authData.user.roleName) {
+        console.warn('Legacy cached data detected without role structure - clearing auth');
+        await this.clearFromStorage();
+        this.isInitialized = true;
+        return;
+      }
+
+      // Normal restore path: support both compact and full shapes
+      this.accessToken = authData.accessToken ?? authData.access_token ?? null;
+      // Normalize user shape conservatively
+      if (authData.user) {
+        const u = authData.user;
+        this.user = {
+          id_user: u.id_user ?? u.idUser ?? 0,
+          full_name: u.full_name ?? u.fullName ?? (u.name ?? ''),
+          email: u.email ?? '',
+          picture: u.picture ?? undefined,
+          id_role: u.id_role ?? u.idRole ?? undefined,
+        } as User;
+      } else {
+        this.user = null;
+      }
+
+      // Restore tokens (compact or full)
+      if (authData.auth0Tokens) {
+        this.auth0Tokens = authData.auth0Tokens;
+      } else if (authData.refreshToken || authData.refresh_token) {
+        this.auth0Tokens = { refresh_token: authData.refreshToken ?? authData.refresh_token, expires_at: authData.expires_at ?? null };
+      } else {
+        this.auth0Tokens = null;
+      }
+
+      this.needsOnboarding = authData.needsOnboarding ?? false;
     } catch (error) {
       console.error('Failed to restore auth state from storage:', error);
     } finally {
@@ -182,14 +250,24 @@ export class AuthStore {
 
   private async persistToStorage() {
     try {
-      const authData = {
-        accessToken: this.accessToken,
-        user: this.user,
-        auth0Tokens: this.auth0Tokens,
-        needsOnboarding: this.needsOnboarding,
+      // Persist a compact auth snapshot to avoid SecureStore size limits
+      const compact = {
+        accessToken: this.accessToken ?? null,
+        refreshToken: this.auth0Tokens?.refresh_token ?? null,
+        user: this.user
+          ? {
+              id_user: this.user.id_user,
+              full_name: this.user.full_name,
+              email: this.user.email,
+              picture: this.user.picture,
+              id_role: this.user.id_role,
+            }
+          : null,
+        expires_at: this.auth0Tokens?.expires_at ?? null,
+        needsOnboarding: this.needsOnboarding ?? false,
       };
-      
-      await secureStorage.setItem('uniconnect-auth', JSON.stringify(authData));
+
+      await secureStorage.setItem('uniconnect-auth', JSON.stringify(compact));
       
     } catch (error) {
       console.error('Failed to persist auth state to storage:', error);
