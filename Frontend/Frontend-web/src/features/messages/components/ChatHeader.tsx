@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import styles from './ChatHeader.module.css';
 
 interface ChatHeaderProps {
@@ -28,7 +29,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   return (
     <div className={styles.header}>
       <button onClick={handleBack} className={styles.backButton} aria-label="Volver">
-        ←
+        <ArrowLeft size={20} />
       </button>
       <div className={styles.headerInfo}>
         <h1 className={styles.title}>{title}</h1>

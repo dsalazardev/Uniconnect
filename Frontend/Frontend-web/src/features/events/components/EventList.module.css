@@ -4,3 +4,16 @@
   gap: 12px;
   padding: 16px;
 }
+
+.emptyState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.emptyText {
+  color: #888;
+  font-size: 16px;
+  text-align: center;
+}

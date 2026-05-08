@@ -1,4 +1,5 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { authStore } from '@/features/auth/store/AuthStore';
 import styles from './Layout.module.css';
 
@@ -17,6 +18,7 @@ export const Layout = () => {
 
   return (
     <div className={styles.layout}>
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       <nav className={styles.navbar}>
         <div className={styles.navBrand}>
           <Link to="/" className={styles.brandLink}>

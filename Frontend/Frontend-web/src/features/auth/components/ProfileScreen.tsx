@@ -1,6 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { authStore } from '../store/AuthStore';
+import { AlertTriangle, User } from 'lucide-react';
 import styles from './ProfileScreen.module.css';
 
 export const ProfileScreen: React.FC = observer(() => {
@@ -10,7 +11,7 @@ export const ProfileScreen: React.FC = observer(() => {
     return (
       <div className={styles.container}>
         <div className={styles.errorContainer}>
-          <span className={styles.errorIcon}>⚠️</span>
+          <AlertTriangle size={48} className={styles.errorIcon} />
           <p className={styles.errorText}>No hay usuario autenticado</p>
         </div>
       </div>
@@ -26,7 +27,7 @@ export const ProfileScreen: React.FC = observer(() => {
             <img src={user.picture} alt={user.full_name} className={styles.avatar} />
           ) : (
             <div className={styles.avatarPlaceholder}>
-              <span className={styles.avatarIcon}>👤</span>
+              <User size={48} className={styles.avatarIcon} />
             </div>
           )}
           <h1 className={styles.name}>{user.full_name}</h1>

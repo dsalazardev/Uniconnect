@@ -1,4 +1,5 @@
 import React from 'react';
+import { Users, User } from 'lucide-react';
 import styles from './MemberList.module.css';
 
 interface Member {
@@ -27,7 +28,7 @@ export const MemberList: React.FC<MemberListProps> = ({
   if (memberships.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <span className={styles.emptyIcon}>👥</span>
+        <Users size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No hay miembros aún</p>
       </div>
     );
@@ -46,7 +47,7 @@ export const MemberList: React.FC<MemberListProps> = ({
               />
             ) : (
               <div className={styles.avatarPlaceholder}>
-                <span className={styles.avatarIcon}>👤</span>
+                <User size={40} className={styles.avatarIcon} />
               </div>
             )}
 

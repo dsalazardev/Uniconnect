@@ -714,10 +714,37 @@ uniconnect/
   - Configuración de WebSocket agnóstica de plataforma
   - Todas las dependencias externas inyectadas (URLs, servicios)
   - Zero-Any Policy cumplida
+- ✅ **FilesService** (shared/src/services/files.service.ts): validateFiles(), getFileSize(), getPresignedDownloadUrl() — métodos estáticos y de instancia con DI, agnóstico de plataforma
+- ✅ **NotificationObserverService** (shared/src/services/notification-observer.service.ts): Observer pattern puro, movido desde mobile, sin dependencias de plataforma
+- ✅ **Files endpoints** (shared/src/api/endpoints/files.ts): FILES_ENDPOINTS constants migradas
 
 **Contenido Pendiente**:
-- ⏳ Frontend-web features y componentes (Fases 12-25)
 - ⏳ Tests para Frontend-web (Fase 27)
+
+### Web UI Layer
+```
+src/
+├── components/
+│   ├── elements/
+│   │   ├── Button.tsx          # Button component (primary/secondary/danger + loading)
+│   │   ├── Input.tsx           # Input component (label + error state)
+│   │   ├── Modal.tsx           # Modal component (overlay + ESC + click-outside)
+│   │   └── index.ts            # Barrel export
+│   ├── AppRoot.tsx             # Initialization gate (loading/error/auth-ready)
+│   ├── ConfirmModal.tsx        # Confirm dialog (danger/warning/info variants)
+│   └── Layout.tsx              # Navbar + Toaster + Outlet
+├── lib/
+│   └── toast.ts                # react-hot-toast wrapper (showToast.success/error/info)
+```
+
+### Componentes Web Construidos (Mayo 2026)
+- ✅ **UI Design System**: Button (primary/secondary/danger + loading), Input (label + error), Modal (overlay + ESC + click-outside)
+- ✅ **Toast System**: react-hot-toast integrado con `<Toaster />` en Layout, API `showToast.success/error/info`
+- ✅ **Icon Library**: lucide-react reemplaza todos los emojis en 25+ componentes
+- ✅ **AppRoot**: Initialization gate con loading/error states, integrado en router
+- ✅ **GroupAdminPanel**: Member management, ownership transfer, join request handling
+- ✅ **FilePickerModal**: File selection with preview, remove, and upload flow
+- ✅ **ConfirmModal**: Web counterpart to mobile Alert.alert with danger/warning/info variants
 
 ### Axios Factory con Dependency Injection
 
@@ -891,7 +918,7 @@ Todos los servicios han sido migrados al paquete compartido siguiendo el patrón
 - ✅ Mantiene validación FEN donde aplica
 - ✅ Cumple con Zero-Any Policy
 
-**Servicios Migrados (9 total)**:
+**Servicios Migrados (11 total)**:
 1. **EventsService** - Gestión de eventos académicos con validación FEN triple-layer
 2. **GroupsService** - Grupos de estudio, invitaciones, join requests, ownership transfer
 3. **MessagesService** - Mensajería, búsqueda, edición, eliminación
@@ -901,6 +928,8 @@ Todos los servicios han sido migrados al paquete compartido siguiendo el patrón
 7. **ProgramsService** - Programas académicos
 8. **StudentsService** - Perfiles de estudiantes y comunidad (sin lógica de authStore)
 9. **AuthService** - Autenticación, refresh tokens, onboarding
+
+**Nota**: FilesService y NotificationObserverService fueron añadidos posteriormente como servicios 10 y 11, migrando desde el frontend mobile.
 
 **Patrón de Uso**:
 ```typescript

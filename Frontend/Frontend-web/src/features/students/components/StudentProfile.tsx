@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudentProfile } from '../hooks/useStudentProfile';
+import { ArrowLeft, Smartphone } from 'lucide-react';
 import styles from './StudentProfile.module.css';
 
 export const StudentProfile: React.FC = () => {
@@ -37,7 +38,7 @@ export const StudentProfile: React.FC = () => {
   return (
     <div className={styles.container}>
       <button className={styles.backButton} onClick={() => navigate('/students')}>
-        ← Volver
+        <ArrowLeft size={20} /> Volver
       </button>
 
       <div className={styles.header}>
@@ -49,7 +50,7 @@ export const StudentProfile: React.FC = () => {
         <div className={styles.headerInfo}>
           <h1 className={styles.name}>{profile.full_name}</h1>
           <p className={styles.email}>{profile.email}</p>
-          {profile.phone && <p className={styles.phone}>📱 {profile.phone}</p>}
+          {profile.phone && <p className={styles.phone}><Smartphone size={16} /> {profile.phone}</p>}
         </div>
       </div>
 

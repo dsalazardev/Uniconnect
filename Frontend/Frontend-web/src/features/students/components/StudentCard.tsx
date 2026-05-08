@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Student, CommonCourse } from '@uniconnect/shared';
+import { Check } from 'lucide-react';
 import styles from './StudentCard.module.css';
 
 interface StudentCardProps {
@@ -66,7 +67,7 @@ export const StudentCard: React.FC<StudentCardProps> = ({ student, isFriend = fa
 
       {isFriend && (
         <div className={styles.friendBadge}>
-          <span className={styles.friendIcon}>✓</span>
+          <Check size={16} className={styles.friendIcon} />
         </div>
       )}
     </div>

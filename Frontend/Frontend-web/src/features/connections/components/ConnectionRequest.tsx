@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ConnectionRequest as ConnectionRequestType } from '@uniconnect/shared';
 import { connectionsService } from '../services';
+import { Check, X } from 'lucide-react';
 import styles from './ConnectionRequest.module.css';
 
 interface ConnectionRequestProps {
@@ -94,7 +95,7 @@ export const ConnectionRequest: React.FC<ConnectionRequestProps> = ({ request, o
               <span className={styles.spinner} />
             ) : (
               <>
-                <span className={styles.icon}>✓</span>
+                <Check size={16} className={styles.icon} />
                 <span>Aceptar</span>
               </>
             )}
@@ -109,7 +110,7 @@ export const ConnectionRequest: React.FC<ConnectionRequestProps> = ({ request, o
               <span className={styles.spinner} />
             ) : (
               <>
-                <span className={styles.icon}>✕</span>
+                <X size={16} className={styles.icon} />
                 <span>Rechazar</span>
               </>
             )}

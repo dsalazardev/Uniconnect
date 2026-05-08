@@ -1,6 +1,7 @@
 import React from 'react';
 import { ConnectionRequest as ConnectionRequestComponent } from './ConnectionRequest';
 import { useConnections } from '../hooks/useConnections';
+import { Handshake } from 'lucide-react';
 import styles from './ConnectionList.module.css';
 
 export const ConnectionList: React.FC = () => {
@@ -29,7 +30,7 @@ export const ConnectionList: React.FC = () => {
   if (!pendingRequests || pendingRequests.length === 0) {
     return (
       <div className={styles.center}>
-        <div className={styles.emptyIcon}>🤝</div>
+        <Handshake size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No tienes solicitudes pendientes</p>
       </div>
     );

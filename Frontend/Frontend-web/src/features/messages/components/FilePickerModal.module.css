@@ -1,0 +1,109 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.selectButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: #2a2a2a;
+  border: 2px dashed rgba(217, 185, 126, 0.3);
+  border-radius: 8px;
+  color: #D9B97E;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.selectButton:hover {
+  border-color: #D9B97E;
+}
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+}
+
+.fileIcon {
+  color: #D9B97E;
+  flex-shrink: 0;
+}
+
+.fileName {
+  flex: 1;
+  font-size: 13px;
+  color: #ddd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  font-size: 12px;
+  color: #888;
+  flex-shrink: 0;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: #EF4444;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(217, 185, 126, 0.1);
+}
+
+.cancelButton {
+  padding: 8px 16px;
+  background-color: #2a2a2a;
+  border: 1px solid rgba(217, 185, 126, 0.2);
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.uploadButton {
+  padding: 8px 16px;
+  background-color: #D9B97E;
+  border: none;
+  border-radius: 6px;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.uploadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

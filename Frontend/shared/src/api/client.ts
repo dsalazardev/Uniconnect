@@ -80,6 +80,21 @@ export interface AuthProvider {
   refreshTokens: () => Promise<TokenRefreshResult>;
   
   /**
+   * Check if auth provider is ready to serve requests (hydrated from storage)
+   * Returns true once hydration is complete, regardless of login state.
+   * Prevents API calls from firing before auth is initialized.
+   */
+  isReady: () => boolean;
+
+  /**
+   * Check if auth provider has finished hydrating from storage
+   * Unlike isReady, does not require an access token to be present.
+   * Use this for request interceptors to block early requests without
+   * blocking unauthenticated requests (login, etc.).
+   */
+  isInitialized: () => boolean;
+
+  /**
    * Clear authentication state (logout)
    */
   clearAuth: () => void;
@@ -180,8 +195,8 @@ function isValidFENResponse(data: unknown): data is FENResponse<unknown> {
     return false;
   }
 
-  // error must be null or an object with code and message
-  if (response.error !== null) {
+  // error must be null, undefined (treated as null), or an object with code and message
+  if (response.error !== null && response.error !== undefined) {
     if (typeof response.error !== 'object') {
       return false;
     }
@@ -245,10 +260,18 @@ export function createApiClient(config: ApiClientConfig): AxiosInstance {
   });
 
   // ============================================================================
-  // Request Interceptor: Inject Bearer Token
+  // Request Interceptor: Inject Bearer Token (with auth-ready guard)
   // ============================================================================
   client.interceptors.request.use(
     async (requestConfig) => {
+      // Auth-ready guard: prevent requests before auth is hydrated
+      if (!authProvider.isInitialized()) {
+        if (debug) {
+          console.warn('[API Client] Auth not initialized, deferring request:', requestConfig.url);
+        }
+        return Promise.reject(new Error('Auth not initialized yet'));
+      }
+
       const token = authProvider.getAccessToken();
 
       if (token) {

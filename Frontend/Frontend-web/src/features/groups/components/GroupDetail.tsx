@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { groupsService } from '../services';
 import { MemberList } from './MemberList';
+import { ArrowLeft, AlertTriangle, BookOpen } from 'lucide-react';
 import styles from './GroupDetail.module.css';
 
 export const GroupDetail: React.FC = () => {
@@ -46,7 +47,7 @@ export const GroupDetail: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <button onClick={handleGoBack} className={styles.backButton}>
-            ← Volver
+            <ArrowLeft size={20} /> Volver
           </button>
           <h1 className={styles.headerTitle}>Cargando...</h1>
         </div>
@@ -63,12 +64,12 @@ export const GroupDetail: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <button onClick={handleGoBack} className={styles.backButton}>
-            ← Volver
+            <ArrowLeft size={20} /> Volver
           </button>
           <h1 className={styles.headerTitle}>Error</h1>
         </div>
         <div className={styles.errorContainer}>
-          <span className={styles.errorIcon}>⚠️</span>
+          <AlertTriangle size={48} className={styles.errorIcon} />
           <p className={styles.errorText}>{error || 'Grupo no encontrado'}</p>
           <button className={styles.retryButton} onClick={handleGoBack}>
             Volver
@@ -82,7 +83,7 @@ export const GroupDetail: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <button onClick={handleGoBack} className={styles.backButton}>
-          ← Volver
+          <ArrowLeft size={20} /> Volver
         </button>
         <h1 className={styles.headerTitle}>Detalle del Grupo</h1>
       </div>
@@ -95,7 +96,7 @@ export const GroupDetail: React.FC = () => {
           )}
           {groupInfo.course && (
             <div className={styles.courseInfo}>
-              <span className={styles.courseIcon}>📚</span>
+              <BookOpen size={20} className={styles.courseIcon} />
               <span className={styles.courseName}>{groupInfo.course.name}</span>
             </div>
           )}

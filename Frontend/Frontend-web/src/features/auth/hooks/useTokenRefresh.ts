@@ -1,54 +1,59 @@
 import { useEffect, useRef } from 'react';
-import { authController } from '../controllers/AuthController';
 import { authStore } from '../store/AuthStore';
+import { authService } from '../services';
 
 export function useTokenRefresh() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isRefreshingRef = useRef<boolean>(false); // Guard against concurrent refreshes
-  const lastRefreshTimestamp = useRef<number>(0); // Prevent rapid refreshes
+  const isRefreshingRef = useRef<boolean>(false);
+  const lastRefreshTimestamp = useRef<number>(0);
 
   useEffect(() => {
     const checkAndRefreshTokens = async () => {
-      // Prevent concurrent refresh attempts
       if (isRefreshingRef.current) {
-        
         return;
       }
 
-      // Only check if user is authenticated
       if (!authStore.isAuthenticated) {
         return;
       }
 
-      // Check if tokens need refresh (5 minutes before expiration)
       const fiveMinutesInMs = 5 * 60 * 1000;
-      const shouldRefresh = authStore.auth0Tokens?.expires_at 
+      const shouldRefresh = authStore.auth0Tokens?.expires_at
         ? (authStore.auth0Tokens.expires_at - Date.now()) < fiveMinutesInMs
         : false;
 
       if (shouldRefresh && authStore.hasRefreshToken) {
-        // Prevent refreshing more than once per minute (safety measure)
         const timeSinceLastRefresh = Date.now() - lastRefreshTimestamp.current;
         if (timeSinceLastRefresh < 60 * 1000) {
-          
           return;
         }
 
-        
         isRefreshingRef.current = true;
         try {
-          await authController.refreshTokens();
-          lastRefreshTimestamp.current = Date.now();
+          const refreshToken = authStore.auth0Tokens?.refresh_token;
+          const userId = authStore.user?.id_user;
+          if (refreshToken && userId) {
+            const result = await authService.refreshTokens(refreshToken, userId);
+            if (result.success && result.data) {
+              const { access_token, user, auth0_tokens } = result.data as any;
+              authStore.setAuth(access_token, user, auth0_tokens);
+              lastRefreshTimestamp.current = Date.now();
+            } else {
+              console.error('Token refresh failed:', result.message);
+              authStore.clearAuth();
+            }
+          }
+        } catch (error) {
+          console.error('Token refresh error:', error);
+          authStore.clearAuth();
         } finally {
           isRefreshingRef.current = false;
         }
       }
     };
 
-    // Check immediately
     checkAndRefreshTokens();
 
-    // Set up periodic checks every 5 minutes (instead of 2 minutes for better performance)
     intervalRef.current = setInterval(checkAndRefreshTokens, 5 * 60 * 1000);
 
     return () => {
@@ -58,12 +63,14 @@ export function useTokenRefresh() {
     };
   }, []);
 
-  // Manual refresh function
-  const refreshNow = async () => {
-    return await authController.refreshTokens();
-  };
-
   return {
-    refreshNow,
+    refreshNow: async () => {
+      const refreshToken = authStore.auth0Tokens?.refresh_token;
+      const userId = authStore.user?.id_user;
+      if (refreshToken && userId) {
+        return authService.refreshTokens(refreshToken, userId);
+      }
+      return { success: false, message: 'No refresh token available' } as any;
+    },
   };
 }

@@ -69,6 +69,15 @@ export class AuthStore {
     return !!this.auth0Tokens?.refresh_token;
   }
 
+  /**
+   * Auth-ready guard: true when store is hydrated from storage
+   * AND a token is available. Prevents race condition where
+   * components fire API calls before auth initialization completes.
+   */
+  get isReady(): boolean {
+    return this.isInitialized && !!this.accessToken;
+  }
+
   setAuth(token: string, userData: User, auth0TokensData?: any) {
     this.accessToken = token;
     

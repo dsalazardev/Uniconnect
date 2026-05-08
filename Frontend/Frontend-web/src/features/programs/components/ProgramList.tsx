@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePrograms } from '../hooks/usePrograms';
+import { GraduationCap } from 'lucide-react';
 import styles from './ProgramList.module.css';
 
 export const ProgramList: React.FC = () => {
@@ -25,7 +26,7 @@ export const ProgramList: React.FC = () => {
   if (!programs || programs.length === 0) {
     return (
       <div className={styles.center}>
-        <div className={styles.emptyIcon}>🎓</div>
+        <GraduationCap size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No hay programas disponibles</p>
       </div>
     );
@@ -41,7 +42,7 @@ export const ProgramList: React.FC = () => {
       <div className={styles.grid}>
         {programs.map((program) => (
           <div key={program.id_program} className={styles.card}>
-            <div className={styles.icon}>🎓</div>
+            <GraduationCap size={20} className={styles.icon} />
             <h3 className={styles.programName}>{program.name}</h3>
             <span className={styles.programId}>ID: {program.id_program}</span>
           </div>

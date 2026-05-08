@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X } from 'lucide-react';
 import styles from './CreateGroupModal.module.css';
 
 interface CreateGroupModalProps {
@@ -67,7 +68,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         <div className={styles.header}>
           <h2 className={styles.title}>Crear Grupo de Estudio</h2>
           <button onClick={handleClose} className={styles.closeButton}>
-            ✕
+            <X size={20} />
           </button>
         </div>
 

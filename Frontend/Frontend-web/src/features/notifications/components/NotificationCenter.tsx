@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { NotificationItem } from './NotificationItem';
 import { useUserNotifications } from '../hooks/useUserNotifications';
 import { notificationsStore } from '../store/notifications.store';
+import { Bell, CheckCheck } from 'lucide-react';
 import styles from './NotificationCenter.module.css';
 
 export const NotificationCenter = observer(function NotificationCenter() {
@@ -52,7 +53,7 @@ export const NotificationCenter = observer(function NotificationCenter() {
   if (!notifications.length) {
     return (
       <div className={styles.center}>
-        <div className={styles.emptyIcon}>🔔</div>
+        <Bell size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No tienes notificaciones</p>
       </div>
     );
@@ -66,7 +67,7 @@ export const NotificationCenter = observer(function NotificationCenter() {
       {hasUnread && (
         <div className={styles.header}>
           <button className={styles.markAllButton} onClick={handleMarkAllAsRead}>
-            <span className={styles.markAllIcon}>✓✓</span>
+            <CheckCheck size={20} className={styles.markAllIcon} />
             <span>Marcar todas como leídas</span>
           </button>
         </div>

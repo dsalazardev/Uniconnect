@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, UpdateEventPayload } from '@uniconnect/shared';
 import { EventType } from '@uniconnect/shared';
+import { X } from 'lucide-react';
 import styles from './EditEventModal.module.css';
 
 interface EditEventModalProps {
@@ -126,7 +127,7 @@ export const EditEventModal: React.FC<EditEventModalProps> = ({
           <div className={styles.header}>
             <h2 className={styles.headerTitle}>Editar Evento</h2>
             <button onClick={handleClose} disabled={isSubmitting} className={styles.closeButton}>
-              ✕
+              <X size={20} />
             </button>
           </div>
 

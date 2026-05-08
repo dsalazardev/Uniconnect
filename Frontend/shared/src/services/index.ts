@@ -1,5 +1,6 @@
 // Barrel export for services
 export { EventsService } from './events.service';
+export { FilesService } from './files.service';
 export { GroupsService } from './groups.service';
 export { MessagesService } from './messages.service';
 export { NotificationsService } from './notifications.service';
@@ -8,4 +9,5 @@ export { CoursesService } from './courses.service';
 export { ProgramsService } from './programs.service';
 export { StudentsService } from './students.service';
 export { AuthService } from './auth.service';
+export { NotificationObserverService, notificationObserver } from './notification-observer.service';
 

@@ -89,8 +89,17 @@ export const api = axios.create({
   timeout: 10000, // 10 segundos timeout
 });
 
-api.interceptors.request.use(
-  async (config) => {
+  api.interceptors.request.use(
+    async (config) => {
+      // Auth-ready guard: prevent requests before auth is hydrated
+      // Only blocks while isInitialized is false (hydration in progress).
+      // Once hydration is done, allows requests through even without a token
+      // (unauthenticated users on login screen).
+      if (!authStore.isInitialized) {
+        console.warn('[API Interceptor] ⏳ Auth not initialized yet, deferring request:', config.url);
+        return Promise.reject(new Error('Auth not initialized yet'));
+      }
+
     const token = authStore.accessToken;
 
     if (token) {

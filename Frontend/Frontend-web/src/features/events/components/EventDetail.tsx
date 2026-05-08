@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, AlertTriangle, Pencil, Trash2, FileText, Calendar, MapPin } from 'lucide-react';
 import type { Event } from '@uniconnect/shared';
 import { EventType } from '@uniconnect/shared';
 import { eventsService } from '../services';
@@ -132,7 +133,7 @@ export const EventDetail: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <button onClick={handleGoBack} className={styles.backButton}>
-            ← Volver
+            <ArrowLeft size={20} /> Volver
           </button>
           <h1 className={styles.headerTitle}>Cargando...</h1>
         </div>
@@ -149,12 +150,12 @@ export const EventDetail: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <button onClick={handleGoBack} className={styles.backButton}>
-            ← Volver
+            <ArrowLeft size={20} /> Volver
           </button>
           <h1 className={styles.headerTitle}>Error</h1>
         </div>
         <div className={styles.errorContainer}>
-          <span className={styles.errorIcon}>⚠️</span>
+          <AlertTriangle size={48} className={styles.errorIcon} />
           <p className={styles.errorText}>{error || 'Evento no encontrado'}</p>
           <button className={styles.retryButton} onClick={handleGoBack}>
             Volver
@@ -168,21 +169,21 @@ export const EventDetail: React.FC = () => {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <button onClick={handleGoBack} className={styles.backButton}>
-          ← Volver
-        </button>
-        <h1 className={styles.headerTitle}>Detalle del Evento</h1>
-        
-        {canEdit && (
-          <div className={styles.headerActions}>
-            <button onClick={handleEdit} className={styles.headerAction}>
-              ✏️
-            </button>
-            <button onClick={handleDelete} className={styles.headerActionDelete}>
-              🗑️
-            </button>
-          </div>
-        )}
+          <button onClick={handleGoBack} className={styles.backButton}>
+            <ArrowLeft size={20} /> Volver
+          </button>
+          <h1 className={styles.headerTitle}>Detalle del Evento</h1>
+          
+          {canEdit && (
+            <div className={styles.headerActions}>
+              <button onClick={handleEdit} className={styles.headerAction}>
+                <Pencil size={20} />
+              </button>
+              <button onClick={handleDelete} className={styles.headerActionDelete}>
+                <Trash2 size={20} />
+              </button>
+            </div>
+          )}
       </div>
 
       {/* Content */}
@@ -198,7 +199,7 @@ export const EventDetail: React.FC = () => {
         {/* Description */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionIcon}>📄</span>
+            <FileText size={20} className={styles.sectionIcon} />
             <h3 className={styles.sectionTitle}>Descripción</h3>
           </div>
           <p className={styles.description}>{event.description}</p>
@@ -207,7 +208,7 @@ export const EventDetail: React.FC = () => {
         {/* Date and Time */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionIcon}>📅</span>
+            <Calendar size={20} className={styles.sectionIcon} />
             <h3 className={styles.sectionTitle}>Fecha y Hora</h3>
           </div>
           <p className={styles.detailText}>{formatDate(event.date)}</p>
@@ -217,7 +218,7 @@ export const EventDetail: React.FC = () => {
         {/* Location */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionIcon}>📍</span>
+            <MapPin size={20} className={styles.sectionIcon} />
             <h3 className={styles.sectionTitle}>Ubicación</h3>
           </div>
           <p className={styles.detailText}>{event.location}</p>

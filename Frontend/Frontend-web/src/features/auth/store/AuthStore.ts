@@ -67,6 +67,10 @@ export class AuthStore {
     return !!this.auth0Tokens?.refresh_token;
   }
 
+  get isReady(): boolean {
+    return this.isInitialized && !!this.accessToken;
+  }
+
   setAuth(token: string, userData: User, auth0TokensData?: any) {
     this.accessToken = token;
     

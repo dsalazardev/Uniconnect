@@ -1,6 +1,7 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { notificationsStore } from '../store/notifications.store';
+import { Bell } from 'lucide-react';
 import styles from './NotificationBadge.module.css';
 
 interface NotificationBadgeProps {
@@ -26,7 +27,7 @@ export const NotificationBadge = observer(function NotificationBadge({
         className={styles.icon}
         style={{ color, fontSize: `${size}px` }}
       >
-        🔔
+        <Bell size={20} />
       </span>
 
       {unreadCount > 0 && (

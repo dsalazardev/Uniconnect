@@ -1,0 +1,184 @@
+.container {
+  padding: 16px;
+}
+
+.centerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 12px;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: #D9B97E;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loadingText {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.errorText {
+  color: #EF4444;
+  font-size: 14px;
+  text-align: center;
+}
+
+.retryButton {
+  background-color: #D9B97E;
+  color: #1a1a1a;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.section {
+  margin-bottom: 24px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: #fff;
+}
+
+.badge {
+  background-color: #F97316;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.badgeGold {
+  background-color: #D9B97E;
+  color: #1a1a1a;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  gap: 8px;
+}
+
+.checkIcon {
+  color: #4ADE80;
+}
+
+.emptyIcon {
+  color: #666;
+}
+
+.emptyText {
+  color: #888;
+  font-size: 14px;
+}
+
+.requestRow,
+.memberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ddd;
+  font-size: 14px;
+}
+
+.shieldIcon {
+  color: #D9B97E;
+}
+
+.adminIcon {
+  color: #F59E0B;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.acceptButton,
+.rejectButton,
+.transferButton,
+.removeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.acceptButton {
+  color: #4ADE80;
+}
+
+.acceptButton:hover {
+  background-color: rgba(74, 222, 128, 0.1);
+}
+
+.rejectButton {
+  color: #EF4444;
+}
+
+.rejectButton:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.transferButton {
+  color: #D9B97E;
+}
+
+.transferButton:hover {
+  background-color: rgba(217, 185, 126, 0.1);
+}
+
+.removeButton {
+  color: #EF4444;
+}
+
+.removeButton:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.acceptButton:disabled,
+.rejectButton:disabled,
+.transferButton:disabled,
+.removeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

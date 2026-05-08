@@ -1,5 +1,6 @@
 import React from 'react';
 import { useStudentCourses } from '../hooks/useStudentCourses';
+import { BookOpen } from 'lucide-react';
 import styles from './CourseList.module.css';
 
 export const CourseList: React.FC = () => {
@@ -25,7 +26,7 @@ export const CourseList: React.FC = () => {
   if (!courses || courses.length === 0) {
     return (
       <div className={styles.center}>
-        <div className={styles.emptyIcon}>📚</div>
+        <BookOpen size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No tienes cursos registrados</p>
       </div>
     );

@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { Paperclip } from 'lucide-react';
 import styles from './FileUpload.module.css';
 
 interface FileUploadProps {
@@ -49,7 +50,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         disabled={disabled}
         aria-label="Adjuntar archivo"
       >
-        📎
+        <Paperclip size={20} />
       </button>
     </div>
   );

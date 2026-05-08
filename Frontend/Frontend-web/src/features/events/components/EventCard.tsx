@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Calendar, Clock, MapPin, Pencil, Trash2 } from 'lucide-react';
 import type { Event, User } from '@uniconnect/shared';
 import { EventType } from '@uniconnect/shared';
 import styles from './EventCard.module.css';
@@ -93,7 +94,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, currentUser, onEdit
           aria-label="Editar evento"
           data-testid="edit-button"
         >
-          ✏️
+          <Pencil size={16} />
         </button>
       )}
 
@@ -108,7 +109,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, currentUser, onEdit
           aria-label="Eliminar evento"
           data-testid="delete-button"
         >
-          🗑️
+          <Trash2 size={16} />
         </button>
       )}
 
@@ -122,19 +123,19 @@ export const EventCard: React.FC<EventCardProps> = ({ event, currentUser, onEdit
       <div className={styles.detailsContainer}>
         {/* Date */}
         <div className={styles.detailRow}>
-          <span className={styles.icon}>📅</span>
+          <Calendar size={18} className={styles.icon} />
           <span className={styles.detailText}>{formatDate(event.date)}</span>
         </div>
 
         {/* Time */}
         <div className={styles.detailRow}>
-          <span className={styles.icon}>🕐</span>
+          <Clock size={18} className={styles.icon} />
           <span className={styles.detailText}>{event.time}</span>
         </div>
 
         {/* Location */}
         <div className={styles.detailRow}>
-          <span className={styles.icon}>📍</span>
+          <MapPin size={18} className={styles.icon} />
           <span className={styles.detailText}>{event.location}</span>
         </div>
       </div>

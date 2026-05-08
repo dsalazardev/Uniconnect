@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { CreateEventPayload } from '@uniconnect/shared';
 import { EventType } from '@uniconnect/shared';
+import { X } from 'lucide-react';
 import styles from './CreateEventModal.module.css';
 
 interface CreateEventModalProps {
@@ -109,7 +110,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
           <div className={styles.header}>
             <h2 className={styles.headerTitle}>Crear Nuevo Evento</h2>
             <button onClick={handleClose} disabled={isSubmitting} className={styles.closeButton}>
-              ✕
+              <X size={20} />
             </button>
           </div>
 

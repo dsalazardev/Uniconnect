@@ -1,11 +1,10 @@
 import React from 'react';
 import type { Event, User } from '@uniconnect/shared';
-import { EventType } from '@uniconnect/shared';
 import { EventCard } from './EventCard';
 import styles from './EventList.module.css';
 
 export interface EventListProps {
-  events: Event[] | undefined | null;
+  events?: Event[] | undefined | null;
   currentUser?: User;
   onEdit?: (event: Event) => void;
   onDelete?: (id: number) => void;
@@ -15,13 +14,17 @@ export interface EventListProps {
  * EventList - Pure component for displaying a list of events
  * Receives events array as prop
  * No business logic or network calls
- * 
- * ⭐ FIX CRÍTICO: Programación defensiva con Early Return
  */
 export const EventList: React.FC<EventListProps> = ({ events, currentUser, onEdit, onDelete }) => {
-  // ⭐ FIX CRÍTICO: Early Return - Validación temprana para evitar crash
-  // Si events es undefined, null, o no es un array, usar array vacío
   const safeEvents = Array.isArray(events) ? events : [];
+
+  if (safeEvents.length === 0) {
+    return (
+      <div className={styles.emptyState}>
+        <p className={styles.emptyText}>No hay eventos disponibles</p>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.listContainer}>

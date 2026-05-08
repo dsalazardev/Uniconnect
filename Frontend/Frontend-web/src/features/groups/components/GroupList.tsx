@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Group } from '@uniconnect/shared';
 import { GroupCard } from './GroupCard';
+import { BookOpen } from 'lucide-react';
 import styles from './GroupList.module.css';
 
 export interface GroupListProps {
@@ -23,7 +24,7 @@ export const GroupList: React.FC<GroupListProps> = ({
   if (safeGroups.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <span className={styles.emptyIcon}>📚</span>
+        <BookOpen size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No hay grupos disponibles</p>
       </div>
     );

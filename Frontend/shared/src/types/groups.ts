@@ -1,5 +1,4 @@
 // Group types
-import type { Program } from './programs';
 import type { Course } from './courses';
 
 export interface Group {

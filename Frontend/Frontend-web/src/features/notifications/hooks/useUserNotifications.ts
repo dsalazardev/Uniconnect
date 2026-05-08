@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { notificationsService } from '../services';
+import { notificationObserver } from '../services/notification-observer.service';
 import type { Notification } from '@uniconnect/shared';
 
 export const useUserNotifications = () => {
@@ -106,6 +107,16 @@ export const useUserNotifications = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [loadUnreadCount]);
+
+  // Suscribirse al observer de notificaciones para recarga automática
+  useEffect(() => {
+    const unsubscribe = notificationObserver.subscribe(() => {
+      loadNotifications();
+      loadUnreadCount();
+    });
+
+    return unsubscribe;
+  }, [loadNotifications, loadUnreadCount]);
 
   return {
     notifications,

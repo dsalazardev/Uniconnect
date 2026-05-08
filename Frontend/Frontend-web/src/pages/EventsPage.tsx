@@ -1,0 +1,114 @@
+import React from 'react';
+import { useEvents } from '@/features/events/hooks';
+import { authStore } from '@/features/auth/store/AuthStore';
+import { EventList } from '@/features/events/components';
+import { CreateEventModal } from '@/features/events/components';
+import { EventFilters } from '@/features/events/components';
+import type { Event, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';
+
+export const EventsPage: React.FC = () => {
+  const {
+    events,
+    loading,
+    error,
+    filters,
+    setFilter,
+    clearFilters,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    isCreating,
+    createError,
+    isUpdating,
+  } = useEvents();
+
+  const [createModalVisible, setCreateModalVisible] = React.useState(false);
+  const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
+  const [editModalVisible, setEditModalVisible] = React.useState(false);
+
+  const currentUser = authStore.user;
+  const canCreate = currentUser?.role?.name === 'admin' || currentUser?.role?.name === 'superadmin';
+
+  const handleCreate = async (payload: CreateEventPayload) => {
+    const success = await createEvent(payload);
+    if (success) setCreateModalVisible(false);
+  };
+
+  const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async (id: number, payload: UpdateEventPayload) => {
+    const success = await updateEvent(id, payload);
+    if (success) setEditModalVisible(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('¿Estás seguro? Esta acción no se puede deshacer')) {
+      await deleteEvent(id);
+    }
+  };
+
+  if (loading && events.length === 0) {
+    return (
+      <div>
+        <h1>Eventos</h1>
+        <p>Cargando eventos...</p>
+      </div>
+    );
+  }
+
+  if (error && events.length === 0) {
+    return (
+      <div>
+        <h1>Eventos</h1>
+        <p>Error: {error}</p>
+        <button onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h1>Eventos</h1>
+        {canCreate && (
+          <button onClick={() => setCreateModalVisible(true)} style={{ padding: '0.5rem 1rem' }}>
+            Crear Evento
+          </button>
+        )}
+      </div>
+
+      <EventFilters filters={filters} onFilterChange={setFilter} onClearFilters={clearFilters} />
+
+      <EventList
+        events={events}
+        currentUser={currentUser}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+
+      <CreateEventModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onCreate={handleCreate}
+        isSubmitting={isCreating}
+        error={createError}
+      />
+
+      {editingEvent && (
+        <CreateEventModal
+          visible={editModalVisible}
+          onClose={() => {
+            setEditModalVisible(false);
+            setEditingEvent(null);
+          }}
+          event={editingEvent}
+          onCreate={(payload: any) => handleSaveEdit(editingEvent.id_event, payload)}
+          isSubmitting={isUpdating}
+        />
+      )}
+    </div>
+  );
+};

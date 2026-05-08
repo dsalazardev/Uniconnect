@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { MessageCircle } from 'lucide-react';
 import type { Message } from '@uniconnect/shared';
 import styles from './MessageList.module.css';
 
@@ -31,7 +32,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   if (messages.length === 0) {
     return (
       <div className={styles.emptyContainer}>
-        <span className={styles.emptyIcon}>💬</span>
+        <MessageCircle size={48} className={styles.emptyIcon} />
         <p className={styles.emptyText}>No hay mensajes aún</p>
       </div>
     );

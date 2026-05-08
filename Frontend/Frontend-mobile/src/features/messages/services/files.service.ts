@@ -1,12 +1,14 @@
-import { API_BASE_URL } from '@/src/constants/api';
 import { Platform } from 'react-native';
+import { FilesService as SharedFilesService } from '@uniconnect/shared';
+import { api } from '@/src/constants/api';
 
 class FilesService {
-  /**
-   * Subir archivos a S3 a traves del backend.
-   * Usa fetch nativo en lugar de Axios para evitar el bug de Network Error
-   * con FormData en React Native Android.
-   */
+  private shared: SharedFilesService;
+
+  constructor() {
+    this.shared = new SharedFilesService(api);
+  }
+
   async uploadFiles(
     files: any[],
     groupId: number,
@@ -21,16 +23,12 @@ class FilesService {
     }
 
     if (Platform.OS === 'web') {
-      // En web: los archivos de expo-document-picker tienen una propiedad `file`
-      // que es un objeto File nativo del navegador, o podemos fetch el blob desde la URI
       for (let index = 0; index < files.length; index++) {
         const file = files[index];
 
         if (file.file instanceof File) {
-          // expo-document-picker en web expone el File nativo directamente
           formData.append('files', file.file, file.name || file.file.name);
         } else if (file.uri && file.uri.startsWith('blob:')) {
-          // Fallback: convertir blob URI a Blob y adjuntar
           try {
             const blobResponse = await fetch(file.uri);
             const blob = await blobResponse.blob();
@@ -40,14 +38,12 @@ class FilesService {
             console.warn(`[FilesService] No se pudo convertir blob URI para ${file.name}`);
           }
         } else if (file.uri) {
-          // URI de datos (data:...) u otro formato
           const blobResponse = await fetch(file.uri);
           const blob = await blobResponse.blob();
           formData.append('files', blob, file.name || `archivo_${index}`);
         }
       }
     } else {
-      // React Native (iOS / Android): formato { uri, type, name }
       files.forEach((file, index) => {
         formData.append('files', {
           uri: file.uri,
@@ -56,15 +52,14 @@ class FilesService {
         } as any);
       });
     }
+
     try {
-      // FETCH NATIVO: evita el bug de Axios con FormData en Android
-      const response = await fetch(`${API_BASE_URL}/files/upload`, {
+      const response = await fetch(`${api.defaults.baseURL}/files/upload`, {
         method: 'POST',
         body: formData,
         headers: {
           Accept: 'application/json',
           Authorization: `Bearer ${token}`,
-          // NO poner Content-Type: fetch calcula el boundary automaticamente
         },
       });
 
@@ -75,7 +70,7 @@ class FilesService {
       }
 
       const responseData = await response.json();
-      
+
       return responseData.data || [];
     } catch (error: any) {
       console.error(`[FilesService] Error subiendo archivos:`, error.message);
@@ -83,35 +78,10 @@ class FilesService {
     }
   }
 
-  /**
-   * Validar que los archivos cumplan con los requisitos basicos
-   * Solo valida cantidad y tamano, NO tipo MIME (S3 acepta todo)
-   */
   validateFiles(files: any[]): { valid: boolean; error?: string } {
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    const MAX_FILES = 5;
-
-    if (files.length === 0) {
-      return { valid: false, error: 'Selecciona al menos un archivo' };
-    }
-
-    if (files.length > MAX_FILES) {
-      return { valid: false, error: `Maximo ${MAX_FILES} archivos permitidos` };
-    }
-
-    for (const file of files) {
-      const size = file.size || file.fileSize;
-      if (size && size > MAX_FILE_SIZE) {
-        return { valid: false, error: `${file.name} es muy grande (max 10MB)` };
-      }
-    }
-
-    return { valid: true };
+    return SharedFilesService.validateFiles(files);
   }
 
-  /**
-   * Obtener el icono para un tipo de archivo
-   */
   getFileIcon(fileName: string): string {
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
 
@@ -124,90 +94,31 @@ class FilesService {
     return 'attach-outline';
   }
 
-  /**
-   * Obtener tamano legible del archivo
-   */
   getFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    return SharedFilesService.getFileSize(bytes);
   }
 
-    /**
-     * Obtener URL prefirmada para descargar un archivo de forma segura desde S3
-     * @param fileId - ID del archivo en la base de datos
-     * @param token - Token JWT del usuario autenticado
-     * @returns URL prefirmada válida por 1 hora
-     */
-    async getPresignedDownloadUrl(fileId: number, token: string): Promise<string> {
-      try {
-        
+  async getPresignedDownloadUrl(fileId: number, _token?: string): Promise<string> {
+    return this.shared.getPresignedDownloadUrl(fileId);
+  }
 
-        const response = await fetch(`${API_BASE_URL}/files/${fileId}/download`, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  async downloadAndOpenFile(file: { id_file: number; file_name: string }, token: string): Promise<void> {
+    const { Alert } = await import('react-native');
+    const WebBrowser = await import('expo-web-browser');
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[FilesService] Error obteniendo URL prefirmada: ${response.status} - ${errorText}`);
-          throw new Error(`Error del servidor: ${response.status}`);
-        }
+    try {
+      const signedUrl = await this.getPresignedDownloadUrl(file.id_file, token);
+      await WebBrowser.openBrowserAsync(signedUrl);
+    } catch (error: any) {
+      console.error(`[FilesService] Error descargando archivo:`, error.message);
 
-        const responseData = await response.json();
-
-        // Desempaquetar respuesta FEN estándar: response.data.data.url
-        const signedUrl = responseData?.data?.url;
-
-        if (!signedUrl) {
-          throw new Error('URL prefirmada no encontrada en la respuesta');
-        }
-
-        
-        return signedUrl;
-      } catch (error: any) {
-        console.error(`[FilesService] Error obteniendo URL prefirmada:`, error.message);
-        throw error;
-      }
+      Alert.alert(
+        'Error al descargar',
+        `No se pudo abrir el archivo: ${error.message || 'Error desconocido'}`,
+        [{ text: 'OK' }]
+      );
     }
-
-    /**
-     * Descargar y abrir un archivo usando Presigned URL
-     * Orquesta todo el flujo: obtener URL prefirmada -> abrir en navegador
-     * @param file - Objeto completo del archivo con id_file
-     * @param token - Token JWT del usuario autenticado
-     */
-    async downloadAndOpenFile(file: { id_file: number; file_name: string }, token: string): Promise<void> {
-      const { Alert } = await import('react-native');
-      const WebBrowser = await import('expo-web-browser');
-
-      try {
-        
-
-        // Obtener URL prefirmada del backend
-        const signedUrl = await this.getPresignedDownloadUrl(file.id_file, token);
-
-        
-
-        // Abrir el archivo usando Expo WebBrowser
-        await WebBrowser.openBrowserAsync(signedUrl);
-
-        
-      } catch (error: any) {
-        console.error(`[FilesService] Error descargando archivo:`, error.message);
-
-        Alert.alert(
-          'Error al descargar',
-          `No se pudo abrir el archivo: ${error.message || 'Error desconocido'}`,
-          [{ text: 'OK' }]
-        );
-      }
-    }
+  }
 }
 
 export const filesService = new FilesService();

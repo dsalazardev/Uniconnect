@@ -1,6 +1,7 @@
 import React from 'react';
 import type { EventFilters as EventFiltersType } from '@uniconnect/shared';
 import { EventType } from '@uniconnect/shared';
+import { X } from 'lucide-react';
 import styles from './EventFilters.module.css';
 
 export interface EventFiltersProps {
@@ -27,7 +28,7 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
         <h3 className={styles.title}>Filtros</h3>
         {hasActiveFilters && (
           <button onClick={onClearFilters} className={styles.clearButton}>
-            <span className={styles.clearIcon}>✕</span>
+            <X size={16} className={styles.clearIcon} />
             <span className={styles.clearText}>Limpiar</span>
           </button>
         )}

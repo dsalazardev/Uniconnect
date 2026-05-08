@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Group } from '@uniconnect/shared';
 import { authStore } from '@/features/auth/store/AuthStore';
+import { Users, Pencil, Loader, Trash2, User, Star, Shield } from 'lucide-react';
 import styles from './GroupCard.module.css';
 
 interface GroupCardProps {
@@ -30,7 +31,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
     <div className={styles.card} onClick={onPress}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.icon}>👥</span>
+          <Users size={16} className={styles.icon} />
           <div className={styles.headerInfo}>
             <h3 className={styles.groupName}>{group.name}</h3>
             <p className={styles.courseName}>{group.course?.name}</p>
@@ -49,7 +50,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
               disabled={isDeleting}
               aria-label="Editar grupo"
             >
-              ✏️
+              <Pencil size={16} />
             </button>
             <button
               onClick={(e) => {
@@ -60,7 +61,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
               disabled={isDeleting}
               aria-label="Eliminar grupo"
             >
-              {isDeleting ? '⏳' : '🗑️'}
+              {isDeleting ? <Loader size={16} /> : <Trash2 size={16} />}
             </button>
           </div>
         )}
@@ -72,20 +73,20 @@ export const GroupCard: React.FC<GroupCardProps> = ({
 
       <div className={styles.footer}>
         <div className={styles.membersInfo}>
-          <span className={styles.footerIcon}>👤</span>
+          <User size={14} className={styles.footerIcon} />
           <span className={styles.membersText}>
             {membersCount} {membersCount === 1 ? 'miembro' : 'miembros'}
           </span>
         </div>
         {isOwner && (
           <div className={styles.roleIndicator}>
-            <span className={styles.roleIcon}>⭐</span>
+            <Star size={14} className={styles.roleIcon} />
             <span className={styles.roleText}>Propietario</span>
           </div>
         )}
         {isAdmin && !isOwner && (
           <div className={styles.roleIndicatorAdmin}>
-            <span className={styles.roleIcon}>🛡️</span>
+            <Shield size={14} className={styles.roleIcon} />
             <span className={styles.roleText}>Admin</span>
           </div>
         )}

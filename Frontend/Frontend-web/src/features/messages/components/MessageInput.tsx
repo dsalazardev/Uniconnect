@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Send } from 'lucide-react';
 import styles from './MessageInput.module.css';
 
 interface MessageInputProps {
@@ -54,7 +55,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         disabled={!text.trim() || disabled}
         aria-label="Enviar mensaje"
       >
-        ➤
+        <Send size={20} />
       </button>
     </form>
   );

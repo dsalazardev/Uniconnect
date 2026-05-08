@@ -9,6 +9,7 @@ export * from './auth';
 export * from './connections';
 export * from './courses';
 export * from './events';
+export * from './files';
 export * from './groups';
 export * from './messages';
 export * from './notifications';
