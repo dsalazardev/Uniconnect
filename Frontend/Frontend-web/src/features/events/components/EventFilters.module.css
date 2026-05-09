@@ -146,3 +146,49 @@
   color: #D9B97E;
   flex: 1;
 }
+
+/* Date Inputs */
+.dateInput {
+  width: 100%;
+  border: 1px solid rgba(217, 185, 126, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #D9B97E;
+}
+
+.dateInputActive {
+  border-color: #D9B97E;
+  box-shadow: 0 0 0 2px rgba(217, 185, 126, 0.15);
+}
+
+/* Webkit date input styling */
+.dateInput::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.dateRangeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dateRangeRow .dateInput {
+  flex: 1;
+}
+
+.dateRangeSeparator {
+  color: #aaa;
+  font-size: 14px;
+  font-weight: 500;
+}

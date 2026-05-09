@@ -71,14 +71,49 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
         )}
       </div>
 
-      {/* Date Filter Info */}
+      {/* Date Filters */}
+      <div className={styles.filterSection}>
+        <label className={styles.label}>Fecha</label>
+        <input
+          type="date"
+          value={filters.date || ''}
+          onChange={(e) => onFilterChange('date', e.target.value || null)}
+          className={`${styles.dateInput} ${filters.date ? styles.dateInputActive : ''}`}
+        />
+      </div>
+
+      {/* Date Range Filters */}
+      <div className={styles.filterSection}>
+        <label className={styles.label}>Rango de fechas</label>
+        <div className={styles.dateRangeRow}>
+          <input
+            type="date"
+            value={filters.startDate || ''}
+            onChange={(e) => onFilterChange('startDate', e.target.value || null)}
+            className={`${styles.dateInput} ${filters.startDate ? styles.dateInputActive : ''}`}
+            placeholder="Desde"
+          />
+          <span className={styles.dateRangeSeparator}>–</span>
+          <input
+            type="date"
+            value={filters.endDate || ''}
+            onChange={(e) => onFilterChange('endDate', e.target.value || null)}
+            className={`${styles.dateInput} ${filters.endDate ? styles.dateInputActive : ''}`}
+            placeholder="Hasta"
+          />
+        </div>
+      </div>
+
+      {/* Active date info */}
       {(filters.date || filters.startDate || filters.endDate) && (
         <div className={styles.activeFiltersInfo}>
           <span className={styles.infoIcon}>ℹ️</span>
           <span className={styles.infoText}>
             {filters.date && `Fecha: ${filters.date}`}
-            {filters.startDate && filters.endDate && 
-              `Rango: ${filters.startDate} - ${filters.endDate}`}
+            {filters.startDate && filters.endDate &&
+              `Rango: ${filters.startDate} – ${filters.endDate}`}
+            {filters.startDate && !filters.endDate && `Desde: ${filters.startDate}`}
+            {!filters.startDate && filters.endDate && `Hasta: ${filters.endDate}`}
           </span>
           <button onClick={() => {
             onFilterChange('date', null);

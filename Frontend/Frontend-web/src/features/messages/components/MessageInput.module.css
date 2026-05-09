@@ -36,19 +36,36 @@
   color: #666;
 }
 
+.attachButton,
 .sendButton {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   border: none;
-  background-color: #D9B97E;
-  color: #1a1a1a;
+  background-color: transparent;
+  color: #aaa;
   font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.attachButton:hover:not(:disabled) {
+  color: #D9B97E;
+  background-color: rgba(217, 185, 126, 0.1);
+}
+
+.attachButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sendButton {
+  background-color: #D9B97E;
+  color: #1a1a1a;
 }
 
 .sendButton:hover:not(:disabled) {
@@ -59,4 +76,55 @@
   background-color: #4a4a4a;
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.spinnerSmall {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(217, 185, 126, 0.3);
+  border-top-color: #D9B97E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 1;
+}
+
+.editIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  background-color: rgba(217, 185, 126, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #D9B97E;
+}
+
+.editLabel {
+  font-size: 12px;
+  color: #D9B97E;
+  font-weight: 500;
+}
+
+.cancelEditButton {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.cancelEditButton:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
 }

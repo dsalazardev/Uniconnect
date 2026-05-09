@@ -8,7 +8,7 @@ import { GroupDetail } from './features/groups/components';
 import { EventsPage } from './pages/EventsPage';
 import { GroupsPage } from './pages/GroupsPage';
 import { MessagesPage } from './pages/MessagesPage';
-import { ProfileScreen } from './features/auth/components';
+import { OnboardingPage, ProfileScreen } from './features/auth/components';
 import { StudentList, StudentProfile } from './features/students/components';
 import { ConnectionList } from './features/connections/components';
 import { CourseList } from './features/courses/components';
@@ -40,6 +40,10 @@ export const router = createBrowserRouter([
       {
         path: 'login',
         element: <SuspenseWrapper><LazyLoginScreen /></SuspenseWrapper>,
+      },
+      {
+        path: 'onboarding',
+        element: <OnboardingPage />,
       },
       {
         path: 'profile',

@@ -4,7 +4,7 @@ import { useMyGroups, useDiscoverGroups } from '@/features/groups/hooks';
 import { useGroups } from '@/features/groups/hooks/useGroups';
 import { useJoinRequest } from '@/features/groups/hooks/useJoinRequest';
 import { authStore } from '@/features/auth/store/AuthStore';
-import { GroupList, CreateGroupModal } from '@/features/groups/components';
+import { GroupList, CreateGroupModal, EditGroupModal } from '@/features/groups/components';
 import { useProfile } from '@/features/students/hooks/useProfile';
 import { showToast } from '@/lib/toast';
 import { Users, Search, Plus, User } from 'lucide-react';
@@ -20,12 +20,14 @@ export const GroupsPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<TabType>('misGrupos');
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<number | null>(null);
   const [pendingRequests, setPendingRequests] = useState<Set<number>>(new Set());
 
   const { myGroups, loading: myGroupsLoading, error: myGroupsError, reloadMyGroups } = useMyGroups(userId);
   const { groups: discoverGroups, loading: discoverLoading } = useDiscoverGroups(userId);
-  const { deleteGroup, createGroup, isCreating } = useGroups();
+  const { deleteGroup, createGroup, isCreating, updateGroup, isUpdating } = useGroups();
   const joinMutation = useJoinRequest();
   const { profile, isLoading: profileLoading } = useProfile();
 
@@ -39,7 +41,14 @@ export const GroupsPage: React.FC = () => {
   };
 
   const handleEdit = (group: Group) => {
-    console.log('Edit group:', group.id_group);
+    setEditingGroup(group);
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async (groupId: number, groupData: { name: string; description: string; id_course: number }) => {
+    await updateGroup({ id: groupId, data: groupData });
+    setEditModalVisible(false);
+    setEditingGroup(null);
   };
 
   const handleDelete = async (groupId: number) => {
@@ -309,6 +318,18 @@ export const GroupsPage: React.FC = () => {
         onSave={handleSaveNewGroup}
         isCreating={isCreating}
         courses={profileLoading ? [] : courses}
+      />
+
+      {/* Edit Group Modal */}
+      <EditGroupModal
+        visible={editModalVisible}
+        group={editingGroup}
+        onClose={() => {
+          setEditModalVisible(false);
+          setEditingGroup(null);
+        }}
+        onSave={handleSaveEdit}
+        isLoading={isUpdating}
       />
     </div>
   );

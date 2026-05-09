@@ -47,6 +47,22 @@ export class FilesService {
       throw new Error('No se pudo descargar el archivo');
     }
   }
+
+  async uploadFiles(groupId: number, files: File[]): Promise<{ files: any[]; messageId: number }> {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append('files', file));
+      formData.append('id_group', String(groupId));
+
+      const response = await api.post('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('[FilesService] Error uploading files:', error);
+      throw new Error('No se pudieron subir los archivos');
+    }
+  }
 }
 
 export const filesService = new FilesService();

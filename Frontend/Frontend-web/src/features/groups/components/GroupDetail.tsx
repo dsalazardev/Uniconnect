@@ -5,6 +5,7 @@ import { useTransferOwnership } from '../hooks/useTransferOwnership';
 import { MemberList } from './MemberList';
 import { TransferOwnershipModal } from './TransferOwnershipModal';
 import { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
+import { GroupAdminPanel } from './GroupAdminPanel';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
 import { useChat } from '@/features/messages/hooks/useChat';
@@ -23,6 +24,9 @@ export const GroupDetail: React.FC = () => {
   const transferOwnership = useTransferOwnership();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
 
   const currentUser = authStore.user;
   const currentUserId = currentUser?.id_user ?? 0;
@@ -65,6 +69,37 @@ export const GroupDetail: React.FC = () => {
         navigate('/groups');
       },
     });
+  };
+
+  const handleEditMessage = (message: { id_message: number; text_content: string }) => {
+    setEditingMessageId(message.id_message);
+    setEditingText(message.text_content || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditingText('');
+  };
+
+  const handleSendOrEdit = (text: string) => {
+    if (editingMessageId != null) {
+      chat.editMessage(editingMessageId, text);
+      setEditingMessageId(null);
+      setEditingText('');
+    } else {
+      chat.sendMessage(text);
+    }
+  };
+
+  const handleDeleteMessage = (messageId: number) => {
+    setDeletingMessageId(messageId);
+  };
+
+  const confirmDeleteMessage = () => {
+    if (deletingMessageId != null) {
+      chat.deleteMessage(deletingMessageId);
+      setDeletingMessageId(null);
+    }
   };
 
   if (isLoading) {
@@ -160,6 +195,16 @@ export const GroupDetail: React.FC = () => {
           </div>
         )}
 
+        {isOwner && !isDirectMessage && (
+          <div className={styles.section}>
+            <GroupAdminPanel
+              groupId={groupId}
+              ownerId={groupInfo.owner?.id_user}
+              canManage={groupInfo.canManageMembers || false}
+            />
+          </div>
+        )}
+
         {/* Chat Section - only for members */}
         {isMember && (
           <div className={styles.chatSection}>
@@ -171,11 +216,17 @@ export const GroupDetail: React.FC = () => {
                 messages={chat.messages}
                 currentUserId={currentUserId}
                 loading={chat.loading}
+                onEdit={handleEditMessage}
+                onDelete={handleDeleteMessage}
               />
               <MessageInput
-                onSend={chat.sendMessage}
+                onSend={handleSendOrEdit}
                 disabled={!chat.isConnected && chat.messages.length === 0}
                 placeholder="Escribe un mensaje..."
+                editingMessageId={editingMessageId}
+                initialText={editingText}
+                onCancelEdit={handleCancelEdit}
+                groupId={groupId}
               />
             </div>
           </div>
@@ -197,6 +248,18 @@ export const GroupDetail: React.FC = () => {
         onConfirm={confirmLeaveGroup}
         onCancel={() => setShowLeaveConfirm(false)}
         loading={leaveGroup.isPending}
+      />
+
+      {/* Delete Message Confirmation */}
+      <ConfirmModal
+        visible={deletingMessageId != null}
+        title="Eliminar mensaje"
+        message="¿Estás seguro de que quieres eliminar este mensaje? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDeleteMessage}
+        onCancel={() => setDeletingMessageId(null)}
       />
 
       {/* Transfer Ownership Modal */}

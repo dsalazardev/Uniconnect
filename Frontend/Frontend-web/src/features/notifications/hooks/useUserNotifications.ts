@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { notificationsService } from '../services';
 import { notificationObserver } from '../services/notification-observer.service';
 import type { Notification } from '@uniconnect/shared';
 
 export const useUserNotifications = () => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -76,16 +78,43 @@ export const useUserNotifications = () => {
     }
   }, [loadNotifications, loadUnreadCount]);
 
-  // Navegar según tipo de notificación (TODO: implementar navegación web con React Router)
+  // Navegar según tipo de notificación
   const handleNotificationPress = useCallback(async (notification: Notification) => {
     // Marcar como leída si no lo está
     if (!notification.is_read) {
       await markAsRead(notification.id_notification);
     }
 
-    // TODO: Implementar navegación con React Router según notification_type
-    console.log('Notification pressed:', notification.notification_type, notification.related_entity_id);
-  }, [markAsRead]);
+    const entityId = notification.related_entity_id;
+
+    switch (notification.notification_type) {
+      case 'connection_request':
+      case 'member_accepted':
+        navigate('/connections');
+        break;
+      case 'message':
+      case 'mention':
+        if (entityId) {
+          navigate(`/messages?groupId=${entityId}`);
+        } else {
+          navigate('/messages');
+        }
+        break;
+      case 'group_invitation':
+      case 'group_invitation_accepted':
+      case 'user_joined_group':
+      case 'join_request':
+      case 'member_removed':
+        if (entityId) {
+          navigate(`/groups/${entityId}`);
+        } else {
+          navigate('/groups');
+        }
+        break;
+      default:
+        break;
+    }
+  }, [markAsRead, navigate]);
 
   // Cargar datos iniciales
   useEffect(() => {
