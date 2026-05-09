@@ -9,6 +9,7 @@ import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
 import { useChat } from '@/features/messages/hooks/useChat';
 import { ConfirmModal } from '@/components/ConfirmModal';
+import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { ArrowLeft, AlertTriangle, BookOpen, LogOut } from 'lucide-react';
 import styles from './GroupDetail.module.css';
@@ -75,10 +76,7 @@ export const GroupDetail: React.FC = () => {
           </button>
           <h1 className={styles.headerTitle}>Cargando...</h1>
         </div>
-        <div className={styles.loadingContainer}>
-          <div className={styles.spinner}></div>
-          <p className={styles.loadingText}>Cargando grupo...</p>
-        </div>
+        <LoadingSpinner size="lg" label="Cargando grupo..." />
       </div>
     );
   }

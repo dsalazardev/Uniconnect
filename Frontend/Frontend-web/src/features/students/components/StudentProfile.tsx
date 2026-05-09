@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudentProfile } from '../hooks/useStudentProfile';
+import { LoadingSpinner } from '@/components/elements';
 import { useConnectionStatus, useConnections } from '@/features/connections/hooks/useConnections';
 import { ArrowLeft, Smartphone, UserPlus, UserCheck, Send, MessageCircle, X, Check } from 'lucide-react';
 import styles from './StudentProfile.module.css';
@@ -29,12 +30,7 @@ export const StudentProfile: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando perfil...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando perfil..." />;
   }
 
   if (error || !profile) {

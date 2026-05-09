@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader, MessageCircle, AlertCircle } from 'lucide-react';
+import { MessageCircle, AlertCircle } from 'lucide-react';
+import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { useConversations } from '@/features/messages/hooks/useConversations';
 
@@ -11,12 +12,7 @@ export const MessagesPage: React.FC = () => {
   const { conversations, loading, error, reload } = useConversations(currentUserId);
 
   if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 0', gap: '1rem' }}>
-        <Loader size={48} className="spinner" />
-        <p style={{ color: '#aaa' }}>Cargando conversaciones...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando conversaciones..." />;
   }
 
   if (error) {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StudentCard } from './StudentCard';
+import { LoadingSpinner } from '@/components/elements';
 import { useCommunityLists } from '../hooks/useCommunityLists';
 import styles from './StudentList.module.css';
 
@@ -20,12 +21,7 @@ export const StudentList: React.FC = () => {
   const displayedStudents = activeTab === 'friends' ? connectedStudents : notConnectedStudents;
 
   if (isLoading) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando estudiantes...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando estudiantes..." />;
   }
 
   if (error) {

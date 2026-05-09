@@ -7,7 +7,8 @@ import { authStore } from '@/features/auth/store/AuthStore';
 import { GroupList, CreateGroupModal } from '@/features/groups/components';
 import { useProfile } from '@/features/students/hooks/useProfile';
 import { showToast } from '@/lib/toast';
-import { Users, Search, Plus, User, Loader } from 'lucide-react';
+import { Users, Search, Plus, User } from 'lucide-react';
+import { LoadingSpinner } from '@/components/elements';
 import type { Group } from '@uniconnect/shared';
 
 type TabType = 'misGrupos' | 'descubrir';
@@ -77,12 +78,7 @@ export const GroupsPage: React.FC = () => {
 
   const renderMisGruposTab = () => {
     if (myGroupsLoading) {
-      return (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <Loader size={32} className="spinner" style={{ color: '#D9B97E', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: '#aaa', marginTop: 12 }}>Cargando tus grupos...</p>
-        </div>
-      );
+      return <LoadingSpinner size="lg" label="Cargando tus grupos..." />;
     }
 
     if (myGroupsError) {
@@ -126,12 +122,7 @@ export const GroupsPage: React.FC = () => {
 
   const renderDescubrirTab = () => {
     if (discoverLoading) {
-      return (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <Loader size={32} style={{ color: '#D9B97E', animation: 'spin 1s linear infinite' }} />
-          <p style={{ color: '#aaa', marginTop: 12 }}>Cargando grupos disponibles...</p>
-        </div>
-      );
+      return <LoadingSpinner size="lg" label="Cargando grupos disponibles..." />;
     }
 
     if (!discoverGroups || discoverGroups.length === 0) {

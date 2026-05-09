@@ -1,6 +1,7 @@
 import React from 'react';
 import { ConnectionRequest as ConnectionRequestComponent } from './ConnectionRequest';
 import { useConnections } from '../hooks/useConnections';
+import { LoadingSpinner } from '@/components/elements';
 import { Handshake } from 'lucide-react';
 import styles from './ConnectionList.module.css';
 
@@ -8,11 +9,7 @@ export const ConnectionList: React.FC = () => {
   const { pendingRequests, loading, error, refetch } = useConnections();
 
   if (loading) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando solicitudes...</p>
-      </div>
+    return <LoadingSpinner size="lg" label="Cargando solicitudes..." />;
     );
   }
 

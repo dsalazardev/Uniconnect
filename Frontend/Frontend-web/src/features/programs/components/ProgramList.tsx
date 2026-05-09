@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePrograms } from '../hooks/usePrograms';
+import { LoadingSpinner } from '@/components/elements';
 import { GraduationCap } from 'lucide-react';
 import styles from './ProgramList.module.css';
 
@@ -7,12 +8,7 @@ export const ProgramList: React.FC = () => {
   const { programs, loading, error } = usePrograms();
 
   if (loading) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando programas...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando programas..." />;
   }
 
   if (error) {

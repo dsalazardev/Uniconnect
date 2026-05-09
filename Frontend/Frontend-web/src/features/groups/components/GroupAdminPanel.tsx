@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Users, UserPlus, Check, X, Loader, Shield, User } from 'lucide-react';
+import { Users, UserPlus, Check, X, Shield, User } from 'lucide-react';
+import { LoadingSpinner } from '@/components/elements';
 import { groupsService } from '../services';
 import type { GroupJoinRequest, GroupMembership } from '@uniconnect/shared';
 import styles from './GroupAdminPanel.module.css';
@@ -100,12 +101,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   };
 
   if (loading) {
-    return (
-      <div className={styles.centerContainer}>
-        <Loader size={32} className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando panel...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando panel..." />;
   }
 
   if (error) {
@@ -147,14 +143,14 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
                     onClick={() => handleAcceptRequest(req.id_request)}
                     disabled={processingId === req.id_request}
                   >
-                    {processingId === req.id_request ? <Loader size={16} className={styles.spinner} /> : <Check size={16} />}
+                    {processingId === req.id_request ? <div className={styles.spinner} /> : <Check size={16} />}
                   </button>
                   <button
                     className={styles.rejectButton}
                     onClick={() => handleRejectRequest(req.id_request)}
                     disabled={processingId === req.id_request}
                   >
-                    {processingId === req.id_request ? <Loader size={16} className={styles.spinner} /> : <X size={16} />}
+                    {processingId === req.id_request ? <div className={styles.spinner} /> : <X size={16} />}
                   </button>
                 </div>
               )}
@@ -198,7 +194,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
                       disabled={processingId === member.id_user}
                       title="Transferir propiedad"
                     >
-                      {processingId === member.id_user ? <Loader size={16} className={styles.spinner} /> : <Shield size={16} />}
+                      {processingId === member.id_user ? <div className={styles.spinner} /> : <Shield size={16} />}
                     </button>
                     <button
                       className={styles.removeButton}
@@ -206,7 +202,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
                       disabled={processingId === member.id_user}
                       title="Eliminar miembro"
                     >
-                      {processingId === member.id_user ? <Loader size={16} className={styles.spinner} /> : <X size={16} />}
+                      {processingId === member.id_user ? <div className={styles.spinner} /> : <X size={16} />}
                     </button>
                   </div>
                 )}

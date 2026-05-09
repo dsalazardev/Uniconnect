@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { NotificationItem } from './NotificationItem';
 import { useUserNotifications } from '../hooks/useUserNotifications';
 import { notificationsStore } from '../store/notifications.store';
+import { LoadingSpinner } from '@/components/elements';
 import { Bell, CheckCheck } from 'lucide-react';
 import styles from './NotificationCenter.module.css';
 
@@ -31,12 +32,7 @@ export const NotificationCenter = observer(function NotificationCenter() {
   };
 
   if (loading) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando notificaciones...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando notificaciones..." />;
   }
 
   if (error) {

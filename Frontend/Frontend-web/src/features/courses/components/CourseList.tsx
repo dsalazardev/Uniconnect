@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStudentCourses } from '../hooks/useStudentCourses';
+import { LoadingSpinner } from '@/components/elements';
 import { AddCourseModal } from './AddCourseModal';
 import { BookOpen, Plus } from 'lucide-react';
 import styles from './CourseList.module.css';
@@ -9,12 +10,7 @@ export const CourseList: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
 
   if (loading) {
-    return (
-      <div className={styles.center}>
-        <div className={styles.spinner} />
-        <p className={styles.loadingText}>Cargando cursos...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando cursos..." />;
   }
 
   if (error) {

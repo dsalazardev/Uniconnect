@@ -6,6 +6,7 @@ import { EventType } from '@uniconnect/shared';
 import { eventsService } from '../services';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { EditEventModal } from './EditEventModal';
+import { LoadingSpinner } from '@/components/elements';
 import styles from './EventDetail.module.css';
 
 export const EventDetail: React.FC = () => {
@@ -137,10 +138,7 @@ export const EventDetail: React.FC = () => {
           </button>
           <h1 className={styles.headerTitle}>Cargando...</h1>
         </div>
-        <div className={styles.loadingContainer}>
-          <div className={styles.spinner}></div>
-          <p className={styles.loadingText}>Cargando evento...</p>
-        </div>
+        <LoadingSpinner size="lg" label="Cargando evento..." />
       </div>
     );
   }

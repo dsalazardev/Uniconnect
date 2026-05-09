@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '../store/AuthStore';
 import { useProfile } from '@/features/students/hooks/useProfile';
 import { useStudentCourses } from '@/features/courses/hooks/useStudentCourses';
@@ -47,10 +48,7 @@ export const ProfileScreen: React.FC = observer(() => {
     return (
       <div className={styles.container}>
         <div className={styles.card}>
-          <div className={styles.loadingContainer}>
-            <div className={styles.spinner} />
-            <p className={styles.loadingText}>Cargando perfil...</p>
-          </div>
+          <LoadingSpinner size="lg" label="Cargando perfil..." />
         </div>
       </div>
     );
