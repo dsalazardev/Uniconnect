@@ -10,7 +10,6 @@ export const ConnectionList: React.FC = () => {
 
   if (loading) {
     return <LoadingSpinner size="lg" label="Cargando solicitudes..." />;
-    );
   }
 
   if (error) {

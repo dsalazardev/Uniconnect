@@ -226,12 +226,7 @@ export const GroupsPage: React.FC = () => {
   const isLoading = myGroupsLoading && discoverLoading;
 
   if (isLoading) {
-    return (
-      <div>
-        <h1>Grupos</h1>
-        <p>Cargando grupos...</p>
-      </div>
-    );
+    return <LoadingSpinner size="lg" label="Cargando grupos..." />;
   }
 
   return (
