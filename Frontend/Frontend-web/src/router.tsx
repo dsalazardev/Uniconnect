@@ -62,6 +62,10 @@ export const router = createBrowserRouter([
         element: <GroupDetail />,
       },
       {
+        path: 'chat/:id',
+        element: <GroupDetail />,
+      },
+      {
         path: 'messages',
         element: <MessagesPage />,
       },

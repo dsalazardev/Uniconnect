@@ -34,7 +34,7 @@ export const useConnections = () => {
       const response = await groupsService.findOrCreateDirectMessage(targetUserId);
       
       if (navigate) {
-        navigate('/groups/' + response.group.id_group);
+        navigate('/chat/' + response.group.id_group);
       }
     } catch (error) {
       const axiosError = error as { response?: { status?: number; data?: { message?: string } }; message?: string };

@@ -1,0 +1,170 @@
+.container {
+  padding: 8px 0;
+}
+
+.infoBox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: rgba(217, 185, 126, 0.1);
+  border: 1px solid rgba(217, 185, 126, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.infoIcon {
+  color: #D9B97E;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infoText {
+  color: #D9B97E;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.memberCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: rgba(26, 26, 26, 0.9);
+  border: 1px solid rgba(217, 185, 126, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.memberCard:hover {
+  border-color: rgba(217, 185, 126, 0.4);
+}
+
+.selected {
+  border-color: #D9B97E;
+  background-color: rgba(217, 185, 126, 0.1);
+}
+
+.radio {
+  width: 18px;
+  height: 18px;
+  accent-color: #D9B97E;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.memberInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.memberName {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.adminBadge {
+  align-self: flex-start;
+  background-color: rgba(217, 185, 126, 0.2);
+  color: #D9B97E;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.emptyText {
+  color: #999;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+.emptySubtext {
+  color: #777;
+  font-size: 12px;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancelButton {
+  flex: 1;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.transferButton {
+  flex: 1;
+  padding: 12px;
+  background-color: #D9B97E;
+  border: none;
+  border-radius: 8px;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.transferButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.transferButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

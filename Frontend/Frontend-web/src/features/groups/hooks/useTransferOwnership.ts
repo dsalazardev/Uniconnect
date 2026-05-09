@@ -13,7 +13,7 @@ export function useTransferOwnership() {
       if (!authStore.isAuthenticated) {
         throw new Error('No authenticated session');
       }
-      return groupsService.transferOwnership(groupId, newOwnerId);
+      return groupsService.requestOwnershipTransfer(groupId, newOwnerId);
     },
     onSuccess: (_data, { groupId }) => {
       // Invalidar todas las queries relacionadas con el grupo

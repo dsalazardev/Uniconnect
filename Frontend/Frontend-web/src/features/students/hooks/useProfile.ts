@@ -25,6 +25,8 @@ export function useProfile() {
     mutationFn: (data: UpdateProfileData) => studentsService.updateProfile(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['courses'] });
+      queryClient.invalidateQueries({ queryKey: ['my-courses'] });
       if (data.picture && authStore.user) {
         // Update the user in AuthStore
         authStore.updateUser({ ...authStore.user, picture: data.picture });

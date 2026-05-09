@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGroupInfo, useLeaveGroup } from '../hooks/useGroupInfo';
+import { useTransferOwnership } from '../hooks/useTransferOwnership';
 import { MemberList } from './MemberList';
+import { TransferOwnershipModal } from './TransferOwnershipModal';
+import { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
 import { useChat } from '@/features/messages/hooks/useChat';
@@ -16,7 +19,9 @@ export const GroupDetail: React.FC = () => {
   const groupId = parseInt(id as string);
   const { data: groupInfo, isLoading, error } = useGroupInfo(groupId);
   const leaveGroup = useLeaveGroup();
+  const transferOwnership = useTransferOwnership();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
 
   const currentUser = authStore.user;
   const currentUserId = currentUser?.id_user ?? 0;
@@ -24,6 +29,13 @@ export const GroupDetail: React.FC = () => {
 
   const isMember = groupInfo?.isMember ?? false;
   const isOwner = groupInfo?.isOwner ?? false;
+
+  // DM detection
+  const isDirectMessage = groupInfo?.is_direct_message ?? false;
+  const otherUser = isDirectMessage
+    ? (groupInfo?.memberships || []).find((m) => m.id_user !== currentUserId)
+    : undefined;
+  const otherUserName = otherUser?.user?.full_name || 'Chat Privado';
 
   // Chat hook: only initialize when user is a member
   const chat = useChat({
@@ -38,7 +50,11 @@ export const GroupDetail: React.FC = () => {
   };
 
   const handleLeaveGroup = () => {
-    setShowLeaveConfirm(true);
+    if (isOwner && (groupInfo?.memberships || []).length > 1) {
+      setShowTransferModal(true);
+    } else {
+      setShowLeaveConfirm(true);
+    }
   };
 
   const confirmLeaveGroup = () => {
@@ -93,12 +109,15 @@ export const GroupDetail: React.FC = () => {
         <button onClick={handleGoBack} className={styles.backButton}>
           <ArrowLeft size={20} /> Volver
         </button>
-        <h1 className={styles.headerTitle}>Detalle del Grupo</h1>
-        {isMember && !isOwner && (
+        <h1 className={styles.headerTitle}>
+          {isDirectMessage ? otherUserName : 'Detalle del Grupo'}
+        </h1>
+        {isMember && !isDirectMessage && (
           <button
             onClick={handleLeaveGroup}
             className={styles.leaveButton}
             title="Abandonar Grupo"
+            disabled={!!groupInfo?.pending_owner_id}
           >
             <LogOut size={18} />
             <span className={styles.leaveButtonText}>Salir</span>
@@ -107,12 +126,24 @@ export const GroupDetail: React.FC = () => {
       </div>
 
       <div className={styles.content}>
+        {!isDirectMessage && groupInfo.pending_owner_id && (
+          <PendingTransferOwnerBanner
+            candidateName={
+              groupInfo.memberships?.find(
+                (m) => m.id_user === groupInfo.pending_owner_id
+              )?.user?.full_name
+            }
+          />
+        )}
+
         <div className={styles.section}>
-          <h2 className={styles.groupName}>{groupInfo.name}</h2>
-          {groupInfo.description && (
+          <h2 className={styles.groupName}>
+            {isDirectMessage ? otherUserName : groupInfo.name}
+          </h2>
+          {!isDirectMessage && groupInfo.description && (
             <p className={styles.description}>{groupInfo.description}</p>
           )}
-          {groupInfo.course && (
+          {!isDirectMessage && groupInfo.course && (
             <div className={styles.courseInfo}>
               <BookOpen size={20} className={styles.courseIcon} />
               <span className={styles.courseName}>{groupInfo.course.name}</span>
@@ -120,19 +151,23 @@ export const GroupDetail: React.FC = () => {
           )}
         </div>
 
-        <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>Miembros</h3>
-          <MemberList
-            memberships={groupInfo.memberships || []}
-            canManage={groupInfo.canManageMembers || false}
-            ownerId={groupInfo.owner?.id_user}
-          />
-        </div>
+        {!isDirectMessage && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>Miembros</h3>
+            <MemberList
+              memberships={groupInfo.memberships || []}
+              canManage={groupInfo.canManageMembers || false}
+              ownerId={groupInfo.owner?.id_user}
+            />
+          </div>
+        )}
 
         {/* Chat Section - only for members */}
         {isMember && (
           <div className={styles.chatSection}>
-            <h3 className={styles.sectionTitle}>Chat del Grupo</h3>
+            <h3 className={styles.sectionTitle}>
+              {isDirectMessage ? 'Chat Privado' : 'Chat del Grupo'}
+            </h3>
             <div className={styles.chatContainer}>
               <MessageList
                 messages={chat.messages}
@@ -152,8 +187,12 @@ export const GroupDetail: React.FC = () => {
       {/* Leave Group Confirmation */}
       <ConfirmModal
         visible={showLeaveConfirm}
-        title="Abandonar Grupo"
-        message={`¿Estás seguro de que quieres salir del grupo "${groupInfo.name}"?`}
+        title={isDirectMessage ? 'Abandonar Chat' : 'Abandonar Grupo'}
+        message={
+          isDirectMessage
+            ? '¿Estás seguro de que quieres salir de este chat privado?'
+            : `¿Estás seguro de que quieres salir del grupo "${groupInfo.name}"?`
+        }
         confirmLabel="Abandonar"
         cancelLabel="Cancelar"
         variant="warning"
@@ -161,6 +200,22 @@ export const GroupDetail: React.FC = () => {
         onCancel={() => setShowLeaveConfirm(false)}
         loading={leaveGroup.isPending}
       />
+
+      {/* Transfer Ownership Modal */}
+      {groupInfo && (
+        <TransferOwnershipModal
+          visible={showTransferModal}
+          groupId={groupId}
+          groupName={groupInfo.name}
+          members={groupInfo.memberships || []}
+          currentOwnerId={groupInfo.owner?.id_user ?? currentUserId}
+          onClose={() => setShowTransferModal(false)}
+          onSuccess={() => {
+            setShowTransferModal(false);
+            navigate('/groups');
+          }}
+        />
+      )}
     </div>
   );
 };

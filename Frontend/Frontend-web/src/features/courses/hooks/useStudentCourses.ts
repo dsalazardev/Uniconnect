@@ -24,6 +24,7 @@ export const useStudentCourses = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
+      queryClient.invalidateQueries({ queryKey: ["my-courses"] });
       showToast.success("Éxito", "Curso agregado correctamente");
     },
     onError: (error: any) => {
@@ -41,6 +42,7 @@ export const useStudentCourses = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
+      queryClient.invalidateQueries({ queryKey: ["my-courses"] });
       showToast.success("Éxito", "Estado del curso actualizado correctamente");
     },
     onError: (error: any) => {
@@ -59,6 +61,7 @@ export const useStudentCourses = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       queryClient.invalidateQueries({ queryKey: ["courses"] });
+      queryClient.invalidateQueries({ queryKey: ["my-courses"] });
       showToast.success("Éxito", "Curso eliminado correctamente");
     },
     onError: (error: any) => {

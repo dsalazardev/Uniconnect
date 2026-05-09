@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { groupsService } from '../services';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
@@ -9,10 +10,9 @@ import { showToast } from '@/lib/toast';
  *
  * Usa `loadingUserId` en lugar de un booleano para que cada botón
  * muestre su propio spinner sin afectar a los demás de la lista.
- * 
- * TODO: Implementar navegación con React Router
  */
 export function useDirectMessage() {
+  const navigate = useNavigate();
   const [loadingUserId, setLoadingUserId] = useState<number | null>(null);
 
   const openDirectMessage = async (targetUserId: number) => {
@@ -25,8 +25,7 @@ export function useDirectMessage() {
     try {
       const response = await groupsService.findOrCreateDirectMessage(targetUserId);
       const groupId = response.group.id_group;
-      // TODO: Implementar navegación con React Router
-      console.log('Navigate to group:', groupId);
+      navigate(`/chat/${groupId}`);
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'No se pudo abrir el chat privado.';

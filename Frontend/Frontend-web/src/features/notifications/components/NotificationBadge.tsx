@@ -8,18 +8,20 @@ interface NotificationBadgeProps {
   onPress: () => void;
   color?: string;
   size?: number;
+  className?: string;
 }
 
 export const NotificationBadge = observer(function NotificationBadge({
   onPress,
   color = '#fff',
   size = 28,
+  className = '',
 }: NotificationBadgeProps) {
   const unreadCount = notificationsStore.unreadCount;
 
   return (
     <button
-      className={styles.container}
+      className={`${styles.container} ${className}`.trim()}
       onClick={onPress}
       aria-label="Notificaciones"
     >

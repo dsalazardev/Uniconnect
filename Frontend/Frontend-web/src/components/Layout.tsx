@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { Home, Users, GitBranch, Bell, Calendar, MessageCircle, UserCircle, LogOut } from 'lucide-react';
+import { Home, Users, GitBranch, Calendar, MessageCircle, UserCircle, LogOut } from 'lucide-react';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { notificationsService } from '@/features/notifications/services';
 import { notificationsStore } from '@/features/notifications/store/notifications.store';
 import { NotificationCenter } from '@/features/notifications/components/NotificationCenter';
+import { NotificationBadge } from '@/features/notifications/components/NotificationBadge';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import styles from './Layout.module.css';
 
 export const Layout = () => {
@@ -14,6 +16,7 @@ export const Layout = () => {
   const isAuthenticated = authStore.accessToken !== null;
   const unreadCount = notificationsStore.unreadCount;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +74,12 @@ export const Layout = () => {
   }, [isNotificationsOpen]);
 
   const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
     authStore.clearAuth();
+    setShowLogoutConfirm(false);
     navigate('/login');
   };
 
@@ -121,20 +129,11 @@ export const Layout = () => {
             <Calendar size={18} />
             Eventos
           </Link>
-          <button
+          <NotificationBadge
+            onPress={toggleNotifications}
             className={styles.navLink}
-            onClick={toggleNotifications}
-            aria-label="Notificaciones"
-            aria-expanded={isNotificationsOpen}
-          >
-            <Bell size={18} />
-            Notificaciones
-            {unreadCount > 0 && (
-              <span className={styles.badge}>
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </button>
+            size={18}
+          />
         </div>
 
         <div className={styles.navActions}>
@@ -155,6 +154,18 @@ export const Layout = () => {
       <main className={styles.mainContent}>
         <Outlet />
       </main>
+
+      {/* Logout Confirmation */}
+      <ConfirmModal
+        visible={showLogoutConfirm}
+        title="Cerrar Sesión"
+        message="¿Estás seguro de que quieres cerrar sesión?"
+        confirmLabel="Cerrar Sesión"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 };
