@@ -1,9 +1,22 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { coursesService } from "../services";
 import { showToast } from "@/lib/toast";
 
 export const useStudentCourses = () => {
   const queryClient = useQueryClient();
+
+  // Query para obtener cursos inscritos del estudiante
+  const coursesQuery = useQuery({
+    queryKey: ["courses"],
+    queryFn: () => coursesService.getOwnCourses(),
+  });
+
+  // Query para obtener cursos disponibles (no inscritos)
+  const availableCoursesQuery = useQuery({
+    queryKey: ["available-courses"],
+    queryFn: () => coursesService.getByStudent(),
+    enabled: false, // Solo se carga cuando se abre el modal
+  });
 
   const addCourseMutation = useMutation({
     mutationFn: (data: { id_course: string; status: string }) =>
@@ -27,6 +40,7 @@ export const useStudentCourses = () => {
       coursesService.updateCourseState(courseId, state),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
       showToast.success("Éxito", "Estado del curso actualizado correctamente");
     },
     onError: (error: any) => {
@@ -57,6 +71,11 @@ export const useStudentCourses = () => {
   });
 
   return {
+    courses: coursesQuery.data,
+    loading: coursesQuery.isLoading,
+    error: coursesQuery.error,
+    availableCourses: availableCoursesQuery.data,
+    loadAvailableCourses: availableCoursesQuery.refetch,
     addCourse: addCourseMutation.mutate,
     isAddingCourse: addCourseMutation.isPending,
     deleteCourse: deleteCourseMutation.mutate,

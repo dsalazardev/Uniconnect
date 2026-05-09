@@ -36,6 +36,14 @@ export class CoursesService {
   }
 
   /**
+   * Get all courses enrolled by the current student
+   */
+  async getOwnCourses(): Promise<unknown> {
+    const { data } = await this.api.get(COURSES_ENDPOINTS.GET_OWNER_ACTIVE_COURSES);
+    return data;
+  }
+
+  /**
    * Add course to student
    */
   async addCourseToStudent(data: { id_course: string; status: string }): Promise<unknown> {

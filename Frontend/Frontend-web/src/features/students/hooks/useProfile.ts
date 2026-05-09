@@ -18,7 +18,7 @@ export function useProfile() {
   // Query para obtener cursos del usuario (solo inscritos)
   const coursesQuery = useQuery({
     queryKey: ['my-courses'],
-    queryFn: () => coursesService.getByStudent(),
+    queryFn: () => coursesService.getOwnCourses(),
   });
 
   const updateProfileMutation = useMutation({

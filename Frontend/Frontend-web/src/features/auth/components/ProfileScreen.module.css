@@ -321,6 +321,78 @@
   font-size: 12px;
   color: #aaa;
   text-transform: uppercase;
+  margin-left: 8px;
+}
+
+.courseActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stateSelect {
+  padding: 6px 10px;
+  background-color: #2a2a2a;
+  border: 1px solid rgba(217, 185, 126, 0.3);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stateSelect:focus {
+  outline: none;
+  border-color: #D9B97E;
+}
+
+.deleteCourseButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: #ff4d4d;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.deleteCourseButton:hover {
+  background-color: rgba(255, 77, 77, 0.1);
+}
+
+.deleteCourseButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.addCourseButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: rgba(217, 185, 126, 0.2);
+  border: 1px solid rgba(217, 185, 126, 0.3);
+  border-radius: 6px;
+  color: #D9B97E;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addCourseButton:hover {
+  background-color: rgba(217, 185, 126, 0.3);
+}
+
+.emptyCoursesText {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  padding: 16px;
+  margin: 0;
 }
 
 .loadingContainer {

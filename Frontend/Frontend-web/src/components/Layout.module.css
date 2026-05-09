@@ -105,3 +105,28 @@
   font-weight: 700;
   line-height: 1;
 }
+
+.notificationsPopover {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  width: 360px;
+  max-height: 500px;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(217, 185, 126, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+/* Responsive popover */
+@media (max-width: 480px) {
+  .notificationsPopover {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+}

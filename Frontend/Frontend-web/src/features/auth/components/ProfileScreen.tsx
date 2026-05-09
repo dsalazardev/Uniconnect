@@ -2,14 +2,30 @@ import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { authStore } from '../store/AuthStore';
 import { useProfile } from '@/features/students/hooks/useProfile';
-import { AlertTriangle, User, Edit3, X, BookOpen } from 'lucide-react';
+import { useStudentCourses } from '@/features/courses/hooks/useStudentCourses';
+import { AddCourseModal } from '@/features/courses/components/AddCourseModal';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { AlertTriangle, User, Edit3, X, BookOpen, Plus, Trash2, ChevronDown } from 'lucide-react';
 import type { UpdateProfileData } from '@uniconnect/shared';
 import styles from './ProfileScreen.module.css';
 
 export const ProfileScreen: React.FC = observer(() => {
   const user = authStore.user;
   const { profile, courses, isLoading, isError, updateProfile, isUpdatingProfile } = useProfile();
+  const {
+    deleteCourse,
+    isDeletingCourse,
+    updateCourse,
+    isUpdatingCourse,
+    addCourse,
+    isAddingCourse,
+    availableCourses,
+    loadAvailableCourses,
+  } = useStudentCourses();
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [addCourseModalVisible, setAddCourseModalVisible] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<number | null>(null);
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
 
@@ -104,24 +120,61 @@ export const ProfileScreen: React.FC = observer(() => {
         </div>
 
         {/* Courses */}
-        {displayCourses.length > 0 && (
-          <div className={styles.section}>
+        <div className={styles.section}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 className={styles.sectionTitle}>Mis Cursos</h2>
+            <button
+              className={styles.addCourseButton}
+              onClick={() => {
+                loadAvailableCourses();
+                setAddCourseModalVisible(true);
+              }}
+            >
+              <Plus size={16} />
+              Agregar
+            </button>
+          </div>
+          {displayCourses.length > 0 ? (
             <div className={styles.courseList}>
               {displayCourses.map((course: any) => (
                 <div key={course.id_course} className={styles.courseItem}>
                   <div className={styles.courseLeft}>
                     <BookOpen size={16} className={styles.courseIcon} />
-                    <span className={styles.courseName}>{course.name}</span>
+                    <div>
+                      <span className={styles.courseName}>{course.name}</span>
+                      {course.state && (
+                        <span className={styles.courseState}>{course.state}</span>
+                      )}
+                    </div>
                   </div>
-                  {course.state && (
-                    <span className={styles.courseState}>{course.state}</span>
-                  )}
+                  <div className={styles.courseActions}>
+                    <select
+                      className={styles.stateSelect}
+                      value={course.state || 'active'}
+                      onChange={(e) => updateCourse({ courseId: course.id_course, state: e.target.value })}
+                      disabled={isUpdatingCourse}
+                    >
+                      <option value="active">Cursando</option>
+                      <option value="finished">Finalizado</option>
+                    </select>
+                    <button
+                      className={styles.deleteCourseButton}
+                      onClick={() => {
+                        setCourseToDelete(course.id_course);
+                        setDeleteConfirmVisible(true);
+                      }}
+                      disabled={isDeletingCourse}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className={styles.emptyCoursesText}>No tienes cursos registrados</p>
+          )}
+        </div>
 
         {/* Actions */}
         <div className={styles.actions}>
@@ -187,6 +240,40 @@ export const ProfileScreen: React.FC = observer(() => {
           </div>
         </div>
       )}
+
+      {/* Add Course Modal */}
+      <AddCourseModal
+        visible={addCourseModalVisible}
+        courses={availableCourses as any}
+        loading={isAddingCourse}
+        onClose={() => setAddCourseModalVisible(false)}
+        onAdd={(courseId) => {
+          addCourse({ id_course: courseId, status: 'active' });
+          setAddCourseModalVisible(false);
+        }}
+      />
+
+      {/* Delete Course Confirmation */}
+      <ConfirmModal
+        visible={deleteConfirmVisible}
+        title="Eliminar Curso"
+        message="¿Estás seguro de que quieres eliminar este curso de tu perfil?"
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={() => {
+          if (courseToDelete) {
+            deleteCourse(courseToDelete);
+          }
+          setDeleteConfirmVisible(false);
+          setCourseToDelete(null);
+        }}
+        onCancel={() => {
+          setDeleteConfirmVisible(false);
+          setCourseToDelete(null);
+        }}
+        loading={isDeletingCourse}
+      />
     </div>
   );
 });

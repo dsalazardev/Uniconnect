@@ -9,7 +9,6 @@ import { EventsPage } from './pages/EventsPage';
 import { GroupsPage } from './pages/GroupsPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { ProfileScreen } from './features/auth/components';
-import { NotificationCenter } from './features/notifications/components';
 import { StudentList, StudentProfile } from './features/students/components';
 import { ConnectionList } from './features/connections/components';
 import { CourseList } from './features/courses/components';
@@ -65,10 +64,6 @@ export const router = createBrowserRouter([
       {
         path: 'messages',
         element: <MessagesPage />,
-      },
-      {
-        path: 'notifications',
-        element: <NotificationCenter />,
       },
       {
         path: 'students',

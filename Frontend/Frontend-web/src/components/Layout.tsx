@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Home, Users, GitBranch, Bell, Calendar, MessageCircle, UserCircle, LogOut } from 'lucide-react';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { notificationsService } from '@/features/notifications/services';
 import { notificationsStore } from '@/features/notifications/store/notifications.store';
+import { NotificationCenter } from '@/features/notifications/components/NotificationCenter';
 import styles from './Layout.module.css';
 
 export const Layout = () => {
@@ -12,6 +13,8 @@ export const Layout = () => {
   const location = useLocation();
   const isAuthenticated = authStore.accessToken !== null;
   const unreadCount = notificationsStore.unreadCount;
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -25,9 +28,55 @@ export const Layout = () => {
     loadUnreadCount();
   }, [isAuthenticated]);
 
+  // Close notifications popover on route change
+  useEffect(() => {
+    setIsNotificationsOpen(false);
+  }, [location.pathname]);
+
+  // Click outside to close notifications
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    if (isNotificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationsOpen]);
+
+  // ESC key to close notifications
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    if (isNotificationsOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isNotificationsOpen]);
+
   const handleLogout = () => {
     authStore.clearAuth();
     navigate('/login');
+  };
+
+  const toggleNotifications = () => {
+    setIsNotificationsOpen((prev) => !prev);
   };
 
   if (!isAuthenticated) {
@@ -72,7 +121,12 @@ export const Layout = () => {
             <Calendar size={18} />
             Eventos
           </Link>
-          <Link to="/notifications" className={styles.navLink}>
+          <button
+            className={styles.navLink}
+            onClick={toggleNotifications}
+            aria-label="Notificaciones"
+            aria-expanded={isNotificationsOpen}
+          >
             <Bell size={18} />
             Notificaciones
             {unreadCount > 0 && (
@@ -80,7 +134,7 @@ export const Layout = () => {
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
-          </Link>
+          </button>
         </div>
 
         <div className={styles.navActions}>
@@ -90,6 +144,13 @@ export const Layout = () => {
           </button>
         </div>
       </nav>
+
+      {/* Notifications Popover */}
+      {isNotificationsOpen && (
+        <div ref={notificationsRef} className={styles.notificationsPopover}>
+          <NotificationCenter />
+        </div>
+      )}
 
       <main className={styles.mainContent}>
         <Outlet />

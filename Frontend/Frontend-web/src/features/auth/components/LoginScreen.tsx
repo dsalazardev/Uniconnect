@@ -17,7 +17,7 @@ export const LoginScreen: React.FC = observer(() => {
     }
   }, [authStore.isAuthenticated, authStore.isReady, navigate]);
 
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated && !isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.card}>

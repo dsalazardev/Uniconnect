@@ -109,6 +109,8 @@ export function useWebAuth() {
             } else {
               navigate('/events', { replace: true });
             }
+            // Note: intentionally NOT setting isLoading(false) here
+            // The spinner should remain visible until navigation completes
             return;
           }
 
@@ -122,7 +124,11 @@ export function useWebAuth() {
         cleanUrlParams();
       } finally {
         isExchanging.current = false;
-        setIsLoading(false);
+        // Only reset loading on error paths; success path keeps spinner until navigation
+        const authCodeAfter = extractCodeFromUrl();
+        if (!authCodeAfter) {
+          setIsLoading(false);
+        }
       }
     };
 
