@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { groupsService } from '../services';
-import { GroupInfo } from '../types';
 
 /**
  * Hook para obtener información detallada del grupo (incluyendo miembros y permisos)

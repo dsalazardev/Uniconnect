@@ -23,7 +23,7 @@ export const useConnections = () => {
   // });
 
   // Abrir chat privado con un usuario
-  const openDirectMessage = async (targetUserId: number): Promise<void> => {
+  const openDirectMessage = async (targetUserId: number, navigate?: (path: string) => void): Promise<void> => {
     try {
       const token = authStore.accessToken || '';
       if (!token) {
@@ -33,8 +33,9 @@ export const useConnections = () => {
 
       const response = await groupsService.findOrCreateDirectMessage(targetUserId);
       
-      // TODO: Implementar navegación con React Router
-      console.log('Navigate to group:', response.group.id_group);
+      if (navigate) {
+        navigate('/groups/' + response.group.id_group);
+      }
     } catch (error) {
       const axiosError = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
       const errorMessage = axiosError.response?.data?.message || axiosError.message || 'Error al abrir chat';

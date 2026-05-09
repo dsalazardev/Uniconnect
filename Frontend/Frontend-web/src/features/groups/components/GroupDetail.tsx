@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { groupsService } from '../services';
+import { useGroupInfo } from '../hooks/useGroupInfo';
 import { MemberList } from './MemberList';
 import { ArrowLeft, AlertTriangle, BookOpen } from 'lucide-react';
 import styles from './GroupDetail.module.css';
@@ -8,41 +8,14 @@ import styles from './GroupDetail.module.css';
 export const GroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [groupInfo, setGroupInfo] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadGroupDetail = async () => {
-      try {
-        setLoading(true);
-        const groupId = parseInt(id as string);
-        const response = await groupsService.getGroupInfo(groupId);
-
-        if (response.success && response.data) {
-          setGroupInfo(response.data);
-          setError(null);
-        } else {
-          setError(response.error?.message || 'Grupo no encontrado');
-        }
-      } catch (err: any) {
-        console.error('Error loading group:', err);
-        setError(err.message || 'Error al cargar el grupo');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      loadGroupDetail();
-    }
-  }, [id]);
+  const groupId = parseInt(id as string);
+  const { data: groupInfo, isLoading, error } = useGroupInfo(groupId);
 
   const handleGoBack = () => {
     navigate(-1);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
@@ -70,7 +43,7 @@ export const GroupDetail: React.FC = () => {
         </div>
         <div className={styles.errorContainer}>
           <AlertTriangle size={48} className={styles.errorIcon} />
-          <p className={styles.errorText}>{error || 'Grupo no encontrado'}</p>
+          <p className={styles.errorText}>{error?.message || 'Grupo no encontrado'}</p>
           <button className={styles.retryButton} onClick={handleGoBack}>
             Volver
           </button>
@@ -107,7 +80,7 @@ export const GroupDetail: React.FC = () => {
           <MemberList
             memberships={groupInfo.memberships || []}
             canManage={groupInfo.canManageMembers || false}
-            ownerId={groupInfo.owner_id}
+            ownerId={groupInfo.owner.id_user}
           />
         </div>
       </div>

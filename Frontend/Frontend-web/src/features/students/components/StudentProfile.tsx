@@ -139,7 +139,7 @@ export const StudentProfile: React.FC = () => {
             <UserCheck size={18} className={styles.friendIcon} />
             <span className={styles.friendText}>Amigos</span>
             <button
-              onClick={() => openDirectMessage(targetUserId)}
+              onClick={() => openDirectMessage(targetUserId, navigate)}
               className={styles.messageButton}
             >
               <MessageCircle size={18} />

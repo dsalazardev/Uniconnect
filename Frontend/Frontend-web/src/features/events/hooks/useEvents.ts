@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { observer } from 'mobx-react-lite';
 import { eventsStore } from '../store/events.store';
 import { waitForAuth } from '@/features/auth/lib/waitForAuth';
 import type { EventFilters, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';

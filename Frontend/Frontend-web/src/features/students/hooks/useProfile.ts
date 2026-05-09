@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { authStore } from "../../auth/store/AuthStore";
 import { studentsService } from "../services";
+import { coursesService } from "@/features/courses/services";
 import type { UpdateProfileData } from '@uniconnect/shared';
 import { showToast } from "@/lib/toast";
 
@@ -14,10 +15,10 @@ export function useProfile() {
     queryFn: () => studentsService.getProfile(),
   });
 
-  // Query para obtener cursos
+  // Query para obtener cursos del usuario (solo inscritos)
   const coursesQuery = useQuery({
-    queryKey: ['courses'],
-    queryFn: () => studentsService.getCourses(),
+    queryKey: ['my-courses'],
+    queryFn: () => coursesService.getByStudent(),
   });
 
   const updateProfileMutation = useMutation({

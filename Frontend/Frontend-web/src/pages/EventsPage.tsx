@@ -1,4 +1,5 @@
 import React from 'react';
+import { observer } from 'mobx-react-lite';
 import { useEvents } from '@/features/events/hooks';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { EventList } from '@/features/events/components';
@@ -7,7 +8,7 @@ import { EventFilters } from '@/features/events/components';
 import { LoadingSpinner } from '@/components/elements';
 import type { Event, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';
 
-export const EventsPage: React.FC = () => {
+export const EventsPage: React.FC = observer(() => {
   const {
     events,
     loading,
@@ -113,4 +114,4 @@ export const EventsPage: React.FC = () => {
       )}
     </div>
   );
-};
+});

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { authStore } from '../store/AuthStore';
 import { useProfile } from '@/features/students/hooks/useProfile';
@@ -12,12 +12,6 @@ export const ProfileScreen: React.FC = observer(() => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
-
-  useEffect(() => {
-    if (profile) {
-      setPhone(profile.phone || '');
-    }
-  }, [profile]);
 
   const handleOpenEdit = () => {
     setPhone(profile?.phone || '');
