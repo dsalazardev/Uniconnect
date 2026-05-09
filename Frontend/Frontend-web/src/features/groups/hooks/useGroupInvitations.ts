@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { groupsService } from '../services';
+import { waitForAuth } from '@/features/auth/lib/waitForAuth';
 import { GroupInvitation, GroupInvitationRequest } from '../types';
 
 export const useGroupInvitations = (userId: number | undefined) => {
@@ -8,7 +9,10 @@ export const useGroupInvitations = (userId: number | undefined) => {
   // Cargar invitaciones pendientes
   const { data: pendingInvitations = [], isLoading: loading, isError, error: queryError, refetch: reloadInvitations } = useQuery({
     queryKey: ['pending-group-invitations', userId],
-    queryFn: () => groupsService.getPendingInvitations(userId!),
+    queryFn: async () => {
+      await waitForAuth();
+      return groupsService.getPendingInvitations(userId!);
+    },
     enabled: !!userId,
     staleTime: 1000 * 30, // 30 segundos
   });
@@ -16,7 +20,10 @@ export const useGroupInvitations = (userId: number | undefined) => {
   // Cargar invitaciones enviadas
   const { data: sentInvitations = [] } = useQuery({
     queryKey: ['sent-group-invitations', userId],
-    queryFn: () => groupsService.getSentInvitations(userId!),
+    queryFn: async () => {
+      await waitForAuth();
+      return groupsService.getSentInvitations(userId!);
+    },
     enabled: !!userId,
     staleTime: 1000 * 30, // 30 segundos
   });

@@ -62,8 +62,16 @@ export class EventsStore {
       runInAction(() => {
         // ⭐ FIX CRÍTICO: Blindaje a prueba de fallos - SIEMPRE asignar array
         if (response.success && response.data) {
-          // Garantizar que data sea un array
-          const eventsData = Array.isArray(response.data) ? response.data : [];
+          // Garantizar que data sea un array, manejando posibles anidamientos
+          const rawData = response.data as unknown;
+          let eventsData: Event[];
+          if (Array.isArray(rawData)) {
+            eventsData = rawData;
+          } else if (typeof rawData === 'object' && rawData !== null && 'data' in (rawData as Record<string, unknown>) && Array.isArray((rawData as Record<string, unknown>).data)) {
+            eventsData = (rawData as Record<string, unknown>).data as Event[];
+          } else {
+            eventsData = [];
+          }
           this.setEvents(eventsData);
           this.setMetadata(response.metadata);
         } else if (response.error) {

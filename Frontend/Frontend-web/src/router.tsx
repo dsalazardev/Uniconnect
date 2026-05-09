@@ -2,9 +2,12 @@ import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppRoot } from './components/AppRoot';
 import { Layout } from './components/Layout';
-import { EventList, EventDetail } from './features/events/components';
-import { GroupList, GroupDetail } from './features/groups/components';
-import { MessageList } from './features/messages/components';
+import { LoadingSpinner } from './components/elements';
+import { EventDetail } from './features/events/components';
+import { GroupDetail } from './features/groups/components';
+import { EventsPage } from './pages/EventsPage';
+import { GroupsPage } from './pages/GroupsPage';
+import { MessagesPage } from './pages/MessagesPage';
 import { ProfileScreen } from './features/auth/components';
 import { NotificationCenter } from './features/notifications/components';
 import { StudentList, StudentProfile } from './features/students/components';
@@ -19,7 +22,11 @@ const LazyLoginScreen = lazy(() =>
 );
 
 function SuspenseWrapper({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={null}>{children}</Suspense>;
+  return (
+    <Suspense fallback={<LoadingSpinner size="lg" label="Cargando..." />}>
+      {children}
+    </Suspense>
+  );
 }
 
 export const router = createBrowserRouter([
@@ -29,7 +36,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/login" replace />,
+        element: <Navigate to="/events" replace />,
       },
       {
         path: 'login',
@@ -41,7 +48,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'events',
-        element: <EventList />,
+        element: <EventsPage />,
       },
       {
         path: 'events/:id',
@@ -49,7 +56,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'groups',
-        element: <GroupList />,
+        element: <GroupsPage />,
       },
       {
         path: 'groups/:id',
@@ -57,7 +64,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'messages',
-        element: <MessageList />,
+        element: <MessagesPage />,
       },
       {
         path: 'notifications',

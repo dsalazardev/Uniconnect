@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { authStore } from "../../auth";
+import { authStore } from "../../auth/store/AuthStore";
 import { studentsService } from "../services";
-import { UpdateProfileData } from "../types";
+import type { UpdateProfileData } from '@uniconnect/shared';
 import { showToast } from "@/lib/toast";
 
 

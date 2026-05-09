@@ -118,7 +118,7 @@ export const EventDetail: React.FC = () => {
 
   const getEventTypeColor = (type: EventType): string => {
     const colors: Record<EventType, string> = {
-      [EventType.CONFERENCIA]: '#0056b3',
+      [EventType.CONFERENCIA]: '#D9B97E',
       [EventType.TALLER]: '#28a745',
       [EventType.SEMINARIO]: '#6f42c1',
       [EventType.COMPETENCIA]: '#fd7e14',

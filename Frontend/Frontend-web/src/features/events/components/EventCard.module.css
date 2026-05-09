@@ -1,5 +1,5 @@
 .card {
-  background-color: #1a1a1a;
+  background-color: var(--color-dark);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
@@ -20,7 +20,7 @@
   top: 12px;
   right: 12px;
   padding: 8px;
-  background-color: rgba(217, 185, 126, 0.15);
+  background-color: var(--color-gold-light);
   border: none;
   border-radius: 20px;
   cursor: pointer;
@@ -57,21 +57,21 @@
 }
 
 .typeText {
-  color: #ffffff;
+  color: var(--color-white);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
   margin: 0 0 8px 0;
 }
 
 .description {
-  font-size: 14px;
-  color: #aaa;
+  font-size: var(--font-size-sm);
+  color: var(--color-muted-light);
   line-height: 20px;
   margin: 0 0 12px 0;
   display: -webkit-box;
@@ -98,6 +98,6 @@
 
 .detailText {
   font-size: 13px;
-  color: #aaa;
+  color: var(--color-muted-light);
   flex: 1;
 }

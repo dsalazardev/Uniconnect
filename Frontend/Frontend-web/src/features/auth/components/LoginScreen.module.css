@@ -62,8 +62,8 @@
 .loginButton {
   width: 100%;
   padding: 16px 24px;
-  background-color: #fff;
-  color: #333;
+  background-color: #D9B97E;
+  color: #1a1a1a;
   border: none;
   border-radius: 8px;
   font-size: 16px;
@@ -73,11 +73,12 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .loginButton:hover {
+  background-color: #c9a96e;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }

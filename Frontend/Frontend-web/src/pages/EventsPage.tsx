@@ -2,8 +2,9 @@ import React from 'react';
 import { useEvents } from '@/features/events/hooks';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { EventList } from '@/features/events/components';
-import { CreateEventModal } from '@/features/events/components';
+import { CreateEventModal, EditEventModal } from '@/features/events/components';
 import { EventFilters } from '@/features/events/components';
+import { LoadingSpinner } from '@/components/elements';
 import type { Event, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';
 
 export const EventsPage: React.FC = () => {
@@ -18,7 +19,6 @@ export const EventsPage: React.FC = () => {
     updateEvent,
     deleteEvent,
     isCreating,
-    createError,
     isUpdating,
   } = useEvents();
 
@@ -41,7 +41,10 @@ export const EventsPage: React.FC = () => {
 
   const handleSaveEdit = async (id: number, payload: UpdateEventPayload) => {
     const success = await updateEvent(id, payload);
-    if (success) setEditModalVisible(false);
+    if (success) {
+      setEditModalVisible(false);
+      setEditingEvent(null);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -54,7 +57,7 @@ export const EventsPage: React.FC = () => {
     return (
       <div>
         <h1>Eventos</h1>
-        <p>Cargando eventos...</p>
+        <LoadingSpinner size="lg" label="Cargando eventos..." />
       </div>
     );
   }
@@ -84,7 +87,7 @@ export const EventsPage: React.FC = () => {
 
       <EventList
         events={events}
-        currentUser={currentUser}
+        currentUser={currentUser ?? undefined}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
@@ -92,20 +95,19 @@ export const EventsPage: React.FC = () => {
       <CreateEventModal
         visible={createModalVisible}
         onClose={() => setCreateModalVisible(false)}
-        onCreate={handleCreate}
+        onSubmit={handleCreate}
         isSubmitting={isCreating}
-        error={createError}
       />
 
       {editingEvent && (
-        <CreateEventModal
+        <EditEventModal
           visible={editModalVisible}
+          event={editingEvent}
           onClose={() => {
             setEditModalVisible(false);
             setEditingEvent(null);
           }}
-          event={editingEvent}
-          onCreate={(payload: any) => handleSaveEdit(editingEvent.id_event, payload)}
+          onSave={(id: number, payload: UpdateEventPayload) => handleSaveEdit(id, payload)}
           isSubmitting={isUpdating}
         />
       )}

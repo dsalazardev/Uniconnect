@@ -14,27 +14,27 @@
 }
 
 .primary {
-  background-color: #D9B97E;
-  color: #1a1a1a;
+  background-color: var(--color-gold);
+  color: var(--color-dark);
 }
 
 .primary:hover {
-  background-color: #c9a96e;
+  background-color: var(--color-gold-hover);
 }
 
 .secondary {
-  background-color: #2a2a2a;
-  color: #D9B97E;
+  background-color: var(--color-dark-tertiary);
+  color: var(--color-gold);
   border: 1px solid rgba(217, 185, 126, 0.3);
 }
 
 .secondary:hover {
-  background-color: #333;
+  background-color: var(--color-dark-secondary);
 }
 
 .danger {
-  background-color: #dc3545;
-  color: #fff;
+  background-color: var(--color-error);
+  color: var(--color-white);
 }
 
 .danger:hover {

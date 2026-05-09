@@ -5,18 +5,18 @@
 }
 
 .label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #D9B97E;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gold);
 }
 
 .input {
   padding: 10px 14px;
-  background-color: #2a2a2a;
+  background-color: var(--color-dark-tertiary);
   border: 1px solid rgba(217, 185, 126, 0.2);
   border-radius: 8px;
-  color: #fff;
-  font-size: 14px;
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
   transition: border-color 0.2s;
   outline: none;
 }
@@ -26,18 +26,18 @@
 }
 
 .input:focus {
-  border-color: #D9B97E;
+  border-color: var(--color-gold);
 }
 
 .hasError {
-  border-color: #dc3545;
+  border-color: var(--color-error);
 }
 
 .hasError:focus {
-  border-color: #dc3545;
+  border-color: var(--color-error);
 }
 
 .errorText {
-  font-size: 12px;
-  color: #dc3545;
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
 }

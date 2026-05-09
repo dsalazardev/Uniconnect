@@ -1,11 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { groupsService } from '../services';
+import { waitForAuth } from '@/features/auth/lib/waitForAuth';
 import { Group } from '../types';
 
 export const useMyGroups = (userId: number | undefined) => {
   const { data: myGroups = [], isLoading: loading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['myGroups', userId],
-    queryFn: () => groupsService.getMemberGroups(userId!),
+    queryFn: async () => {
+      await waitForAuth();
+      return groupsService.getMemberGroups(userId!);
+    },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minuto
   });
@@ -41,7 +45,10 @@ export const useCreatedGroups = (userId: number | undefined) => {
 export const useDiscoverGroups = (userId: number | undefined) => {
   const { data: groups = [], isLoading: loading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['discoverGroups', userId],
-    queryFn: () => groupsService.discoverGroups(userId!),
+    queryFn: async () => {
+      await waitForAuth();
+      return groupsService.discoverGroups(userId!);
+    },
     enabled: !!userId,
     staleTime: 1000 * 60, // 1 minuto
   });
@@ -59,7 +66,10 @@ export const useDiscoverGroups = (userId: number | undefined) => {
 export const useGroupDetail = (groupId: number | undefined) => {
   const { data: group = null, isLoading: loading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['groupDetail', groupId],
-    queryFn: () => groupsService.getGroupDetail(groupId!),
+    queryFn: async () => {
+      await waitForAuth();
+      return groupsService.getGroupDetail(groupId!);
+    },
     enabled: !!groupId,
     staleTime: 1000 * 60, // 1 minuto
   });

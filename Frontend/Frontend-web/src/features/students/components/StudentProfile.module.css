@@ -185,3 +185,148 @@
   text-align: center;
   margin-bottom: 16px;
 }
+
+.connectionActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.connectButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #D9B97E;
+  color: #1a1a1a;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.connectButton:hover {
+  background-color: #c9a96e;
+}
+
+.connectButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.acceptButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #2ecc71;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.acceptButton:hover {
+  background-color: #27ae60;
+}
+
+.acceptButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rejectButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e74c3c;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.rejectButton:hover {
+  background-color: #c0392b;
+}
+
+.rejectButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.connectionStatusInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statusIcon {
+  color: #D9B97E;
+}
+
+.connectionStatusText {
+  font-size: 14px;
+  color: #D9B97E;
+  font-weight: 500;
+}
+
+.friendIcon {
+  color: #2ecc71;
+}
+
+.friendText {
+  font-size: 14px;
+  color: #2ecc71;
+  font-weight: 600;
+}
+
+.messageButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: transparent;
+  color: #D9B97E;
+  border: 1px solid #D9B97E;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.messageButton:hover {
+  background-color: rgba(217, 185, 126, 0.1);
+}
+
+.connectionLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinnerSmall {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(217, 185, 126, 0.2);
+  border-top-color: #D9B97E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.connectionLoadingText {
+  font-size: 13px;
+  color: #aaa;
+}

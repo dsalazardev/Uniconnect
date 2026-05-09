@@ -10,26 +10,31 @@ export interface EventFiltersProps {
   onClearFilters: () => void;
 }
 
-/**
- * EventFilters - Pure component for filtering events
- * Receives filters state and callbacks as props
- * No business logic or network calls
- */
+const EVENT_TYPE_LABELS: Record<string, string> = {
+  [EventType.CONFERENCIA]: 'Conferencia',
+  [EventType.TALLER]: 'Taller',
+  [EventType.SEMINARIO]: 'Seminario',
+  [EventType.COMPETENCIA]: 'Competencia',
+  [EventType.CULTURAL]: 'Cultural',
+  [EventType.DEPORTIVO]: 'Deportivo',
+};
+
 export const EventFilters: React.FC<EventFiltersProps> = ({
   filters,
   onFilterChange,
   onClearFilters,
 }) => {
   const hasActiveFilters = filters.date || filters.type || filters.startDate || filters.endDate;
+  const activeTypeLabel = filters.type ? EVENT_TYPE_LABELS[filters.type] : null;
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${hasActiveFilters ? styles.containerActive : ''}`}>
       <div className={styles.header}>
         <h3 className={styles.title}>Filtros</h3>
         {hasActiveFilters && (
           <button onClick={onClearFilters} className={styles.clearButton}>
             <X size={16} className={styles.clearIcon} />
-            <span className={styles.clearText}>Limpiar</span>
+            <span className={styles.clearText}>Limpiar filtros</span>
           </button>
         )}
       </div>
@@ -40,7 +45,7 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
         <select
           value={filters.type || ''}
           onChange={(e) => onFilterChange('type', e.target.value || null)}
-          className={styles.select}
+          className={`${styles.select} ${filters.type ? styles.selectActive : ''}`}
         >
           <option value="">Todos los tipos</option>
           <option value={EventType.CONFERENCIA}>Conferencia</option>
@@ -50,6 +55,20 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
           <option value={EventType.CULTURAL}>Cultural</option>
           <option value={EventType.DEPORTIVO}>Deportivo</option>
         </select>
+
+        {/* Active type pill */}
+        {activeTypeLabel && (
+          <div className={styles.activePill}>
+            <span className={styles.activePillDot} />
+            <span>{activeTypeLabel}</span>
+            <button
+              onClick={() => onFilterChange('type', null)}
+              className={styles.pillClear}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Date Filter Info */}
@@ -61,6 +80,13 @@ export const EventFilters: React.FC<EventFiltersProps> = ({
             {filters.startDate && filters.endDate && 
               `Rango: ${filters.startDate} - ${filters.endDate}`}
           </span>
+          <button onClick={() => {
+            onFilterChange('date', null);
+            onFilterChange('startDate', null);
+            onFilterChange('endDate', null);
+          }} className={styles.pillClear}>
+            <X size={14} />
+          </button>
         </div>
       )}
     </div>

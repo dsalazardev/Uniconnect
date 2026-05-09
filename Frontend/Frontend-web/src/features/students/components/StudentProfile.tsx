@@ -1,13 +1,26 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudentProfile } from '../hooks/useStudentProfile';
-import { ArrowLeft, Smartphone } from 'lucide-react';
+import { useConnectionStatus, useConnections } from '@/features/connections/hooks/useConnections';
+import { ArrowLeft, Smartphone, UserPlus, UserCheck, Send, MessageCircle, X, Check } from 'lucide-react';
 import styles from './StudentProfile.module.css';
 
 export const StudentProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { profile, loading, error } = useStudentProfile(Number(id));
+  const targetUserId = Number(id);
+  const { data: profile, isLoading, error } = useStudentProfile(targetUserId);
+  const {
+    connectionStatus,
+    isLoadingStatus,
+    sendConnectionRequest,
+    acceptConnectionRequest,
+    rejectConnectionRequest,
+    isSendingRequest,
+    isAccepting,
+    isRejecting,
+  } = useConnectionStatus(targetUserId);
+  const { openDirectMessage } = useConnections();
 
   const getImageUri = (picture?: string): string => {
     if (!picture) return 'https://via.placeholder.com/120';
@@ -15,7 +28,7 @@ export const StudentProfile: React.FC = () => {
     return `${import.meta.env.VITE_API_URL?.replace('/api', '')}${picture}`;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={styles.center}>
         <div className={styles.spinner} />
@@ -27,7 +40,7 @@ export const StudentProfile: React.FC = () => {
   if (error || !profile) {
     return (
       <div className={styles.center}>
-        <p className={styles.errorText}>{error || 'Perfil no encontrado'}</p>
+        <p className={styles.errorText}>{error?.message || 'Perfil no encontrado'}</p>
         <button className={styles.backButton} onClick={() => navigate('/students')}>
           Volver
         </button>
@@ -72,6 +85,68 @@ export const StudentProfile: React.FC = () => {
             <span className={styles.infoValue}>{profile.roleName}</span>
           </div>
         </div>
+      </div>
+
+      {/* Connection Status */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Conexión</h2>
+        {isLoadingStatus ? (
+          <div className={styles.connectionLoading}>
+            <div className={styles.spinnerSmall} />
+            <span className={styles.connectionLoadingText}>Verificando conexión...</span>
+          </div>
+        ) : !connectionStatus ? (
+          <div className={styles.connectionActions}>
+            <button
+              onClick={() => sendConnectionRequest({ addressee_id: targetUserId })}
+              disabled={isSendingRequest}
+              className={styles.connectButton}
+            >
+              <UserPlus size={18} />
+              {isSendingRequest ? 'Enviando...' : 'Conectar'}
+            </button>
+          </div>
+        ) : connectionStatus.status === 'pending' ? (
+          <div>
+            {connectionStatus.is_requester ? (
+              <div className={styles.connectionStatusInfo}>
+                <Send size={18} className={styles.statusIcon} />
+                <span className={styles.connectionStatusText}>Solicitud de conexión enviada</span>
+              </div>
+            ) : (
+              <div className={styles.connectionActions}>
+                <button
+                  onClick={() => connectionStatus.id_connection && acceptConnectionRequest(connectionStatus.id_connection)}
+                  disabled={isAccepting || !connectionStatus.id_connection}
+                  className={styles.acceptButton}
+                >
+                  <Check size={18} />
+                  {isAccepting ? 'Aceptando...' : 'Aceptar'}
+                </button>
+                <button
+                  onClick={() => connectionStatus.id_connection && rejectConnectionRequest(connectionStatus.id_connection)}
+                  disabled={isRejecting || !connectionStatus.id_connection}
+                  className={styles.rejectButton}
+                >
+                  <X size={18} />
+                  {isRejecting ? 'Rechazando...' : 'Rechazar'}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : connectionStatus.status === 'accepted' ? (
+          <div className={styles.connectionStatusInfo}>
+            <UserCheck size={18} className={styles.friendIcon} />
+            <span className={styles.friendText}>Amigos</span>
+            <button
+              onClick={() => openDirectMessage(targetUserId)}
+              className={styles.messageButton}
+            >
+              <MessageCircle size={18} />
+              Enviar Mensaje
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {profile.common_courses && profile.common_courses.length > 0 && (

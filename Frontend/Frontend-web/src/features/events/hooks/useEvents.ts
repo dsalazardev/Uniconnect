@@ -1,13 +1,18 @@
 import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { eventsStore } from '../store/events.store';
+import { waitForAuth } from '@/features/auth/lib/waitForAuth';
 import type { EventFilters, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';
 
 export function useEvents() {
   useEffect(() => {
-    if (eventsStore.events.length === 0 && !eventsStore.loading) {
-      eventsStore.loadEvents();
-    }
+    const init = async () => {
+      await waitForAuth();
+      if (eventsStore.events.length === 0 && !eventsStore.loading) {
+        eventsStore.loadEvents();
+      }
+    };
+    init();
   }, []);
 
   return {

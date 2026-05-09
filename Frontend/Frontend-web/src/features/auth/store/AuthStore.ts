@@ -2,31 +2,31 @@ import { makeAutoObservable } from 'mobx';
 import type { User } from '@uniconnect/shared';
 
 // ============================================================================
-// Web Storage Utility - localStorage (persistent across sessions)
+// Web Storage Utility - sessionStorage (session-only, dies on tab close)
 // ============================================================================
 const webStorage = {
   getItem(key: string): string | null {
     try {
-      return localStorage.getItem(key);
+      return sessionStorage.getItem(key);
     } catch (error) {
-      console.error('localStorage.getItem failed:', error);
+      console.error('sessionStorage.getItem failed:', error);
       return null;
     }
   },
 
   setItem(key: string, value: string): void {
     try {
-      localStorage.setItem(key, value);
+      sessionStorage.setItem(key, value);
     } catch (error) {
-      console.error('localStorage.setItem failed:', error);
+      console.error('sessionStorage.setItem failed:', error);
     }
   },
 
   removeItem(key: string): void {
     try {
-      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
     } catch (error) {
-      console.error('localStorage.removeItem failed:', error);
+      console.error('sessionStorage.removeItem failed:', error);
     }
   },
 };
