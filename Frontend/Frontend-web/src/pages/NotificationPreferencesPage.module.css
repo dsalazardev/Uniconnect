@@ -1,0 +1,35 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid rgba(217, 185, 126, 0.4);
+  color: var(--color-gold);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.backButton:hover {
+  background: rgba(217, 185, 126, 0.1);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-white);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}

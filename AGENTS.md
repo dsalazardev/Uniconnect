@@ -2050,11 +2050,12 @@ EXPO_PUBLIC_AUTH0_AUDIENCE="xxx"
 
 ---
 
-**Última actualización**: 6 de Mayo, 2026
-**Versión del documento**: 2.3.6
+**Última actualización**: 10 de Mayo, 2026
+**Versión del documento**: 2.3.7
 **Mantenido por**: Sistema de Contexto Autónomo para IA
 
 **Cambios en esta versión**:
+- **Fix Prisma Schema Relations (10 Mayo 2026)**: Agregadas relaciones inversas en `user` para `event.creator` y `group_join_request.requester`
 - **Fix Definitivo SharedArrayBuffer (6 Mayo 2026)**: Solución a nivel monorepo con overrides
   - **Problema Resuelto**: Crasheo persistente con `Property 'SharedArrayBuffer' doesn't exist` en Hermes Engine
   - **Causa Raíz Identificada**: pretty-format@30.x.x usa SharedArrayBuffer (no soportado en Hermes) + dependencias transitivas (jest@30.x, @types/jest) + `resolutions` ignorado por npm workspaces

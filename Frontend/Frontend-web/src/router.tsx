@@ -8,6 +8,7 @@ import { GroupDetail } from './features/groups/components';
 import { EventsPage } from './pages/EventsPage';
 import { GroupsPage } from './pages/GroupsPage';
 import { MessagesPage } from './pages/MessagesPage';
+import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
 import { OnboardingPage, ProfileScreen } from './features/auth/components';
 import { StudentList, StudentProfile } from './features/students/components';
 import { ConnectionList } from './features/connections/components';
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
       {
         path: 'messages',
         element: <MessagesPage />,
+      },
+      {
+        path: 'notifications/preferences',
+        element: <NotificationPreferencesPage />,
       },
       {
         path: 'students',

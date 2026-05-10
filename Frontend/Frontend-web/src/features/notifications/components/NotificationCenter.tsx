@@ -4,7 +4,8 @@ import { NotificationItem } from './NotificationItem';
 import { useUserNotifications } from '../hooks/useUserNotifications';
 import { notificationsStore } from '../store/notifications.store';
 import { LoadingSpinner } from '@/components/elements';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, SlidersHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import styles from './NotificationCenter.module.css';
 
 export const NotificationCenter = observer(function NotificationCenter() {
@@ -60,14 +61,18 @@ export const NotificationCenter = observer(function NotificationCenter() {
   return (
     <div className={styles.container}>
       {/* Header con botón "Marcar todas como leídas" */}
-      {hasUnread && (
-        <div className={styles.header}>
+      <div className={styles.header}>
+        <Link className={styles.preferencesLink} to="/notifications/preferences">
+          <SlidersHorizontal size={18} />
+          Preferencias
+        </Link>
+        {hasUnread && (
           <button className={styles.markAllButton} onClick={handleMarkAllAsRead}>
             <CheckCheck size={20} className={styles.markAllIcon} />
             <span>Marcar todas como leídas</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <ul className={styles.list}>
         {notifications.map((notification) => (
