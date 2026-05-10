@@ -15,7 +15,7 @@ export default function StudentProfileScreen() {
   const [vistaCompleta, setVistaCompleta] = useState(false);
 
   const { data: profile, isLoading, isError } = useStudentProfile(Number(id));
-  const { data: perfilCompleto, isLoading: loadingCompleto } = usePerfilCompleto(
+  const { data: perfilCompleto, isLoading: loadingCompleto, error: errorCompleto } = usePerfilCompleto(
     Number(id),
     vistaCompleta,
   );
@@ -189,45 +189,54 @@ export default function StudentProfileScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Estadísticas (CA #2) */}
+        {/* US-D02: Secciones del perfil completo */}
         {vistaCompleta && loadingCompleto && (
           <ActivityIndicator size="small" color="#D9B97E" style={{ marginBottom: 15 }} />
         )}
 
-        {vistaCompleta && perfilCompleto?.estadisticas && (
+        {vistaCompleta && !!errorCompleto && (
           <View style={[styles.section, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
-            <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
-            {[
-              { label: 'Grupos creados', value: perfilCompleto.estadisticas.gruposCreados },
-              { label: 'Grupos en los que participa', value: perfilCompleto.estadisticas.gruposParticipa },
-              { label: 'Mensajes enviados', value: perfilCompleto.estadisticas.mensajesEnviados },
-            ].map((item) => (
-              <View style={styles.statRow} key={item.label}>
-                <Text style={styles.statLabel}>{item.label}</Text>
-                <Text style={styles.statValue}>{item.value}</Text>
-              </View>
-            ))}
+            <Text style={{ color: '#ef4444', fontSize: 13 }}>
+              Error al cargar el perfil completo: {errorCompleto}
+            </Text>
           </View>
         )}
 
-        {/* Insignias (CA #3) */}
-        {vistaCompleta && perfilCompleto?.insignias && (
-          <View style={[styles.section, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
-            <Text style={styles.sectionTitle}>🏅 Insignias</Text>
-            {perfilCompleto.insignias.length === 0 ? (
-              <Text style={styles.subtitle}>Aún no hay insignias desbloqueadas</Text>
-            ) : (
-              <View style={styles.insigniasGrid}>
-                {perfilCompleto.insignias.map((insignia) => (
-                  <View style={styles.insigniaCard} key={insignia.id}>
-                    <Text style={styles.insigniaIcono}>{insignia.icono}</Text>
-                    <Text style={styles.insigniaNombre}>{insignia.nombre}</Text>
-                    <Text style={styles.insigniaDesc}>{insignia.descripcion}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
+        {vistaCompleta && perfilCompleto && (
+          <>
+            {/* Estadísticas (CA #2) */}
+            <View style={[styles.section, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+              <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
+              {[
+                { label: 'Grupos creados', value: perfilCompleto.estadisticas.gruposCreados },
+                { label: 'Grupos en los que participa', value: perfilCompleto.estadisticas.gruposParticipa },
+                { label: 'Mensajes enviados', value: perfilCompleto.estadisticas.mensajesEnviados },
+              ].map((item) => (
+                <View style={styles.statRow} key={item.label}>
+                  <Text style={styles.statLabel}>{item.label}</Text>
+                  <Text style={styles.statValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Insignias (CA #3) */}
+            <View style={[styles.section, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+              <Text style={styles.sectionTitle}>🏅 Insignias</Text>
+              {perfilCompleto.insignias.length === 0 ? (
+                <Text style={styles.subtitle}>Aún no hay insignias desbloqueadas. ¡Sigue participando!</Text>
+              ) : (
+                <View style={styles.insigniasGrid}>
+                  {perfilCompleto.insignias.map((insignia) => (
+                    <View style={styles.insigniaCard} key={insignia.id}>
+                      <Text style={styles.insigniaIcono}>{insignia.icono}</Text>
+                      <Text style={styles.insigniaNombre}>{insignia.nombre}</Text>
+                      <Text style={styles.insigniaDesc}>{insignia.descripcion}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
         )}
 
         {/* Materias en Común */}

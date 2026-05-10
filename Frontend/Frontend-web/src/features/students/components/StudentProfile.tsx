@@ -18,7 +18,7 @@ export const StudentProfile: React.FC = () => {
   const vistaCompleta = searchParams.get('vista') === 'completa';
 
   const { data: profile, isLoading, error } = useStudentProfile(targetUserId);
-  const { data: perfilCompleto, isLoading: loadingCompleto } = usePerfilCompleto(
+  const { data: perfilCompleto, isLoading: loadingCompleto, error: errorCompleto } = usePerfilCompleto(
     targetUserId,
     vistaCompleta,
   );
@@ -203,49 +203,55 @@ export const StudentProfile: React.FC = () => {
         <LoadingSpinner size="sm" label="Cargando perfil completo..." />
       )}
 
-      {vistaCompleta && perfilCompleto?.estadisticas && (
+      {vistaCompleta && errorCompleto && (
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <BarChart2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            Estadísticas
-          </h2>
-          <div className={styles.infoGrid}>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Grupos creados:</span>
-              <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposCreados}</span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Grupos en los que participa:</span>
-              <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposParticipa}</span>
-            </div>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Mensajes enviados:</span>
-              <span className={styles.infoValue}>{perfilCompleto.estadisticas.mensajesEnviados}</span>
-            </div>
-          </div>
+          <p className={styles.errorText}>Error al cargar el perfil completo: {errorCompleto}</p>
         </div>
       )}
 
-      {vistaCompleta && perfilCompleto?.insignias && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>
-            <Award size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-            Insignias
-          </h2>
-          {perfilCompleto.insignias.length === 0 ? (
-            <p className={styles.emptyText}>Aún no has desbloqueado insignias. ¡Sigue participando!</p>
-          ) : (
-            <div className={styles.insigniasGrid}>
-              {perfilCompleto.insignias.map((insignia) => (
-                <div key={insignia.id} className={styles.insigniaCard} title={insignia.descripcion}>
-                  <span className={styles.insigniaIcono}>{insignia.icono}</span>
-                  <span className={styles.insigniaNombre}>{insignia.nombre}</span>
-                  <span className={styles.insigniaDesc}>{insignia.descripcion}</span>
-                </div>
-              ))}
+      {vistaCompleta && perfilCompleto && (
+        <>
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>
+              <BarChart2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              Estadísticas
+            </h2>
+            <div className={styles.infoGrid}>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Grupos creados:</span>
+                <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposCreados}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Grupos en los que participa:</span>
+                <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposParticipa}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>Mensajes enviados:</span>
+                <span className={styles.infoValue}>{perfilCompleto.estadisticas.mensajesEnviados}</span>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>
+              <Award size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+              Insignias
+            </h2>
+            {perfilCompleto.insignias.length === 0 ? (
+              <p className={styles.emptyText}>Aún no has desbloqueado insignias. ¡Sigue participando!</p>
+            ) : (
+              <div className={styles.insigniasGrid}>
+                {perfilCompleto.insignias.map((insignia) => (
+                  <div key={insignia.id} className={styles.insigniaCard} title={insignia.descripcion}>
+                    <span className={styles.insigniaIcono}>{insignia.icono}</span>
+                    <span className={styles.insigniaNombre}>{insignia.nombre}</span>
+                    <span className={styles.insigniaDesc}>{insignia.descripcion}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

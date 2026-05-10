@@ -49,31 +49,33 @@ export class PerfilService {
    * PerfilBase → PerfilConEstadisticas → PerfilConInsignias.
    */
   async getPerfilCompleto(userId: number): Promise<PerfilRendered> {
-    const [user, gruposCreados, gruposParticipa, mensajesEnviados] =
-      await Promise.all([
-        this.prisma.user.findUnique({
-          where: { id_user: userId },
-          select: {
-            id_user: true,
-            full_name: true,
-            current_semester: true,
-            program: { select: { name: true } },
-            enrollments: {
-              where: { status: 'active' },
-              select: { course: { select: { id_course: true, name: true } } },
-            },
+    // Consultas paralelas: el user es crítico; las estadísticas usan allSettled para no
+    // fallar todo si una query de conteo no es compatible con el schema actual.
+    const [user, results] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id_user: userId },
+        select: {
+          id_user: true,
+          full_name: true,
+          current_semester: true,
+          program: { select: { name: true } },
+          enrollments: {
+            where: { status: 'active' },
+            select: { course: { select: { id_course: true, name: true } } },
           },
-        }),
-        this.prisma.group.count({
-          where: { owner_id: userId, is_direct_message: false },
-        }),
-        this.prisma.membership.count({
-          where: { id_user: userId, group: { is_direct_message: false } },
-        }),
-        this.prisma.message.count({
-          where: { membership: { id_user: userId } },
-        }),
-      ]);
+        },
+      }),
+      Promise.allSettled([
+        this.prisma.group.count({ where: { owner_id: userId, is_direct_message: false } }),
+        this.prisma.membership.count({ where: { id_user: userId } }),
+        this.prisma.message.count({ where: { membership: { id_user: userId } } }),
+      ]),
+    ]);
+
+    const safeCount = (r: PromiseSettledResult<number>) =>
+      r.status === 'fulfilled' ? r.value : 0;
+
+    const [gruposCreados, gruposParticipa, mensajesEnviados] = results.map(safeCount);
 
     if (!user) throw new NotFoundException('Estudiante no encontrado');
 

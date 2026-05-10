@@ -90,7 +90,10 @@ export class StudentsService {
 
   /** GET /perfil/:id?vista=completa — perfil con estadísticas e insignias (CA #4) */
   async getPerfilCompleto(userId: number): Promise<PerfilCompleto> {
-    const { data } = await this.api.get(STUDENTS_ENDPOINTS.GET_PERFIL_COMPLETO(userId));
+    const { data } = await this.api.get(
+      STUDENTS_ENDPOINTS.GET_PERFIL_BASE(userId),
+      { params: { vista: 'completa' } },
+    );
     return data;
   }
 }
