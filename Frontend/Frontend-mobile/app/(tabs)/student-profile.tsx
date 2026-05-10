@@ -1,7 +1,9 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useStudentProfile } from "@/src/features/students/hooks/useStudentProfile";
+import { usePerfilCompleto } from "@/src/features/students/hooks/usePerfilEstudiante";
 import { authService } from "@/src/features/auth/services";
 import { useResponsive } from "@/src/hooks/useResponsive";
 import { useConnectionStatus } from "@/src/features/connections/hooks/useConnections";
@@ -10,7 +12,13 @@ export default function StudentProfileScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { isDesktop, isTablet } = useResponsive();
+  const [vistaCompleta, setVistaCompleta] = useState(false);
+
   const { data: profile, isLoading, isError } = useStudentProfile(Number(id));
+  const { data: perfilCompleto, isLoading: loadingCompleto } = usePerfilCompleto(
+    Number(id),
+    vistaCompleta,
+  );
   const {
     connectionStatus,
     isLoadingStatus,
@@ -165,6 +173,62 @@ export default function StudentProfileScreen() {
             </View>
           )}
         </View>
+
+        {/* US-D02: Botón para vista completa (Decorator pattern) */}
+        <TouchableOpacity
+          style={[
+            styles.vistaButton,
+            { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" },
+            vistaCompleta && styles.vistaButtonActive,
+          ]}
+          onPress={() => setVistaCompleta(!vistaCompleta)}
+        >
+          <Ionicons name={vistaCompleta ? "stats-chart" : "stats-chart-outline"} size={16} color={vistaCompleta ? "#1a1a1a" : "#D9B97E"} />
+          <Text style={[styles.vistaButtonText, vistaCompleta && styles.vistaButtonTextActive]}>
+            {vistaCompleta ? 'Ver perfil base' : 'Ver perfil completo'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Estadísticas (CA #2) */}
+        {vistaCompleta && loadingCompleto && (
+          <ActivityIndicator size="small" color="#D9B97E" style={{ marginBottom: 15 }} />
+        )}
+
+        {vistaCompleta && perfilCompleto?.estadisticas && (
+          <View style={[styles.section, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+            <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
+            {[
+              { label: 'Grupos creados', value: perfilCompleto.estadisticas.gruposCreados },
+              { label: 'Grupos en los que participa', value: perfilCompleto.estadisticas.gruposParticipa },
+              { label: 'Mensajes enviados', value: perfilCompleto.estadisticas.mensajesEnviados },
+            ].map((item) => (
+              <View style={styles.statRow} key={item.label}>
+                <Text style={styles.statLabel}>{item.label}</Text>
+                <Text style={styles.statValue}>{item.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Insignias (CA #3) */}
+        {vistaCompleta && perfilCompleto?.insignias && (
+          <View style={[styles.section, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+            <Text style={styles.sectionTitle}>🏅 Insignias</Text>
+            {perfilCompleto.insignias.length === 0 ? (
+              <Text style={styles.subtitle}>Aún no hay insignias desbloqueadas</Text>
+            ) : (
+              <View style={styles.insigniasGrid}>
+                {perfilCompleto.insignias.map((insignia) => (
+                  <View style={styles.insigniaCard} key={insignia.id}>
+                    <Text style={styles.insigniaIcono}>{insignia.icono}</Text>
+                    <Text style={styles.insigniaNombre}>{insignia.nombre}</Text>
+                    <Text style={styles.insigniaDesc}>{insignia.descripcion}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Materias en Común */}
         {profile.common_courses && profile.common_courses.length > 0 && (
@@ -457,5 +521,82 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontWeight: '600',
     fontSize: 14,
+  },
+  // US-D02: Decorator styles
+  vistaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#D9B97E',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginHorizontal: 15,
+    marginBottom: 12,
+    alignSelf: 'center',
+  },
+  vistaButtonActive: {
+    backgroundColor: '#D9B97E',
+    borderColor: '#D9B97E',
+  },
+  vistaButtonText: {
+    color: '#D9B97E',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  vistaButtonTextActive: {
+    color: '#1a1a1a',
+  },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  statLabel: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  statValue: {
+    color: '#D9B97E',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  insigniasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 8,
+  },
+  insigniaCard: {
+    backgroundColor: 'rgba(217,185,126,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(217,185,126,0.25)',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    minWidth: 110,
+    flex: 1,
+  },
+  insigniaIcono: {
+    fontSize: 26,
+    marginBottom: 4,
+  },
+  insigniaNombre: {
+    color: '#D9B97E',
+    fontWeight: '700',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  insigniaDesc: {
+    color: '#9ca3af',
+    fontSize: 10,
+    textAlign: 'center',
+    lineHeight: 13,
   },
 });
