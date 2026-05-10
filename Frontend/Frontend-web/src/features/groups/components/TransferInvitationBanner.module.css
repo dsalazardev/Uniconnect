@@ -1,0 +1,96 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid #3B82F6;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.icon {
+  color: #3B82F6;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.content {
+  flex: 1;
+}
+
+.text {
+  color: #93c5fd;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.subtext {
+  color: #60a5fa;
+  font-size: 12px;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.acceptButton,
+.declineButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.acceptButton {
+  background-color: #22c55e;
+  color: #fff;
+}
+
+.acceptButton:hover:not(:disabled) {
+  background-color: #16a34a;
+}
+
+.declineButton {
+  background-color: transparent;
+  color: #EF4444;
+  border: 1px solid #EF4444;
+}
+
+.declineButton:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.acceptButton:disabled,
+.declineButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.declineButton .spinner {
+  border-color: rgba(239, 68, 68, 0.3);
+  border-top-color: #EF4444;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

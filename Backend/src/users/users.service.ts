@@ -438,7 +438,7 @@ export class UsersService {
           select: { name: true },
         },
         enrollments: {
-          where: { id_course: groupCourseId },
+          where: { id_course: groupCourseId, status: 'active' },
           select: {
             id_course: true,
             course: {

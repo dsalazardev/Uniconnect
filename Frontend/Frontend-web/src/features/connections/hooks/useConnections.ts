@@ -57,7 +57,7 @@ export const useConnections = () => {
 
   // Enviar solicitud de conexión
   const sendRequestMutation = useMutation({
-    mutationFn: connectionsService.sendConnectionRequest,
+    mutationFn: (data) => connectionsService.sendConnectionRequest(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-connections'] });
       queryClient.invalidateQueries({ queryKey: ['community', 'connected'] });
@@ -72,7 +72,7 @@ export const useConnections = () => {
 
   // Aceptar solicitud
   const acceptRequestMutation = useMutation({
-    mutationFn: connectionsService.acceptConnectionRequest,
+    mutationFn: (id) => connectionsService.acceptConnectionRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-connections'] });
       queryClient.invalidateQueries({ queryKey: ['connection-status'] });
@@ -88,7 +88,7 @@ export const useConnections = () => {
 
   // Rechazar solicitud
   const rejectRequestMutation = useMutation({
-    mutationFn: connectionsService.rejectConnectionRequest,
+    mutationFn: (id) => connectionsService.rejectConnectionRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-connections'] });
       queryClient.invalidateQueries({ queryKey: ['connection-status'] });
@@ -131,7 +131,7 @@ export const useConnectionStatus = (userId: number) => {
   });
 
   const sendRequestMutation = useMutation({
-    mutationFn: connectionsService.sendConnectionRequest,
+    mutationFn: (data) => connectionsService.sendConnectionRequest(data),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['connection-status', userId] });
       const prev = queryClient.getQueryData(['connection-status', userId]);
@@ -156,7 +156,7 @@ export const useConnectionStatus = (userId: number) => {
   });
 
   const acceptRequestMutation = useMutation({
-    mutationFn: connectionsService.acceptConnectionRequest,
+    mutationFn: (id) => connectionsService.acceptConnectionRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connection-status', userId] });
       queryClient.invalidateQueries({ queryKey: ['pending-connections'] });
@@ -171,7 +171,7 @@ export const useConnectionStatus = (userId: number) => {
   });
 
   const rejectRequestMutation = useMutation({
-    mutationFn: connectionsService.rejectConnectionRequest,
+    mutationFn: (id) => connectionsService.rejectConnectionRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connection-status', userId] });
       queryClient.invalidateQueries({ queryKey: ['pending-connections'] });

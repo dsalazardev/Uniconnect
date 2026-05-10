@@ -7,4 +7,5 @@ export { MemberList } from './MemberList';
 export { InviteMemberModal } from './InviteMemberModal';
 export { TransferOwnershipModal } from './TransferOwnershipModal';
 export { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
+export { TransferInvitationBanner } from './TransferInvitationBanner';
 export { EditGroupModal } from './EditGroupModal';

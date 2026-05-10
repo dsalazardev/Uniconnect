@@ -52,7 +52,7 @@ export class NotificationEventListener {
         message: `Nuevo mensaje en ${member.group?.name || 'el grupo'}`,
         is_read: false,
         created_at: new Date(),
-        related_entity_id: payload.id_message,
+        related_entity_id: payload.id_group,
         notification_type: 'message',
       }));
 

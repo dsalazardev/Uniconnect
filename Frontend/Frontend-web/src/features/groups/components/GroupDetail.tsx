@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGroupInfo, useLeaveGroup } from '../hooks/useGroupInfo';
 import { useTransferOwnership } from '../hooks/useTransferOwnership';
+import { useDirectMessage } from '../hooks/useDirectMessage';
 import { MemberList } from './MemberList';
+import { InviteMemberModal } from './InviteMemberModal';
 import { TransferOwnershipModal } from './TransferOwnershipModal';
 import { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
+import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { GroupAdminPanel } from './GroupAdminPanel';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
@@ -12,7 +15,9 @@ import { useChat } from '@/features/messages/hooks/useChat';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut } from 'lucide-react';
+import { showToast } from '@/lib/toast';
+import { groupsService } from '../services';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus } from 'lucide-react';
 import styles from './GroupDetail.module.css';
 
 export const GroupDetail: React.FC = () => {
@@ -27,6 +32,10 @@ export const GroupDetail: React.FC = () => {
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
   const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const dm = useDirectMessage();
+  const [availableUsers, setAvailableUsers] = useState<Array<{ id_user: number; full_name: string; email?: string }>>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   const currentUser = authStore.user;
   const currentUserId = currentUser?.id_user ?? 0;
@@ -102,6 +111,32 @@ export const GroupDetail: React.FC = () => {
     }
   };
 
+  const handleOpenInvite = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const connections = await groupsService.getConnectionsWithCourse(groupId);
+      const membersIds = new Set((groupInfo?.memberships || []).map((m) => m.id_user));
+      const available = (Array.isArray(connections) ? connections : []).filter(
+        (u: any) => !membersIds.has(u.id_user)
+      );
+      setAvailableUsers(available);
+      setShowInviteModal(true);
+    } catch {
+      showToast.error('Error', 'No se pudieron cargar los usuarios disponibles.');
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [groupId, groupInfo]);
+
+  const handleSendInvite = async (userId: number) => {
+    await groupsService.sendInvitation({
+      id_group: groupId,
+      inviter_id: currentUserId,
+      invitee_id: userId,
+    });
+    showToast.success('Invitación enviada', 'La invitación fue enviada correctamente.');
+  };
+
   if (isLoading) {
     return (
       <div className={styles.container}>
@@ -145,6 +180,18 @@ export const GroupDetail: React.FC = () => {
         <h1 className={styles.headerTitle}>
           {isDirectMessage ? otherUserName : 'Detalle del Grupo'}
         </h1>
+        {isMember && !isDirectMessage && groupInfo.canManageMembers && (
+          <button
+            onClick={handleOpenInvite}
+            className={styles.inviteButton}
+            title="Invitar Miembros"
+            disabled={loadingUsers}
+            style={{ marginRight: 8 }}
+          >
+            <UserPlus size={18} />
+            <span className={styles.leaveButtonText}>Invitar</span>
+          </button>
+        )}
         {isMember && !isDirectMessage && (
           <button
             onClick={handleLeaveGroup}
@@ -159,8 +206,15 @@ export const GroupDetail: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        {!isDirectMessage && groupInfo.pending_owner_id && (
+        {!isDirectMessage && groupInfo.pending_owner_id === currentUserId && (
+          <TransferInvitationBanner
+            groupId={groupId}
+            ownerName={groupInfo.owner?.full_name}
+          />
+        )}
+        {!isDirectMessage && groupInfo.pending_owner_id && groupInfo.pending_owner_id !== currentUserId && (
           <PendingTransferOwnerBanner
+            groupId={groupId}
             candidateName={
               groupInfo.memberships?.find(
                 (m) => m.id_user === groupInfo.pending_owner_id
@@ -191,6 +245,9 @@ export const GroupDetail: React.FC = () => {
               memberships={groupInfo.memberships || []}
               canManage={groupInfo.canManageMembers || false}
               ownerId={groupInfo.owner?.id_user}
+              currentUserId={currentUserId}
+              loadingUserId={dm.loadingUserId}
+              onDirectMessage={dm.openDirectMessage}
             />
           </div>
         )}
@@ -201,6 +258,7 @@ export const GroupDetail: React.FC = () => {
               groupId={groupId}
               ownerId={groupInfo.owner?.id_user}
               canManage={groupInfo.canManageMembers || false}
+              onInvite={handleOpenInvite}
             />
           </div>
         )}
@@ -260,6 +318,15 @@ export const GroupDetail: React.FC = () => {
         variant="danger"
         onConfirm={confirmDeleteMessage}
         onCancel={() => setDeletingMessageId(null)}
+      />
+
+      {/* Invite Member Modal */}
+      <InviteMemberModal
+        visible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onInvite={handleSendInvite}
+        isInviting={loadingUsers}
+        availableUsers={availableUsers}
       />
 
       {/* Transfer Ownership Modal */}

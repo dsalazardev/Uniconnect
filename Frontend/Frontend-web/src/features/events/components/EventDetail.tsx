@@ -7,6 +7,8 @@ import { eventsService } from '../services';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { EditEventModal } from './EditEventModal';
 import { LoadingSpinner } from '@/components/elements';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { showToast } from '@/lib/toast';
 import styles from './EventDetail.module.css';
 
 export const EventDetail: React.FC = () => {
@@ -17,6 +19,7 @@ export const EventDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const userId = authStore.user?.id_user;
   const userRole = authStore.user?.role?.name || authStore.user?.roleName;
@@ -62,17 +65,21 @@ export const EventDetail: React.FC = () => {
     setEditModalVisible(true);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!event) return;
+    setShowDeleteConfirm(true);
+  };
 
-    if (window.confirm('¿Estás seguro? Esta acción no se puede deshacer')) {
-      try {
-        await eventsService.deleteEvent(event.id_event);
-        window.alert('Evento eliminado correctamente');
-        navigate(-1);
-      } catch (error: any) {
-        window.alert(error.message || 'No se pudo eliminar el evento');
-      }
+  const confirmDeleteEvent = async () => {
+    if (!event) return;
+    try {
+      await eventsService.deleteEvent(event.id_event);
+      showToast.success('Evento eliminado correctamente');
+      navigate(-1);
+    } catch (error: any) {
+      showToast.error('Error', error.message || 'No se pudo eliminar el evento');
+    } finally {
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -84,12 +91,12 @@ export const EventDetail: React.FC = () => {
       if (response.success && response.data) {
         setEditModalVisible(false);
         setEvent(response.data);
-        window.alert('Evento actualizado correctamente');
+        showToast.success('Evento actualizado correctamente');
       } else {
-        window.alert(response.error?.message || 'No se pudo actualizar el evento');
+        showToast.error('Error', response.error?.message || 'No se pudo actualizar el evento');
       }
     } catch (error: any) {
-      window.alert(error.message || 'No se pudo actualizar el evento');
+      showToast.error('Error', error.message || 'No se pudo actualizar el evento');
     } finally {
       setIsUpdating(false);
     }
@@ -230,6 +237,18 @@ export const EventDetail: React.FC = () => {
         onClose={() => setEditModalVisible(false)}
         onSave={handleSave}
         isSubmitting={isUpdating}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title="Eliminar evento"
+        message="¿Estás seguro? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDeleteEvent}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>
   );

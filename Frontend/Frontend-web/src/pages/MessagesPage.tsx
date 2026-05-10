@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MessageCircle, AlertCircle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
@@ -7,9 +7,20 @@ import { useConversations } from '@/features/messages/hooks/useConversations';
 
 export const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const currentUser = authStore.user;
   const currentUserId = currentUser?.id_user;
   const { conversations, loading, error, reload } = useConversations(currentUserId);
+
+  const groupIdParam = searchParams.get('groupId');
+  const redirected = useRef(false);
+
+  useEffect(() => {
+    if (groupIdParam && !redirected.current) {
+      redirected.current = true;
+      navigate(`/chat/${groupIdParam}`, { replace: true });
+    }
+  }, [groupIdParam, navigate]);
 
   if (loading) {
     return <LoadingSpinner size="lg" label="Cargando conversaciones..." />;

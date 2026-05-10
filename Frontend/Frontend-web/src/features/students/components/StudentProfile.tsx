@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStudentProfile } from '../hooks/useStudentProfile';
 import { LoadingSpinner } from '@/components/elements';
 import { useConnectionStatus, useConnections } from '@/features/connections/hooks/useConnections';
+import { authStore } from '@/features/auth/store/AuthStore';
 import { ArrowLeft, Smartphone, UserPlus, UserCheck, Send, MessageCircle, X, Check } from 'lucide-react';
 import styles from './StudentProfile.module.css';
 
@@ -10,6 +11,8 @@ export const StudentProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const targetUserId = Number(id);
+  const currentUser = authStore.user;
+  const isOwnProfile = currentUser?.id_user === targetUserId;
   const { data: profile, isLoading, error } = useStudentProfile(targetUserId);
   const {
     connectionStatus,
@@ -84,6 +87,7 @@ export const StudentProfile: React.FC = () => {
       </div>
 
       {/* Connection Status */}
+      {!isOwnProfile && (
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>Conexión</h2>
         {isLoadingStatus ? (
@@ -91,7 +95,7 @@ export const StudentProfile: React.FC = () => {
             <div className={styles.spinnerSmall} />
             <span className={styles.connectionLoadingText}>Verificando conexión...</span>
           </div>
-        ) : !connectionStatus ? (
+        ) : !connectionStatus || connectionStatus.status === 'none' ? (
           <div className={styles.connectionActions}>
             <button
               onClick={() => sendConnectionRequest({ addressee_id: targetUserId })}
@@ -144,6 +148,7 @@ export const StudentProfile: React.FC = () => {
           </div>
         ) : null}
       </div>
+      )}
 
       {profile.common_courses && profile.common_courses.length > 0 && (
         <div className={styles.section}>

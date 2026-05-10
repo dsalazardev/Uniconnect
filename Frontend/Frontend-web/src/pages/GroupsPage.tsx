@@ -1,35 +1,66 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMyGroups, useDiscoverGroups } from '@/features/groups/hooks';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMyGroups, useDiscoverGroups, useGroupInvitations } from '@/features/groups/hooks';
 import { useGroups } from '@/features/groups/hooks/useGroups';
 import { useJoinRequest } from '@/features/groups/hooks/useJoinRequest';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { GroupList, CreateGroupModal, EditGroupModal } from '@/features/groups/components';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { useProfile } from '@/features/students/hooks/useProfile';
 import { showToast } from '@/lib/toast';
-import { Users, Search, Plus, User } from 'lucide-react';
+import { Users, Search, Plus, User, Mail, Check, X, Loader } from 'lucide-react';
 import { LoadingSpinner } from '@/components/elements';
-import type { Group } from '@uniconnect/shared';
+import type { Group, GroupInvitation } from '@uniconnect/shared';
 
-type TabType = 'misGrupos' | 'descubrir';
+type TabType = 'misGrupos' | 'descubrir' | 'invitaciones';
 
 export const GroupsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const currentUser = authStore.user;
   const userId = currentUser?.id_user;
 
-  const [activeTab, setActiveTab] = useState<TabType>('misGrupos');
+  const tabParam = searchParams.get('tab');
+  const initialTab: TabType = tabParam === 'invitaciones' ? 'invitaciones' : tabParam === 'descubrir' ? 'descubrir' : 'misGrupos';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'invitaciones') setActiveTab('invitaciones');
+    else if (tab === 'descubrir') setActiveTab('descubrir');
+  }, [searchParams]);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<number | null>(null);
-  const [pendingRequests, setPendingRequests] = useState<Set<number>>(new Set());
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<number | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<Set<number>>(() => {
+    try {
+      const stored = localStorage.getItem('pendingRequests');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('pendingRequests', JSON.stringify([...pendingRequests]));
+  }, [pendingRequests]);
 
   const { myGroups, loading: myGroupsLoading, error: myGroupsError, reloadMyGroups } = useMyGroups(userId);
   const { groups: discoverGroups, loading: discoverLoading } = useDiscoverGroups(userId);
   const { deleteGroup, createGroup, isCreating, updateGroup, isUpdating } = useGroups();
   const joinMutation = useJoinRequest();
   const { profile, isLoading: profileLoading } = useProfile();
+
+  const {
+    pendingInvitations,
+    loading: invitationsLoading,
+    respondToInvitation,
+  } = useGroupInvitations(userId);
+
+  const [rejectTarget, setRejectTarget] = useState<GroupInvitation | null>(null);
+  const [joinConfirmTarget, setJoinConfirmTarget] = useState<number | null>(null);
 
   const courses = profile?.courses?.map((c: any) => ({
     id_course: c.id_course,
@@ -52,13 +83,17 @@ export const GroupsPage: React.FC = () => {
   };
 
   const handleDelete = async (groupId: number) => {
-    if (window.confirm('¿Estás seguro de eliminar este grupo?')) {
-      setDeletingGroupId(groupId);
-      try {
-        await deleteGroup(groupId);
-      } finally {
-        setDeletingGroupId(null);
-      }
+    setDeleteConfirmTarget(groupId);
+  };
+
+  const confirmDeleteGroup = async () => {
+    if (deleteConfirmTarget === null) return;
+    setDeletingGroupId(deleteConfirmTarget);
+    try {
+      await deleteGroup(deleteConfirmTarget);
+    } finally {
+      setDeletingGroupId(null);
+      setDeleteConfirmTarget(null);
     }
   };
 
@@ -71,18 +106,127 @@ export const GroupsPage: React.FC = () => {
     setCreateModalVisible(false);
   };
 
+  const savePendingRequests = (groupId: number) => {
+    setPendingRequests(prev => {
+      const updated = new Set(prev).add(groupId);
+      localStorage.setItem('pendingRequests', JSON.stringify([...updated]));
+      return updated;
+    });
+  };
+
   const handleRequestJoin = async (groupId: number) => {
     try {
       await joinMutation.mutateAsync(groupId);
-      setPendingRequests(prev => new Set(prev).add(groupId));
+      savePendingRequests(groupId);
       showToast.success('Solicitud enviada', 'Tu solicitud de unión fue enviada al administrador del grupo.');
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message || 'No se pudo enviar la solicitud';
       if (errorMessage.toLowerCase().includes('solicitud pendiente')) {
-        setPendingRequests(prev => new Set(prev).add(groupId));
+        savePendingRequests(groupId);
       }
       showToast.error('Error', errorMessage);
     }
+  };
+
+  const handleAcceptInvitation = async (invitationId: number) => {
+    try {
+      await respondToInvitation(invitationId, 'accepted');
+      showToast.success('Invitación aceptada', 'Ahora eres miembro del grupo.');
+    } catch (error: any) {
+      showToast.error('Error', error?.message || 'No se pudo aceptar la invitación.');
+    }
+  };
+
+  const handleRejectInvitation = async () => {
+    if (!rejectTarget) return;
+    try {
+      await respondToInvitation(rejectTarget.id_invitation, 'rejected');
+      showToast.success('Invitación rechazada');
+      setRejectTarget(null);
+    } catch (error: any) {
+      showToast.error('Error', error?.message || 'No se pudo rechazar la invitación.');
+    }
+  };
+
+  const renderInvitacionesTab = () => {
+    if (invitationsLoading) {
+      return <LoadingSpinner size="lg" label="Cargando invitaciones..." />;
+    }
+
+    if (pendingInvitations.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <Mail size={80} color="#888" />
+          <p style={{ color: '#aaa', fontSize: 20, fontWeight: 600, marginTop: 16 }}>Sin invitaciones pendientes</p>
+          <p style={{ color: '#888', fontSize: 14, marginTop: 8 }}>Las invitaciones a grupos aparecerán aquí</p>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '16px 0' }}>
+        {pendingInvitations.map((invitation: GroupInvitation) => (
+          <div
+            key={invitation.id_invitation}
+            style={{
+              backgroundColor: '#1a1a1a',
+              borderRadius: 12,
+              padding: 16,
+              border: '1px solid rgba(217, 185, 126, 0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 24,
+                backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Mail size={24} color="#3B82F6" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 'bold', color: '#fff' }}>
+                  {invitation.group?.name || 'Grupo'}
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: 14, color: '#aaa' }}>
+                  Invitado por: {invitation.inviter?.full_name || 'Usuario'}
+                </p>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex', gap: 8,
+              marginTop: 8, paddingTop: 12,
+              borderTop: '1px solid rgba(217, 185, 126, 0.1)',
+            }}>
+              <button
+                onClick={() => handleAcceptInvitation(invitation.id_invitation)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 20px', borderRadius: 20, border: 'none',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  backgroundColor: '#4CAF50', color: '#fff',
+                }}
+              >
+                <Check size={16} />
+                Aceptar
+              </button>
+              <button
+                onClick={() => setRejectTarget(invitation)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 20px', borderRadius: 20, border: '1px solid #EF4444',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  backgroundColor: 'transparent', color: '#EF4444',
+                }}
+              >
+                <X size={16} />
+                Rechazar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const renderMisGruposTab = () => {
@@ -200,7 +344,7 @@ export const GroupsPage: React.FC = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleRequestJoin(group.id_group);
+                    setJoinConfirmTarget(group.id_group);
                   }}
                   disabled={isRequestSent || isPending || isInvited}
                   style={{
@@ -306,10 +450,75 @@ export const GroupsPage: React.FC = () => {
           <Search size={20} />
           Descubrir
         </button>
+        <button
+          onClick={() => setActiveTab('invitaciones')}
+          style={{
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 8, padding: '14px 0', border: 'none', background: 'none',
+            borderBottom: `2px solid ${activeTab === 'invitaciones' ? '#D9B97E' : 'transparent'}`,
+            color: activeTab === 'invitaciones' ? '#D9B97E' : '#888',
+            fontWeight: 600, fontSize: 15, cursor: 'pointer',
+          }}
+        >
+          <Mail size={20} />
+          Invitaciones
+          {pendingInvitations.length > 0 && (
+            <span style={{
+              backgroundColor: '#3B82F6', borderRadius: 10,
+              padding: '2px 6px', minWidth: 20, textAlign: 'center',
+              fontSize: 11, fontWeight: 'bold', color: '#fff',
+            }}>
+              {pendingInvitations.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Content */}
-      {activeTab === 'misGrupos' ? renderMisGruposTab() : renderDescubrirTab()}
+      {activeTab === 'misGrupos' && renderMisGruposTab()}
+      {activeTab === 'descubrir' && renderDescubrirTab()}
+      {activeTab === 'invitaciones' && renderInvitacionesTab()}
+
+      {/* Reject Invitation Confirmation */}
+      <ConfirmModal
+        visible={rejectTarget !== null}
+        title="Rechazar invitación"
+        message={`¿Estás seguro de rechazar la invitación al grupo "${rejectTarget?.group?.name || ''}"?`}
+        confirmLabel="Rechazar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={handleRejectInvitation}
+        onCancel={() => setRejectTarget(null)}
+      />
+
+      {/* Join Request Confirmation */}
+      <ConfirmModal
+        visible={joinConfirmTarget !== null}
+        title="Solicitar acceso"
+        message="¿Enviar solicitud de acceso al grupo?"
+        confirmLabel="Solicitar"
+        cancelLabel="Cancelar"
+        variant="info"
+        onConfirm={() => {
+          if (joinConfirmTarget) {
+            handleRequestJoin(joinConfirmTarget);
+          }
+          setJoinConfirmTarget(null);
+        }}
+        onCancel={() => setJoinConfirmTarget(null)}
+      />
+
+      {/* Delete Group Confirmation */}
+      <ConfirmModal
+        visible={deleteConfirmTarget !== null}
+        title="Eliminar grupo"
+        message="¿Estás seguro de eliminar este grupo? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDeleteGroup}
+        onCancel={() => setDeleteConfirmTarget(null)}
+      />
 
       {/* Create Group Modal */}
       <CreateGroupModal

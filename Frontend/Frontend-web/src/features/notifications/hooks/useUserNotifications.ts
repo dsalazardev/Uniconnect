@@ -95,12 +95,15 @@ export const useUserNotifications = () => {
       case 'message':
       case 'mention':
         if (entityId) {
-          navigate(`/messages?groupId=${entityId}`);
+          navigate(`/chat/${entityId}`);
         } else {
           navigate('/messages');
         }
         break;
       case 'group_invitation':
+        navigate('/groups?tab=invitaciones');
+        break;
+      case 'admin_transfer_requested':
       case 'group_invitation_accepted':
       case 'user_joined_group':
       case 'join_request':

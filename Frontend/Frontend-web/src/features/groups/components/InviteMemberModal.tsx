@@ -68,11 +68,19 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
               disabled={isInviting}
             >
               <option value="">Selecciona un usuario</option>
-              {availableUsers.map((user) => (
-                <option key={user.id_user} value={user.id_user}>
-                  {user.full_name} {user.email ? `(${user.email})` : ''}
-                </option>
-              ))}
+              {availableUsers.map((user) => {
+                const label = user.email
+                  ? `${user.full_name} (${user.email})`
+                  : user.full_name;
+                const truncated = label.length > 50
+                  ? label.substring(0, 47) + '...'
+                  : label;
+                return (
+                  <option key={user.id_user} value={user.id_user} title={label}>
+                    {truncated}
+                  </option>
+                );
+              })}
             </select>
           </div>
 

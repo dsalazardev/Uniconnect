@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useEvents } from '@/features/events/hooks';
 import { authStore } from '@/features/auth/store/AuthStore';
@@ -6,6 +6,8 @@ import { EventList } from '@/features/events/components';
 import { CreateEventModal, EditEventModal } from '@/features/events/components';
 import { EventFilters } from '@/features/events/components';
 import { LoadingSpinner } from '@/components/elements';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { showToast } from '@/lib/toast';
 import type { Event, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';
 
 export const EventsPage: React.FC = observer(() => {
@@ -26,6 +28,7 @@ export const EventsPage: React.FC = observer(() => {
   const [createModalVisible, setCreateModalVisible] = React.useState(false);
   const [editingEvent, setEditingEvent] = React.useState<Event | null>(null);
   const [editModalVisible, setEditModalVisible] = React.useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<number | null>(null);
 
   const currentUser = authStore.user;
   const canCreate = currentUser?.role?.name === 'admin' || currentUser?.role?.name === 'superadmin';
@@ -49,9 +52,13 @@ export const EventsPage: React.FC = observer(() => {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('¿Estás seguro? Esta acción no se puede deshacer')) {
-      await deleteEvent(id);
-    }
+    setDeletingEventId(id);
+  };
+
+  const confirmDeleteEvent = async () => {
+    if (deletingEventId === null) return;
+    await deleteEvent(deletingEventId);
+    setDeletingEventId(null);
   };
 
   if (loading && events.length === 0) {
@@ -112,6 +119,17 @@ export const EventsPage: React.FC = observer(() => {
           isSubmitting={isUpdating}
         />
       )}
+
+      <ConfirmModal
+        visible={deletingEventId !== null}
+        title="Eliminar evento"
+        message="¿Estás seguro? Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmDeleteEvent}
+        onCancel={() => setDeletingEventId(null)}
+      />
     </div>
   );
 });

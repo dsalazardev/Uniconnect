@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Users, UserPlus, Check, X, Shield, User } from 'lucide-react';
+import { Users, UserPlus, Check, X, Shield, User, Star } from 'lucide-react';
 import { LoadingSpinner } from '@/components/elements';
+import { ConfirmModal } from '@/components/ConfirmModal';
 import { groupsService } from '../services';
+import { useMakeMemberAdmin } from '../hooks/useGroupInfo';
+import { showToast } from '@/lib/toast';
 import type { GroupJoinRequest, GroupMembership } from '@uniconnect/shared';
 import styles from './GroupAdminPanel.module.css';
 
@@ -9,12 +12,14 @@ interface GroupAdminPanelProps {
   groupId: number;
   ownerId?: number;
   canManage?: boolean;
+  onInvite?: () => void;
 }
 
 export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   groupId,
   ownerId,
   canManage = false,
+  onInvite,
 }) => {
   const [pendingRequests, setPendingRequests] = useState<GroupJoinRequest[]>([]);
   const [members, setMembers] = useState<GroupMembership[]>([]);
@@ -73,30 +78,64 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   };
 
   const handleRemoveMember = async (userId: number) => {
-    if (!window.confirm('¿Estás seguro de eliminar este miembro?')) return;
-    setProcessingId(userId);
+    const member = members.find((m) => m.id_user === userId);
+    setRemoveMemberTarget({ id: userId, name: member?.user?.full_name || 'Usuario' });
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!removeMemberTarget) return;
+    setProcessingId(removeMemberTarget.id);
     try {
-      await groupsService.removeMemberFromGroup(groupId, userId);
-      setMembers((prev) => prev.filter((m) => m.id_user !== userId));
+      await groupsService.removeMemberFromGroup(groupId, removeMemberTarget.id);
+      setMembers((prev) => prev.filter((m) => m.id_user !== removeMemberTarget.id));
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
       console.error('Error removing member:', errorObj.message);
     } finally {
       setProcessingId(null);
+      setRemoveMemberTarget(null);
     }
   };
 
   const handleTransferOwnership = async (newOwnerId: number) => {
-    if (!window.confirm('¿Transferir la propiedad del grupo? Esta acción no se puede deshacer.')) return;
-    setProcessingId(newOwnerId);
+    const member = members.find((m) => m.id_user === newOwnerId);
+    setTransferConfirmTarget({ id: newOwnerId, name: member?.user?.full_name || 'Usuario' });
+  };
+
+  const confirmTransferOwnership = async () => {
+    if (!transferConfirmTarget) return;
+    setProcessingId(transferConfirmTarget.id);
     try {
-      await groupsService.transferOwnership(groupId, newOwnerId);
+      await groupsService.requestOwnershipTransfer(groupId, transferConfirmTarget.id);
+      showToast.success('Solicitud enviada', `Se notificó a ${transferConfirmTarget.name} sobre la transferencia.`);
       loadData();
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
-      console.error('Error transferring ownership:', errorObj.message);
+      showToast.error('Error', errorObj.message || 'No se pudo solicitar la transferencia.');
     } finally {
       setProcessingId(null);
+      setTransferConfirmTarget(null);
+    }
+  };
+
+  const makeAdminMutation = useMakeMemberAdmin();
+  const [makeAdminTarget, setMakeAdminTarget] = useState<{ id: number; name: string } | null>(null);
+  const [rejectConfirmTarget, setRejectConfirmTarget] = useState<number | null>(null);
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
+  const [transferConfirmTarget, setTransferConfirmTarget] = useState<{ id: number; name: string } | null>(null);
+
+  const handleMakeAdmin = async () => {
+    if (!makeAdminTarget) return;
+    setProcessingId(makeAdminTarget.id);
+    try {
+      await makeAdminMutation.mutateAsync({ groupId, memberId: makeAdminTarget.id });
+      loadData();
+    } catch (err: unknown) {
+      const errorObj = err as { message?: string };
+      console.error('Error making member admin:', errorObj.message);
+    } finally {
+      setProcessingId(null);
+      setMakeAdminTarget(null);
     }
   };
 
@@ -114,6 +153,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   }
 
   return (
+    <>
     <div className={styles.container}>
       <div className={styles.section}>
         <div className={styles.sectionHeader}>
@@ -147,7 +187,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
                   </button>
                   <button
                     className={styles.rejectButton}
-                    onClick={() => handleRejectRequest(req.id_request)}
+                    onClick={() => setRejectConfirmTarget(req.id_request)}
                     disabled={processingId === req.id_request}
                   >
                     {processingId === req.id_request ? <div className={styles.spinner} /> : <X size={16} />}
@@ -165,6 +205,16 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
           <h3 className={styles.sectionTitle}>Miembros actuales</h3>
           {members.length > 0 && (
             <span className={styles.badgeGold}>{members.length}</span>
+          )}
+          {canManage && onInvite && (
+            <button
+              className={styles.inviteButton}
+              onClick={onInvite}
+              title="Invitar miembros"
+            >
+              <UserPlus size={16} />
+              <span>Invitar</span>
+            </button>
           )}
         </div>
 
@@ -188,6 +238,16 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
                 </div>
                 {canManage && !isOwner && (
                   <div className={styles.actions}>
+                    {!member.is_admin && (
+                      <button
+                        className={styles.makeAdminButton}
+                        onClick={() => setMakeAdminTarget({ id: member.id_user, name: member.user?.full_name || 'Usuario' })}
+                        disabled={processingId === member.id_user}
+                        title="Hacer administrador"
+                      >
+                        {processingId === member.id_user ? <div className={styles.spinner} /> : <Star size={16} />}
+                      </button>
+                    )}
                     <button
                       className={styles.transferButton}
                       onClick={() => handleTransferOwnership(member.id_user)}
@@ -212,5 +272,62 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
         )}
       </div>
     </div>
+
+      {/* Make Admin Confirmation */}
+      <ConfirmModal
+        visible={makeAdminTarget !== null}
+        title="Hacer Administrador"
+        message={`¿Convertir a ${makeAdminTarget?.name || 'este usuario'} en administrador del grupo?`}
+        confirmLabel="Hacer Admin"
+        cancelLabel="Cancelar"
+        variant="info"
+        onConfirm={handleMakeAdmin}
+        onCancel={() => setMakeAdminTarget(null)}
+        loading={makeAdminTarget !== null && processingId === makeAdminTarget.id}
+      />
+
+      {/* Reject Request Confirmation */}
+      <ConfirmModal
+        visible={rejectConfirmTarget !== null}
+        title="Rechazar solicitud"
+        message="¿Estás seguro de rechazar esta solicitud de acceso?"
+        confirmLabel="Rechazar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={() => {
+          if (rejectConfirmTarget !== null) {
+            handleRejectRequest(rejectConfirmTarget);
+          }
+          setRejectConfirmTarget(null);
+        }}
+        onCancel={() => setRejectConfirmTarget(null)}
+      />
+
+      {/* Remove Member Confirmation */}
+      <ConfirmModal
+        visible={removeMemberTarget !== null}
+        title="Eliminar miembro"
+        message={`¿Estás seguro de eliminar a ${removeMemberTarget?.name || 'este usuario'} del grupo?`}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmRemoveMember}
+        onCancel={() => setRemoveMemberTarget(null)}
+        loading={removeMemberTarget !== null && processingId === removeMemberTarget.id}
+      />
+
+      {/* Transfer Ownership Confirmation */}
+      <ConfirmModal
+        visible={transferConfirmTarget !== null}
+        title="Transferir propiedad"
+        message={`¿Solicitar a ${transferConfirmTarget?.name || 'este usuario'} que sea el nuevo administrador del grupo?`}
+        confirmLabel="Transferir"
+        cancelLabel="Cancelar"
+        variant="warning"
+        onConfirm={confirmTransferOwnership}
+        onCancel={() => setTransferConfirmTarget(null)}
+        loading={transferConfirmTarget !== null && processingId === transferConfirmTarget.id}
+      />
+    </>
   );
 };

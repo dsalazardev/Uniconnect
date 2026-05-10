@@ -130,6 +130,40 @@
   gap: 6px;
 }
 
+.makeAdminButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  color: #F59E0B;
+}
+
+.makeAdminButton:hover {
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.inviteButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 6px 12px;
+  background-color: rgba(217, 185, 126, 0.1);
+  border: 1px solid rgba(217, 185, 126, 0.3);
+  border-radius: 6px;
+  color: #D9B97E;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inviteButton:hover {
+  background-color: rgba(217, 185, 126, 0.2);
+}
+
 .acceptButton,
 .rejectButton,
 .transferButton,
@@ -175,6 +209,7 @@
   background-color: rgba(239, 68, 68, 0.1);
 }
 
+.makeAdminButton:disabled,
 .acceptButton:disabled,
 .rejectButton:disabled,
 .transferButton:disabled,

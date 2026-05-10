@@ -37,9 +37,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, currentUser, onEdit
   };
 
   const handleDelete = (): void => {
-    if (window.confirm('¿Estás seguro? Esta acción no se puede deshacer')) {
-      onDelete?.(event.id_event);
-    }
+    onDelete?.(event.id_event);
   };
 
   const formatDate = (dateString: string): string => {
