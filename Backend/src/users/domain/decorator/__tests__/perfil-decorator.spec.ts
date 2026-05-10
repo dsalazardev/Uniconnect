@@ -120,9 +120,20 @@ describe('CA #3: PerfilConInsignias', () => {
     expect(insignias.map(i => i.id)).not.toContain('veterano');
   });
 
-  it('retorna array vacío si no cumple ningún hito', () => {
+  it('siempre retorna al menos la insignia Registrado', () => {
     const insignias = calcularInsignias({ gruposCreados: 0, gruposParticipa: 0, mensajesEnviados: 0 }, null);
-    expect(insignias).toHaveLength(0);
+    expect(insignias.map(i => i.id)).toContain('registrado');
+    expect(insignias.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('desbloquea Participante con 1+ grupo participado', () => {
+    const insignias = calcularInsignias({ gruposCreados: 0, gruposParticipa: 1, mensajesEnviados: 0 }, null);
+    expect(insignias.map(i => i.id)).toContain('participante');
+  });
+
+  it('desbloquea Mensajero con 1+ mensaje enviado', () => {
+    const insignias = calcularInsignias({ gruposCreados: 0, gruposParticipa: 0, mensajesEnviados: 1 }, null);
+    expect(insignias.map(i => i.id)).toContain('mensajero');
   });
 });
 

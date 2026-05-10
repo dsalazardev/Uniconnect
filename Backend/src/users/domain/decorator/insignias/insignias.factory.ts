@@ -8,11 +8,32 @@ const CATALOGO: Array<{
   condicion: (stats: EstadisticasEstudiante, semestre: number | null) => boolean;
 }> = [
   {
+    id: 'registrado',
+    nombre: 'Registrado',
+    descripcion: 'Bienvenido a Uniconnect. ¡Tu cuenta está activa!',
+    icono: '🎒',
+    condicion: () => true,
+  },
+  {
+    id: 'participante',
+    nombre: 'Participante',
+    descripcion: 'Formas parte de al menos un grupo de estudio',
+    icono: '👥',
+    condicion: (s) => s.gruposParticipa >= 1,
+  },
+  {
     id: 'fundador',
     nombre: 'Fundador',
     descripcion: 'Creaste tu primer grupo de estudio',
     icono: '🏗️',
     condicion: (s) => s.gruposCreados >= 1,
+  },
+  {
+    id: 'mensajero',
+    nombre: 'Mensajero',
+    descripcion: 'Enviaste tu primer mensaje en un grupo',
+    icono: '✉️',
+    condicion: (s) => s.mensajesEnviados >= 1,
   },
   {
     id: 'explorador',
