@@ -24,8 +24,10 @@ class WebSocketService {
   private currentMembershipId: number | null = null;
   private currentGroupId: number | null = null;
   private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
+  private maxReconnectAttempts: number = Infinity;
   private pendingAuthData: AuthenticateData | null = null;
+  private pendingMessages: MessageSendData[] = [];
+  private onReconnectCallback: (() => void) | null = null;
   private visibilityChangeHandler: (() => void) | null = null;
 
   connect(serverUrl?: string) {
@@ -40,11 +42,11 @@ class WebSocketService {
     const url = serverUrl || getServerUrl();
 
     this.socket = io(url, {
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: this.maxReconnectAttempts,
+      reconnectionAttempts: Infinity,
     });
 
     this.setupEventListeners();
@@ -67,6 +69,9 @@ class WebSocketService {
           id_group: this.currentGroupId,
         });
       }
+      
+      this.flushPendingMessages();
+      this.onReconnectCallback?.();
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -76,11 +81,6 @@ class WebSocketService {
     this.socket.on('connect_error', (error) => {
       console.error('Error de conexión:', error.message);
       this.reconnectAttempts++;
-      
-      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error('Máximo de intentos de reconexión alcanzado');
-        this.disconnect();
-      }
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
@@ -94,16 +94,8 @@ class WebSocketService {
     }
 
     this.visibilityChangeHandler = () => {
-      if (document.hidden) {
-        // Page hidden - disconnect WebSocket
-        if (this.socket?.connected) {
-          this.disconnect();
-        }
-      } else {
-        // Page visible - reconnect if needed
-        if (this.pendingAuthData && !this.socket?.connected) {
-          this.connect();
-        }
+      if (!document.hidden && !this.socket?.connected) {
+        this.connect();
       }
     };
 
@@ -120,13 +112,12 @@ class WebSocketService {
       return;
     }
 
-    this.socket.emit('authenticate', data);
-    
-    this.socket.once('authenticate', (response: { success: boolean; id_membership?: number; error?: string }) => {
-      if (response.success && response.id_membership) {
+    this.socket.emit('authenticate', data, (response: { success: boolean; id_membership?: number; error?: string }) => {
+      if (response && response.success && response.id_membership) {
         this.currentMembershipId = response.id_membership;
-      } else {
-        console.error('Error de autenticación:', response.error || 'No eres miembro de este grupo');
+        console.log('[WS] Autenticado en sala, membership:', response.id_membership);
+      } else if (response && !response.success) {
+        console.error('[WS] Error de autenticación:', response.error || 'No eres miembro de este grupo');
       }
     });
     
@@ -135,7 +126,8 @@ class WebSocketService {
 
   sendMessage(data: MessageSendData) {
     if (!this.socket?.connected) {
-      console.error('Socket no conectado');
+      this.pendingMessages.push(data);
+      this.connect();
       return;
     }
     this.socket.emit('message:send', data);
@@ -269,6 +261,19 @@ class WebSocketService {
 
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  setOnReconnectCallback(callback: (() => void) | null) {
+    this.onReconnectCallback = callback;
+  }
+
+  private flushPendingMessages() {
+    while (this.pendingMessages.length > 0) {
+      const msg = this.pendingMessages.shift();
+      if (msg) {
+        this.socket?.emit('message:send', msg);
+      }
+    }
   }
 
   getCurrentGroupId(): number | null {

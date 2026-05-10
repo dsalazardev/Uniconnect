@@ -84,7 +84,7 @@ export const api = createApiClient({
     clearAuth: () => authStore.clearAuth(),
   },
   timeout: 10000,
-  enableFENValidation: true,
+  enableFENValidation: false,
   debug: false,
 });
 

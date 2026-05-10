@@ -1,0 +1,26 @@
+.mentionWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  position: relative;
+}
+
+.mentionAccent {
+  width: 3px;
+  border-radius: 2px;
+  background-color: #38BDF8;
+  margin-right: 6px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mentionIcon {
+  margin-left: 4px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}

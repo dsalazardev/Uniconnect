@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx';
 
 export class NotificationsStore {
   unreadCount: number = 0;
+  lastNotificationId: number | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -9,6 +10,10 @@ export class NotificationsStore {
 
   setUnreadCount(count: number) {
     this.unreadCount = count;
+  }
+
+  setLastNotificationId(id: number | null) {
+    this.lastNotificationId = id;
   }
 
   increment() {
@@ -21,6 +26,7 @@ export class NotificationsStore {
 
   reset() {
     this.unreadCount = 0;
+    this.lastNotificationId = null;
   }
 }
 

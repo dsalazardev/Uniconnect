@@ -11,7 +11,7 @@ import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { GroupAdminPanel } from './GroupAdminPanel';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
-import { useChat } from '@/features/messages/hooks/useChat';
+import { useChat } from '@/features/messages/hooks/useChat.tsx';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
@@ -276,6 +276,7 @@ export const GroupDetail: React.FC = () => {
                 loading={chat.loading}
                 onEdit={handleEditMessage}
                 onDelete={handleDeleteMessage}
+                onFilePress={(file) => chat.downloadFile(file)}
               />
               <MessageInput
                 onSend={handleSendOrEdit}

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { authStore } from '@/features/auth';
+import { authStore } from '@/features/auth/store/AuthStore';
 import { websocketService } from '@/features/messages/services/websocket.service';
 import { notificationObserver } from '../services/notification-observer.service';
 
@@ -35,7 +35,7 @@ export const useRealtimeNotifications = () => {
     return () => {
       websocketService.off('notification:new', handleNotification);
     };
-  }, []);
+  }, [authStore.isAuthenticated]);
 };
 
 /**

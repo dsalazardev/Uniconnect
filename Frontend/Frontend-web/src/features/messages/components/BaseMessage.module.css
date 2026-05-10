@@ -1,0 +1,17 @@
+.text {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.ownText {
+  color: #1a1a1a;
+}
+
+.theirText {
+  color: #FFFFFF;
+}
+
+.mention {
+  color: #38BDF8;
+  font-weight: 700;
+}

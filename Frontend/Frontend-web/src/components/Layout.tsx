@@ -7,6 +7,8 @@ import { notificationsService } from '@/features/notifications/services';
 import { notificationsStore } from '@/features/notifications/store/notifications.store';
 import { NotificationCenter } from '@/features/notifications/components/NotificationCenter';
 import { NotificationBadge } from '@/features/notifications/components/NotificationBadge';
+import { useRealtimeNotifications } from '@/features/notifications/hooks/useRealtimeNotifications';
+import { useNotificationPolling } from '@/features/notifications/hooks/useNotificationPolling.tsx';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import styles from './Layout.module.css';
 
@@ -18,6 +20,10 @@ export const Layout = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // Iniciar observadores de notificaciones (real-time + polling)
+  useRealtimeNotifications();
+  useNotificationPolling();
 
   useEffect(() => {
     if (!isAuthenticated) return;

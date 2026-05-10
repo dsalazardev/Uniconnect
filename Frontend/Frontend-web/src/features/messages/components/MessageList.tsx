@@ -1,15 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Pencil, Trash2, MoreVertical, X, FileText } from 'lucide-react';
+import { MessageCircle, Pencil, Trash2, MoreVertical, X } from 'lucide-react';
 import type { Message } from '@uniconnect/shared';
+import { BaseMessage } from './BaseMessage';
+import { WithFileAttachment } from './WithFileAttachment';
 import styles from './MessageList.module.css';
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
 
 interface MessageListProps {
   messages: Message[];
@@ -17,6 +11,7 @@ interface MessageListProps {
   loading?: boolean;
   onEdit?: (message: Message) => void;
   onDelete?: (messageId: number) => void;
+  onFilePress?: (file: { id_file: number; file_name: string }) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -25,6 +20,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   loading = false,
   onEdit,
   onDelete,
+  onFilePress,
 }) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
@@ -78,26 +74,11 @@ export const MessageList: React.FC<MessageListProps> = ({
                   isOwnMessage ? styles.ownBubble : styles.otherBubble
                 }`}
               >
-                {message.text_content && (
-                  <p className={styles.messageText}>{message.text_content}</p>
-                )}
-                {message.files && message.files.length > 0 && (
-                  <div className={styles.fileList}>
-                    {message.files.map((file) => (
-                      <a
-                        key={file.id_file}
-                        href={file.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.fileAttachment}
-                      >
-                        <FileText size={16} />
-                        <span className={styles.fileName}>{file.file_name}</span>
-                        <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
-                      </a>
-                    ))}
-                  </div>
-                )}
+                <WithFileAttachment files={message.files ?? []} onFilePress={onFilePress}>
+                  {message.text_content ? (
+                    <BaseMessage text={message.text_content} isOwnMessage={isOwnMessage} />
+                  ) : null}
+                </WithFileAttachment>
                 <div className={styles.messageMeta}>
                   {message.is_edited && (
                     <span className={styles.editedLabel}>Editado</span>
