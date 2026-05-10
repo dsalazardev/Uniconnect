@@ -30,7 +30,7 @@ export class InAppWebSocketStrategy implements INotificacionStrategy {
 
       const sockets = this.sessionManager.getUserSockets(notificacion.id_user);
       sockets.forEach((socketId) => {
-        this.chatGateway.server.to(socketId).emit('notificacion', {
+        this.chatGateway.server.to(socketId).emit('notification:new', {
           mensaje: notificacion.mensaje,
           tipo_evento: notificacion.tipo_evento,
           entidad_relacionada_id: notificacion.entidad_relacionada_id,

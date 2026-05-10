@@ -178,4 +178,81 @@ export class NotificationEventListener {
       this.logger.error('Error handling GROUP_JOIN_REQUEST_REJECTED event:', error);
     }
   }
+
+  @OnEvent('group.ownership_transfer_requested')
+  async handleOwnershipTransferRequested(payload: {
+    id_group: number;
+    group_name: string;
+    current_owner_id: number;
+    candidate_id: number;
+    candidate_name: string;
+  }) {
+    try {
+      await this.notificationsService.enviarNotificacion({
+        id_user: payload.candidate_id,
+        mensaje: `Te han propuesto como administrador del grupo "${payload.group_name}"`,
+        tipo_evento: 'admin_transfer_requested',
+        entidad_relacionada_id: payload.id_group,
+      });
+    } catch (error) {
+      this.logger.error('Error handling group.ownership_transfer_requested event:', error);
+    }
+  }
+
+  @OnEvent('group.ownership_transfer_accepted')
+  async handleOwnershipTransferAccepted(payload: {
+    id_group: number;
+    group_name: string;
+    previous_owner_id: number;
+    new_owner_id: number;
+  }) {
+    try {
+      await this.notificationsService.enviarNotificacion({
+        id_user: payload.previous_owner_id,
+        mensaje: `La transferencia de administración del grupo "${payload.group_name}" fue aceptada`,
+        tipo_evento: 'admin_transfer_accepted',
+        entidad_relacionada_id: payload.id_group,
+      });
+    } catch (error) {
+      this.logger.error('Error handling group.ownership_transfer_accepted event:', error);
+    }
+  }
+
+  @OnEvent('group.ownership_transfer_declined')
+  async handleOwnershipTransferDeclined(payload: {
+    id_group: number;
+    group_name: string;
+    owner_id: number;
+    declined_by: number;
+  }) {
+    try {
+      await this.notificationsService.enviarNotificacion({
+        id_user: payload.owner_id,
+        mensaje: `El candidato rechazó la administración del grupo "${payload.group_name}"`,
+        tipo_evento: 'admin_transfer_declined',
+        entidad_relacionada_id: payload.id_group,
+      });
+    } catch (error) {
+      this.logger.error('Error handling group.ownership_transfer_declined event:', error);
+    }
+  }
+
+  @OnEvent('group.ownership_transfer_cancelled')
+  async handleOwnershipTransferCancelled(payload: {
+    id_group: number;
+    group_name: string;
+    owner_id: number;
+    cancelled_candidate_id: number;
+  }) {
+    try {
+      await this.notificationsService.enviarNotificacion({
+        id_user: payload.cancelled_candidate_id,
+        mensaje: `La solicitud de transferencia del grupo "${payload.group_name}" fue cancelada`,
+        tipo_evento: 'admin_transfer_declined',
+        entidad_relacionada_id: payload.id_group,
+      });
+    } catch (error) {
+      this.logger.error('Error handling group.ownership_transfer_cancelled event:', error);
+    }
+  }
 }

@@ -40,7 +40,9 @@ export class GroupsModule implements OnModuleInit {
    * Called automatically by NestJS when the module is initialized.
    */
   onModuleInit() {
+    // Solo el observer de WebSocket está adjunto al Subject.
+    // La persistencia en DB, email y push la gestiona el patrón Strategy
+    // a través de NotificationEventListener → NotificationsService.
     this.subject.attach(this.webSocketObserver);
-    this.subject.attach(this.persistenceObserver);
   }
 }

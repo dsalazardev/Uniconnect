@@ -47,7 +47,12 @@ export class WebSocketNotificationObserver
       try {
         this.chatGateway.server
           .to(socketId)
-          .emit('study_group_notification', event);
+          .emit('notification:new', {
+            mensaje: (event.payload.group_name as string) ? `Notificación del grupo ${event.payload.group_name as string}` : 'Nueva notificación',
+            tipo_evento: event.type.toLowerCase(),
+            entidad_relacionada_id: event.payload.id_group,
+            timestamp: event.timestamp,
+          });
         this.logger.log(
           `Emitted to socket ${socketId} for user ${targetUserId}`,
         );

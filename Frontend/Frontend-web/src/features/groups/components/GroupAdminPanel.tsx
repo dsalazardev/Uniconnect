@@ -58,7 +58,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
       loadData();
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
-      console.error('Error accepting request:', errorObj.message);
+      showToast.error('Error', errorObj.message || 'No se pudo aceptar la solicitud.');
     } finally {
       setProcessingId(null);
     }
@@ -71,7 +71,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
       setPendingRequests((prev) => prev.filter((r) => r.id_request !== requestId));
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
-      console.error('Error rejecting request:', errorObj.message);
+      showToast.error('Error', errorObj.message || 'No se pudo rechazar la solicitud.');
     } finally {
       setProcessingId(null);
     }
@@ -90,7 +90,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
       setMembers((prev) => prev.filter((m) => m.id_user !== removeMemberTarget.id));
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
-      console.error('Error removing member:', errorObj.message);
+      showToast.error('Error', errorObj.message || 'No se pudo eliminar al miembro.');
     } finally {
       setProcessingId(null);
       setRemoveMemberTarget(null);
@@ -132,7 +132,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
       loadData();
     } catch (err: unknown) {
       const errorObj = err as { message?: string };
-      console.error('Error making member admin:', errorObj.message);
+      showToast.error('Error', errorObj.message || 'No se pudo asignar el rol de administrador.');
     } finally {
       setProcessingId(null);
       setMakeAdminTarget(null);

@@ -629,18 +629,16 @@ export class GroupsService {
           },
         });
 
-        // Notificar al owner mediante Observer pattern
-        this.studyGroupSubject.notify({
-          type: 'JOIN_REQUEST',
-          payload: {
-            id_request: joinRequest.id_request,
-            id_group: groupId,
-            group_name: group.name ?? 'Grupo',
-            requester_id: userId,
-            requester_name: joinRequest.requester?.full_name ?? 'Usuario',
-          },
-          targetUserId: group.owner_id!,
-          timestamp: new Date(),
+        // Strategy pattern: eventEmitter → NotificationEventListener → enviarNotificacion (email + push + WS)
+        this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_SENT, {
+          id_request: joinRequest.id_request,
+          id_group: groupId,
+          group_name: group.name ?? 'Grupo',
+          owner_id: group.owner_id!,
+          requester_id: userId,
+          requester_name: joinRequest.requester?.full_name ?? 'Usuario',
+          requester_picture: joinRequest.requester?.picture ?? null,
+          requested_at: joinRequest.requested_at,
         });
 
         return joinRequest;
@@ -818,16 +816,12 @@ export class GroupsService {
       });
     });
 
-    // Notificar al requester mediante Observer pattern
-    this.studyGroupSubject.notify({
-      type: 'MEMBER_ACCEPTED',
-      payload: {
-        id_request: requestId,
-        id_group: groupId,
-        group_name: updatedRequest.group?.name ?? 'Grupo',
-      },
-      targetUserId: request.requester_id,
-      timestamp: new Date(),
+    // Strategy pattern: eventEmitter → NotificationEventListener → enviarNotificacion (email + push + WS)
+    this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED, {
+      id_request: requestId,
+      id_group: groupId,
+      group_name: updatedRequest.group?.name ?? 'Grupo',
+      requester_id: request.requester_id,
     });
 
     return updatedRequest;
@@ -865,16 +859,12 @@ export class GroupsService {
       include: { group: { select: { name: true } } },
     });
 
-    // Notificar al requester mediante Observer pattern
-    this.studyGroupSubject.notify({
-      type: 'MEMBER_REJECTED',
-      payload: {
-        id_request: requestId,
-        id_group: groupId,
-        group_name: rejectedRequest.group?.name ?? 'Grupo',
-      },
-      targetUserId: request.requester_id,
-      timestamp: new Date(),
+    // Strategy pattern: eventEmitter → NotificationEventListener → enviarNotificacion (email + push + WS)
+    this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_REJECTED, {
+      id_request: requestId,
+      id_group: groupId,
+      group_name: rejectedRequest.group?.name ?? 'Grupo',
+      requester_id: request.requester_id,
     });
 
     return rejectedRequest;
