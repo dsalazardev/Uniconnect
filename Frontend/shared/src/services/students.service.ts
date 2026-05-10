@@ -10,7 +10,7 @@
  */
 
 import type { AxiosInstance } from 'axios';
-import type { StudentProfile, Student, UpdateProfileData } from '../types/students';
+import type { StudentProfile, Student, UpdateProfileData, PerfilBase, PerfilCompleto } from '../types/students';
 import { STUDENTS_ENDPOINTS } from '../api/endpoints';
 
 export class StudentsService {
@@ -78,5 +78,19 @@ export class StudentsService {
   async getStudentProfile(userId: number): Promise<StudentProfile> {
     const response = await this.api.get(STUDENTS_ENDPOINTS.GET_STUDENT_PROFILE(userId));
     return response.data;
+  }
+
+  // ─── US-D02: Decorator pattern ────────────────────────────────────────────
+
+  /** GET /perfil/:id — solo perfil base (CA #5, sin costo extra) */
+  async getPerfilBase(userId: number): Promise<PerfilBase> {
+    const { data } = await this.api.get(STUDENTS_ENDPOINTS.GET_PERFIL_BASE(userId));
+    return data;
+  }
+
+  /** GET /perfil/:id?vista=completa — perfil con estadísticas e insignias (CA #4) */
+  async getPerfilCompleto(userId: number): Promise<PerfilCompleto> {
+    const { data } = await this.api.get(STUDENTS_ENDPOINTS.GET_PERFIL_COMPLETO(userId));
+    return data;
   }
 }

@@ -51,3 +51,38 @@ export interface UpdateProfileData {
   current_semester?: string;
   image?: string;
 }
+
+// ─── Patrón Decorator US-D02 ──────────────────────────────────────────────────
+
+export interface AsignaturaActiva {
+  id_course: number;
+  nombre: string;
+}
+
+export interface EstadisticasEstudiante {
+  gruposCreados: number;
+  gruposParticipa: number;
+  mensajesEnviados: number;
+}
+
+export interface InsigniaEstudiante {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  icono: string;
+}
+
+/** Respuesta de GET /perfil/:id (solo perfil base, sin costo extra) */
+export interface PerfilBase {
+  id: number;
+  nombre: string;
+  carrera: string | null;
+  semestre: number | null;
+  asignaturasActivas: AsignaturaActiva[];
+}
+
+/** Respuesta de GET /perfil/:id?vista=completa (todos los decoradores aplicados) */
+export interface PerfilCompleto extends PerfilBase {
+  estadisticas: EstadisticasEstudiante;
+  insignias: InsigniaEstudiante[];
+}
