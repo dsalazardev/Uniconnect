@@ -31,6 +31,12 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         return { emoji: '❌', color: '#EF4444' };
       case 'mention':
         return { emoji: '@', color: '#38BDF8' };
+      case 'admin_transfer_requested':
+        return { emoji: '🛡️', color: '#A855F7' };
+      case 'admin_transfer_accepted':
+        return { emoji: '🛡✅', color: '#22C55E' };
+      case 'admin_transfer_declined':
+        return { emoji: '🛡❌', color: '#EF4444' };
       default:
         return { emoji: '🔔', color: '#D9B97E' };
     }

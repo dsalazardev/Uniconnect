@@ -104,6 +104,17 @@ export const useUserNotifications = () => {
         navigate('/groups?tab=invitaciones');
         break;
       case 'admin_transfer_requested':
+        // El candidato: ir al grupo para aceptar/rechazar la transferencia
+        navigate(entityId ? `/groups/${entityId}?acceptTransfer=true` : '/groups');
+        break;
+      case 'admin_transfer_accepted':
+        // El owner anterior: la transferencia se completó
+        navigate(entityId ? `/groups/${entityId}` : '/groups');
+        break;
+      case 'admin_transfer_declined':
+        // El owner: el candidato rechazó, gestionar el grupo
+        navigate(entityId ? `/groups/${entityId}` : '/groups');
+        break;
       case 'group_invitation_accepted':
       case 'user_joined_group':
       case 'join_request':

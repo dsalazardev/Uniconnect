@@ -140,7 +140,7 @@ export const useUserNotifications = () => {
         break;
 
       case 'admin_transfer_requested':
-        // El candidato recibe esto: ir al grupo con el modal de info abierto para aceptar/rechazar
+        // El candidato recibe esto: ir al grupo con el modal para aceptar/rechazar
         if (notification.related_entity_id) {
           router.push({
             pathname: '/groups/[id]',
@@ -150,6 +150,24 @@ export const useUserNotifications = () => {
               autoOpenAccept: 'true',
             },
           } as any);
+        } else {
+          router.push('/(tabs)/groups');
+        }
+        break;
+
+      case 'admin_transfer_accepted':
+        // El owner anterior recibe esto: la transferencia se completó
+        if (notification.related_entity_id) {
+          router.push(`/groups/${notification.related_entity_id}` as any);
+        } else {
+          router.push('/(tabs)/groups');
+        }
+        break;
+
+      case 'admin_transfer_declined':
+        // El owner recibe esto: el candidato rechazó, volver a gestionar el grupo
+        if (notification.related_entity_id) {
+          router.push(`/groups/${notification.related_entity_id}` as any);
         } else {
           router.push('/(tabs)/groups');
         }

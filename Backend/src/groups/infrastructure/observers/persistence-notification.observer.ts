@@ -40,6 +40,8 @@ export class PersistenceNotificationObserver
     // Enviar push Expo para eventos críticos que requieren acción del usuario
     if (
       type === 'ADMIN_TRANSFER_REQUESTED' ||
+      type === 'ADMIN_TRANSFER_ACCEPTED' ||
+      type === 'ADMIN_TRANSFER_DECLINED' ||
       type === 'MEMBER_ACCEPTED' ||
       type === 'JOIN_REQUEST'
     ) {
@@ -100,7 +102,9 @@ export class PersistenceNotificationObserver
       case 'ADMIN_TRANSFER_REQUESTED':
         return `Te han propuesto como administrador del grupo: ${groupName}`;
       case 'ADMIN_TRANSFER_ACCEPTED':
-        return `Transferiste la administración del grupo '${groupName}' a ${newOwnerName}`;
+        return `Has aceptado la administración del grupo '${groupName}'`;
+      case 'ADMIN_TRANSFER_DECLINED':
+        return `El candidato rechazó la administración del grupo '${groupName}'`;
       default:
         return `Notificación del grupo '${groupName}'`;
     }
@@ -207,6 +211,10 @@ export class PersistenceNotificationObserver
         return '✅ Solicitud aceptada';
       case 'ADMIN_TRANSFER_REQUESTED':
         return '🛡️ Invitación de Administración';
+      case 'ADMIN_TRANSFER_ACCEPTED':
+        return '✅ Transferencia aceptada';
+      case 'ADMIN_TRANSFER_DECLINED':
+        return '❌ Transferencia rechazada';
       default:
         return '🔔 Notificación de grupo';
     }
