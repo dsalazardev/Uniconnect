@@ -167,6 +167,13 @@ export class GroupsService {
       throw new ForbiddenException('No tienes permisos para eliminar este grupo. Solo el propietario puede hacerlo.');
     }
 
+    // Patrón State: el estado PendienteTransferencia bloquea la eliminación
+    if (group.pending_owner_id !== null) {
+      throw new BadRequestException(
+        'No puedes eliminar el grupo mientras hay una transferencia de administración pendiente. Cancela la transferencia primero.',
+      );
+    }
+
     try {
       // Obtener lista de miembros ANTES de eliminar el grupo
       const members = await this.prisma.membership.findMany({
@@ -1020,11 +1027,18 @@ export class GroupsService {
     // Verificar que quien ejecuta es el owner o un admin
     const group = await this.prisma.group.findUnique({
       where: { id_group: groupId },
-      select: { owner_id: true },
+      select: { owner_id: true, pending_owner_id: true },
     });
 
     if (!group || group.owner_id !== userId) {
       throw new ForbiddenException('No tienes permiso para sacar miembros');
+    }
+
+    // Patrón State: el estado PendienteTransferencia bloquea la eliminación de miembros
+    if (group.pending_owner_id !== null) {
+      throw new BadRequestException(
+        'No puedes eliminar miembros mientras hay una transferencia de administración pendiente. Cancela la transferencia primero.',
+      );
     }
 
     const membership = await this.prisma.membership.findUnique({
