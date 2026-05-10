@@ -1,19 +1,27 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStudentProfile } from '../hooks/useStudentProfile';
+import { usePerfilCompleto } from '../hooks/usePerfilEstudiante';
 import { LoadingSpinner } from '@/components/elements';
 import { useConnectionStatus, useConnections } from '@/features/connections/hooks/useConnections';
 import { authStore } from '@/features/auth/store/AuthStore';
-import { ArrowLeft, Smartphone, UserPlus, UserCheck, Send, MessageCircle, X, Check } from 'lucide-react';
+import { ArrowLeft, Smartphone, UserPlus, UserCheck, Send, MessageCircle, X, Check, BarChart2, Award } from 'lucide-react';
 import styles from './StudentProfile.module.css';
 
 export const StudentProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const targetUserId = Number(id);
   const currentUser = authStore.user;
   const isOwnProfile = currentUser?.id_user === targetUserId;
+  const vistaCompleta = searchParams.get('vista') === 'completa';
+
   const { data: profile, isLoading, error } = useStudentProfile(targetUserId);
+  const { data: perfilCompleto, isLoading: loadingCompleto } = usePerfilCompleto(
+    targetUserId,
+    vistaCompleta,
+  );
   const {
     connectionStatus,
     isLoadingStatus,
@@ -49,9 +57,20 @@ export const StudentProfile: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <button className={styles.backButton} onClick={() => navigate('/students')}>
-        <ArrowLeft size={20} /> Volver
-      </button>
+      <div className={styles.topBar}>
+        <button className={styles.backButton} onClick={() => navigate('/students')}>
+          <ArrowLeft size={20} /> Volver
+        </button>
+        <button
+          className={vistaCompleta ? styles.vistaBaseButton : styles.vistaCompletaButton}
+          onClick={() => {
+            const next = vistaCompleta ? `/students/${id}` : `/students/${id}?vista=completa`;
+            navigate(next);
+          }}
+        >
+          {vistaCompleta ? 'Ver perfil base' : 'Ver perfil completo'}
+        </button>
+      </div>
 
       <div className={styles.header}>
         <img
@@ -176,6 +195,56 @@ export const StudentProfile: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* US-D02: Secciones del perfil completo (decoradores) */}
+      {vistaCompleta && loadingCompleto && (
+        <LoadingSpinner size="sm" label="Cargando perfil completo..." />
+      )}
+
+      {vistaCompleta && perfilCompleto?.estadisticas && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <BarChart2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            Estadísticas
+          </h2>
+          <div className={styles.infoGrid}>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Grupos creados:</span>
+              <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposCreados}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Grupos en los que participa:</span>
+              <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposParticipa}</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>Mensajes enviados:</span>
+              <span className={styles.infoValue}>{perfilCompleto.estadisticas.mensajesEnviados}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {vistaCompleta && perfilCompleto?.insignias && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Award size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+            Insignias
+          </h2>
+          {perfilCompleto.insignias.length === 0 ? (
+            <p className={styles.emptyText}>Aún no has desbloqueado insignias. ¡Sigue participando!</p>
+          ) : (
+            <div className={styles.insigniasGrid}>
+              {perfilCompleto.insignias.map((insignia) => (
+                <div key={insignia.id} className={styles.insigniaCard} title={insignia.descripcion}>
+                  <span className={styles.insigniaIcono}>{insignia.icono}</span>
+                  <span className={styles.insigniaNombre}>{insignia.nombre}</span>
+                  <span className={styles.insigniaDesc}>{insignia.descripcion}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
