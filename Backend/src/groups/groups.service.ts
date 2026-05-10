@@ -617,18 +617,6 @@ export class GroupsService {
           },
         });
 
-        // Emitir evento para notificar al owner del grupo
-        this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_SENT, {
-          id_request: joinRequest.id_request,
-          id_group: groupId,
-          group_name: group.name ?? 'Grupo',
-          owner_id: group.owner_id!,
-          requester_id: userId,
-          requester_name: joinRequest.requester?.full_name ?? 'Usuario',
-          requester_picture: joinRequest.requester?.picture ?? null,
-          requested_at: joinRequest.requested_at,
-        });
-
         // Notificar al owner mediante Observer pattern
         this.studyGroupSubject.notify({
           type: 'JOIN_REQUEST',
@@ -818,16 +806,6 @@ export class GroupsService {
       });
     });
 
-    // Notificar al requester que fue aceptado
-    this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED, {
-      id_request: requestId,
-      id_group: groupId,
-      group_name: updatedRequest.group?.name ?? 'Grupo',
-      requester_id: request.requester_id,
-      requester_name: updatedRequest.requester?.full_name ?? 'Usuario',
-      responded_at: new Date(),
-    });
-
     // Notificar al requester mediante Observer pattern
     this.studyGroupSubject.notify({
       type: 'MEMBER_ACCEPTED',
@@ -873,15 +851,6 @@ export class GroupsService {
         responded_at: new Date(),
       },
       include: { group: { select: { name: true } } },
-    });
-
-    // Notificar al requester que fue rechazado
-    this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_REJECTED, {
-      id_request: requestId,
-      id_group: groupId,
-      group_name: rejectedRequest.group?.name ?? 'Grupo',
-      requester_id: request.requester_id,
-      responded_at: new Date(),
     });
 
     // Notificar al requester mediante Observer pattern
