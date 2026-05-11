@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth0Client, getAuth0Config } from '../lib/auth0-client';
+import { getAuth0Config } from '../lib/auth0-client';
 import { authService } from '../services';
 import { authStore } from '../store/AuthStore';
 
@@ -114,16 +114,12 @@ export function useWebAuth() {
             return;
           }
 
-          // Auth0 session is still active with the rejected account — force fresh login next time
-          sessionStorage.setItem('auth_force_login', 'true');
           setError(fenResponse.message || 'Error de autenticación');
           cleanUrlParams();
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Error en autenticación';
         console.error('Auth callback error:', err);
-        // Auth0 session may be stale — force fresh login next time
-        sessionStorage.setItem('auth_force_login', 'true');
         setError(message);
         cleanUrlParams();
       } finally {
@@ -164,18 +160,11 @@ export function useWebAuth() {
       const codeChallenge = await deriveCodeChallenge(codeVerifier);
       const redirectUri = window.location.origin + '/login';
 
-      // If a previous attempt failed (wrong domain, etc.), force Auth0 to show the login
-      // screen again instead of auto-reusing the cached SSO session
-      const forceLogin = sessionStorage.getItem('auth_force_login') === 'true';
-      sessionStorage.removeItem('auth_force_login');
-
       sessionStorage.setItem('auth_code_verifier', codeVerifier);
       sessionStorage.setItem('auth_state', state);
 
-      console.log("DEBUG INIT - Verifier stored in sessionStorage:", sessionStorage.getItem('auth_code_verifier') ? 'YES' : 'NO');
-
       const config = getAuth0Config();
-      const authParams: Record<string, string> = {
+      const params = new URLSearchParams({
         response_type: 'code',
         client_id: config.clientId,
         redirect_uri: redirectUri,
@@ -184,13 +173,8 @@ export function useWebAuth() {
         state: state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
-      };
-
-      if (forceLogin) {
-        authParams.prompt = 'login';
-      }
-
-      const params = new URLSearchParams(authParams);
+        prompt: 'login',
+      });
 
       window.location.assign(`https://${config.domain}/authorize?${params.toString()}`);
     } catch (err) {
@@ -200,15 +184,16 @@ export function useWebAuth() {
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    try {
-      const auth0 = await getAuth0Client();
-      authStore.clearAuth();
-      await auth0.logout({ logoutParams: { returnTo: window.location.origin + '/login' } });
-    } catch (err) {
-      console.error('Logout error:', err);
-      authStore.clearAuth();
-    }
+  const logout = useCallback(() => {
+    authStore.clearAuth();
+    const config = getAuth0Config();
+    const returnTo = encodeURIComponent(window.location.origin + '/login');
+    // Redirect directly to Auth0's logout endpoint to clear the SSO session cookie.
+    // Using the SDK's auth0.logout() is unreliable here because login was done via
+    // a manual PKCE flow, not through the SDK, so the SDK has no tokens cached.
+    window.location.assign(
+      `https://${config.domain}/v2/logout?client_id=${config.clientId}&returnTo=${returnTo}`
+    );
   }, []);
 
   return {
