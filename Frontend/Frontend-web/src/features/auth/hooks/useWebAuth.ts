@@ -100,23 +100,15 @@ export function useWebAuth() {
           const fenResponse = await authService.exchangeAuthorizationCode(authCode, redirectUri, codeVerifier);
 
           if (fenResponse.success && fenResponse.data) {
-            const data = fenResponse.data as any;
-
-            // New user — backend didn't create them yet; collect program/semester first
-            if (data.pending_registration_token) {
-              sessionStorage.setItem('pending_registration_token', data.pending_registration_token);
-              sessionStorage.setItem('pending_auth0_tokens', JSON.stringify(data.auth0_tokens));
-              authStore.setNeedsOnboarding(true);
-              cleanUrlParams();
-              navigate('/onboarding', { replace: true });
-              return;
-            }
-
-            // Existing user — set auth and go to app
-            const { access_token, user, auth0_tokens } = data;
+            const { access_token, user, auth0_tokens } = fenResponse.data as any;
             authStore.setAuth(access_token, user, auth0_tokens);
             cleanUrlParams();
-            navigate('/events', { replace: true });
+
+            if (user.needsOnboarding) {
+              navigate('/onboarding', { replace: true });
+            } else {
+              navigate('/events', { replace: true });
+            }
             // Note: intentionally NOT setting isLoading(false) here
             // The spinner should remain visible until navigation completes
             return;

@@ -213,40 +213,23 @@ export class AuthService {
              }
 
             const existingUser = await this.usersService.findByEmail(userProfile.email);
+            const isNewUser = !existingUser;
 
-            // New user — don't create yet. Return a short-lived pending token so the
-            // frontend can collect program + semester before the account is persisted.
-            if (!existingUser) {
-                const pendingToken = this.jwtService.sign(
-                    {
-                        type: 'pending_registration',
-                        email: userProfile.email,
-                        name: userProfile.name || userProfile.email,
-                        picture: userProfile.picture || null,
-                        google_sub: userProfile.sub,
-                    },
-                    { expiresIn: '1h' }
-                );
-
-                return {
-                    success: true,
-                    statusCode: 200,
-                    message: 'New user registration required',
-                    data: {
-                        needsOnboarding: true,
-                        pending_registration_token: pendingToken,
-                        auth0_tokens: {
-                            access_token: tokenResponse.access_token,
-                            id_token: tokenResponse.id_token,
-                            refresh_token: tokenResponse.refresh_token,
-                            expires_in: tokenResponse.expires_in,
-                        },
-                    },
-                };
+            let user = existingUser;
+            if (!user) {
+                const studentRole = await this.rolesService.getStudentRole();
+                if (!studentRole) {
+                    throw new Error('Rol "student" no encontrado en la base de datos. Ejecuta el seeder.');
+                }
+                user = await this.usersService.create({
+                    email: userProfile.email,
+                    full_name: userProfile.name || userProfile.email,
+                    picture: userProfile.picture || null,
+                    id_role: studentRole.id_role,
+                    google_sub: userProfile.sub,
+                });
             }
 
-            // Existing user — issue JWT immediately, no onboarding needed.
-            const user = existingUser;
             const permissionsClaims = await this.permissionsService.getClaimsForRole(user.id_role);
             const payload = {
                 sub: user.id_user,
@@ -271,7 +254,7 @@ export class AuthService {
                         email: user.email,
                         picture: user.picture,
                         id_program: user.id_program ?? null,
-                        needsOnboarding: false,
+                        needsOnboarding: isNewUser,
                     },
                     auth0_tokens: {
                         access_token: tokenResponse.access_token,
@@ -463,74 +446,4 @@ export class AuthService {
         }
     }
 
-    async registerNewUser(pendingToken: string, id_program: number, current_semester: number) {
-        // Verify the short-lived pending token issued during auth0Callback
-        let pendingData: any;
-        try {
-            pendingData = this.jwtService.verify(pendingToken);
-        } catch {
-            throw new UnauthorizedException({
-                success: false,
-                statusCode: 401,
-                message: 'Token de registro inválido o expirado. Inicia sesión nuevamente.',
-            });
-        }
-
-        if (pendingData.type !== 'pending_registration') {
-            throw new UnauthorizedException({
-                success: false,
-                statusCode: 401,
-                message: 'Token inválido.',
-            });
-        }
-
-        // Guard against duplicate registration (e.g. form double-submit)
-        let user = await this.usersService.findByEmail(pendingData.email);
-
-        if (!user) {
-            const studentRole = await this.rolesService.getStudentRole();
-            if (!studentRole) {
-                throw new Error('Rol "student" no encontrado en la base de datos. Ejecuta el seeder.');
-            }
-
-            user = await this.usersService.create({
-                email: pendingData.email,
-                full_name: pendingData.name,
-                picture: pendingData.picture,
-                id_role: studentRole.id_role,
-                google_sub: pendingData.google_sub,
-                id_program,
-                current_semester,
-            });
-        }
-
-        const permissionsClaims = await this.permissionsService.getClaimsForRole(user.id_role);
-        const payload = {
-            sub: user.id_user,
-            permissions: permissionsClaims.map(p => p.claim),
-            auth0_sub: pendingData.google_sub,
-            roleName: user.role?.name || 'student',
-        };
-
-        const jwt = this.jwtService.sign(payload);
-
-        return {
-            success: true,
-            statusCode: 201,
-            message: 'User registered successfully',
-            data: {
-                access_token: jwt,
-                user: {
-                    id_user: user.id_user,
-                    id_role: user.id_role,
-                    role: user.role,
-                    full_name: user.full_name,
-                    email: user.email,
-                    picture: user.picture,
-                    id_program: user.id_program ?? null,
-                    needsOnboarding: false,
-                },
-            },
-        };
-    }
 }

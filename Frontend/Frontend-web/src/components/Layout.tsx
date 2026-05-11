@@ -94,19 +94,6 @@ export const Layout = () => {
   };
 
   if (!isAuthenticated) {
-    // New users arrive at /onboarding before their account is created.
-    // Allow access while they have a pending registration token in sessionStorage.
-    if (
-      location.pathname === '/onboarding' &&
-      sessionStorage.getItem('pending_registration_token')
-    ) {
-      return (
-        <>
-          <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
-          <Outlet />
-        </>
-      );
-    }
     if (location.pathname !== '/login') {
       return <Navigate to="/login" replace />;
     }
