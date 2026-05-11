@@ -185,6 +185,21 @@ El proyecto utiliza:
 4. **Clean Architecture**: Separación clara de capas (Domain, Infrastructure, Application)
 5. **Programación Defensiva**: Try/catch en todas las operaciones async
 
+## 🚀 Despliegue (US-INF07)
+
+Se ha configurado con éxito el pipeline de **EAS Build** para la generación de binarios Android, permitiendo la distribución de versiones de prueba (Preview).
+
+- **Plataforma:** Android
+- **Perfil de Build:** `preview` (Genera archivo APK instalable)
+- **Estado:** Configurado y Validado (Login funcional con Auth0 y Backend)
+- **Enlace de descarga (Último Build):** [Descargar UniConnect APK](https://expo.dev/accounts/salazar04/projects/uniconnect_g/builds/1fae3daa-64cf-44a3-b796-ee4d66cc782b)
+
+### Instrucciones de Instalación
+1. Acceder al enlace desde un dispositivo Android.
+2. Descargar el archivo APK.
+3. Habilitar "Instalar aplicaciones de fuentes desconocidas" si es necesario.
+4. Ejecutar el instalador.
+
 ## 📄 Licencia
 
 MIT
