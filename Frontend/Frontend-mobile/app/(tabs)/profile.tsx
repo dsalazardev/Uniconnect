@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { useProfile } from "@/src/features/students/hooks/useProfile";
+import { usePerfilCompleto } from "@/src/features/students/hooks/usePerfilEstudiante";
 import { NewCourseModal } from "@/src/features/courses/components/NewCourse";
 import { useStudentCourses } from "@/src/features/courses/hooks/useStudentCourses";
 import { EditCourseModal } from "@/src/features/courses/components/EditCourse";
@@ -31,7 +32,11 @@ export default function ProfileScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [vistaCompleta, setVistaCompleta] = useState(false);
   const { profile, isLoading, isError, updateProfile, isUpdatingProfile } = useProfile();
+  const currentUserId = user?.id_user ?? 0;
+  const { data: perfilCompleto, isLoading: loadingCompleto, error: errorCompleto } =
+    usePerfilCompleto(currentUserId, vistaCompleta);
   const { deleteCourse, isDeletingCourse, updateCourse, isUpdatingCourse } = useStudentCourses();
 
   const [phone, setPhone] = useState(profile?.phone || "");
@@ -329,6 +334,70 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* US-D02: Estadísticas e Insignias (Decorator) */}
+        <TouchableOpacity
+          style={[
+            profileStyles.vistaButton,
+            { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" },
+            vistaCompleta && profileStyles.vistaButtonActive,
+          ]}
+          onPress={() => setVistaCompleta(!vistaCompleta)}
+        >
+          <Ionicons
+            name={vistaCompleta ? "stats-chart" : "stats-chart-outline"}
+            size={16}
+            color={vistaCompleta ? "#1a1a1a" : "#D9B97E"}
+          />
+          <Text style={[profileStyles.vistaButtonText, vistaCompleta && profileStyles.vistaButtonTextActive]}>
+            {vistaCompleta ? "Ocultar estadísticas" : "Ver estadísticas e insignias"}
+          </Text>
+        </TouchableOpacity>
+
+        {vistaCompleta && loadingCompleto && (
+          <ActivityIndicator size="small" color="#D9B97E" style={{ marginBottom: 12 }} />
+        )}
+
+        {vistaCompleta && !!errorCompleto && (
+          <View style={[profileStyles.decoratorSection, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+            <Text style={{ color: "#ef4444", fontSize: 13 }}>Error: {errorCompleto}</Text>
+          </View>
+        )}
+
+        {vistaCompleta && perfilCompleto && (
+          <>
+            <View style={[profileStyles.decoratorSection, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+              <Text style={profileStyles.decoratorTitle}>📊 Estadísticas</Text>
+              {[
+                { label: "Grupos creados", value: perfilCompleto.estadisticas.gruposCreados },
+                { label: "Grupos en los que participo", value: perfilCompleto.estadisticas.gruposParticipa },
+                { label: "Mensajes enviados", value: perfilCompleto.estadisticas.mensajesEnviados },
+              ].map((item) => (
+                <View style={profileStyles.statRow} key={item.label}>
+                  <Text style={profileStyles.statLabel}>{item.label}</Text>
+                  <Text style={profileStyles.statValue}>{item.value}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={[profileStyles.decoratorSection, { width: isDesktop ? "40%" : isTablet ? "40%" : "80%" }]}>
+              <Text style={profileStyles.decoratorTitle}>🏅 Mis Insignias</Text>
+              {perfilCompleto.insignias.length === 0 ? (
+                <Text style={{ color: "#9ca3af", fontSize: 13 }}>Aún no hay insignias desbloqueadas. ¡Sigue participando!</Text>
+              ) : (
+                <View style={profileStyles.insigniasGrid}>
+                  {perfilCompleto.insignias.map((ins) => (
+                    <View style={profileStyles.insigniaCard} key={ins.id}>
+                      <Text style={profileStyles.insigniaIcono}>{ins.icono}</Text>
+                      <Text style={profileStyles.insigniaNombre}>{ins.nombre}</Text>
+                      <Text style={profileStyles.insigniaDesc}>{ins.descripcion}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          </>
+        )}
+
         {/* Botón Guardar Cambios */}
         <TouchableOpacity
           style={[
@@ -598,4 +667,37 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 4,
   },
+});
+
+const profileStyles = StyleSheet.create({
+  vistaButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    borderWidth: 1, borderColor: '#D9B97E', borderRadius: 12,
+    paddingVertical: 10, paddingHorizontal: 16,
+    marginHorizontal: 15, marginBottom: 12, alignSelf: 'center',
+  },
+  vistaButtonActive: { backgroundColor: '#D9B97E' },
+  vistaButtonText: { color: '#D9B97E', fontWeight: '600', fontSize: 14 },
+  vistaButtonTextActive: { color: '#1a1a1a' },
+  decoratorSection: {
+    backgroundColor: 'rgba(26,26,26,0.9)', marginHorizontal: 15, marginBottom: 12,
+    borderRadius: 16, padding: 16, alignSelf: 'center',
+    borderWidth: 1, borderColor: 'rgba(217,185,126,0.2)',
+  },
+  decoratorTitle: { fontSize: 16, fontWeight: 'bold', color: '#fff', marginBottom: 12 },
+  statRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  statLabel: { color: '#aaa', fontSize: 14 },
+  statValue: { color: '#D9B97E', fontWeight: '700', fontSize: 16 },
+  insigniasGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
+  insigniaCard: {
+    backgroundColor: 'rgba(217,185,126,0.08)', borderWidth: 1,
+    borderColor: 'rgba(217,185,126,0.2)', borderRadius: 10,
+    padding: 10, alignItems: 'center', minWidth: 100, flex: 1,
+  },
+  insigniaIcono: { fontSize: 24, marginBottom: 4 },
+  insigniaNombre: { color: '#D9B97E', fontWeight: '700', fontSize: 11, textAlign: 'center', marginBottom: 2 },
+  insigniaDesc: { color: '#9ca3af', fontSize: 10, textAlign: 'center', lineHeight: 13 },
 });

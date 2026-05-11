@@ -421,3 +421,54 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* US-D02: Decorator styles */
+.vistaCompletaButton {
+  width: 100%;
+  background-color: #d9b97e;
+  color: #1a1a1a;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.vistaCompletaButton:hover { opacity: 0.85; }
+
+.vistaBaseButton {
+  width: 100%;
+  background-color: transparent;
+  color: #d9b97e;
+  border: 1px solid #d9b97e;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.vistaBaseButton:hover { background-color: rgba(217,185,126,0.1); }
+
+.insigniasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.insigniaCard {
+  background-color: rgba(217,185,126,0.08);
+  border: 1px solid rgba(217,185,126,0.25);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insigniaIcono { font-size: 26px; }
+.insigniaNombre { font-size: 12px; font-weight: 700; color: #d9b97e; }
+.insigniaDesc { font-size: 11px; color: #9ca3af; line-height: 1.3; }

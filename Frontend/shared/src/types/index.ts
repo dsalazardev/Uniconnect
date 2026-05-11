@@ -9,4 +9,7 @@ export * from './messages';
 export * from './notifications';
 export * from './connections';
 export * from './programs';
-export type { StudentProfile, Student, UpdateProfileData, Enrollment, CommonCourse } from './students';
+export type {
+  StudentProfile, Student, UpdateProfileData, Enrollment, CommonCourse,
+  PerfilBase, PerfilCompleto, AsignaturaActiva, EstadisticasEstudiante, InsigniaEstudiante,
+} from './students';

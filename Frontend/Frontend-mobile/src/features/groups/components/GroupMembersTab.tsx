@@ -20,6 +20,7 @@ import { TransferOwnershipModal } from './TransferOwnershipModal';
 import { useDirectMessage } from '../hooks/useDirectMessage';
 import { authStore } from '@/src/features/auth/store/AuthStore';
 import { ConfirmModal } from '@/src/components/ConfirmModal';
+import { showToast } from '@/src/lib/toast';
 
 interface GroupMembersTabProps {
   groupInfo: GroupInfo;
@@ -67,6 +68,9 @@ export const GroupMembersTab = ({ groupInfo, onClose }: GroupMembersTabProps) =>
         groupId: groupInfo.id_group,
         memberId: confirmRemove.memberId,
       });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'No se pudo sacar al miembro del grupo';
+      showToast.error('Error', message);
     } finally {
       setRemovingMemberId(null);
       setConfirmRemove(null);
