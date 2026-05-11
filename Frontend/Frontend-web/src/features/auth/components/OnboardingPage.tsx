@@ -9,8 +9,13 @@ import { showToast } from '@/lib/toast';
 export const OnboardingPage: React.FC = observer(() => {
   const navigate = useNavigate();
 
-  // Only new users (needsOnboarding=true set at login) reach this page
-  if (!authStore.needsOnboarding) {
+  // Show onboarding only when BOTH id_program AND current_semester are null
+  const user = authStore.user as any;
+  const needsOnboarding =
+    authStore.needsOnboarding ||
+    (user && user.id_program == null && user.current_semester == null);
+
+  if (!needsOnboarding) {
     return <Navigate to="/events" replace />;
   }
 

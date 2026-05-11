@@ -104,7 +104,9 @@ export function useWebAuth() {
             authStore.setAuth(access_token, user, auth0_tokens);
             cleanUrlParams();
 
-            if (user.needsOnboarding) {
+            // Derive from actual fields — show onboarding only when BOTH are null
+            const needsOnboarding = user.id_program == null && user.current_semester == null;
+            if (needsOnboarding) {
               navigate('/onboarding', { replace: true });
             } else {
               navigate('/events', { replace: true });

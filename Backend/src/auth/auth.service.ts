@@ -60,7 +60,7 @@ export class AuthService {
         const payload = { 
             sub: user.id_user, 
             permissions: permissionsClaims.map(p => p.claim),
-            roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+            roleName: user.role?.name || 'student'
         };
                 
         const jwt = this.jwtService.sign(payload);
@@ -68,7 +68,7 @@ export class AuthService {
             access_token: jwt,
             user: {
                 ...user,
-                role: user.role, // ⭐ Asegurar que role esté incluido
+                role: user.role, 
             },            
         };
     }
@@ -99,7 +99,7 @@ export class AuthService {
         const payload = { 
             sub: user.id_user, 
             permissions: permissionsClaims.map(p => p.claim),
-            roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+            roleName: user.role?.name || 'student' 
         };
                 
         const jwt = this.jwtService.sign(payload);
@@ -107,7 +107,7 @@ export class AuthService {
             access_token: jwt,
             user: {
                 ...user,
-                role: user.role, // ⭐ Asegurar que role esté incluido
+                role: user.role, 
             },            
         };
     }
@@ -257,6 +257,7 @@ export class AuthService {
                         email: user.email,
                         picture: user.picture,
                         id_program: user.id_program ?? null,
+                        current_semester: user.current_semester ?? null,
                         needsOnboarding,
                     },
                     auth0_tokens: {
