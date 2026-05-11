@@ -72,8 +72,8 @@ describe('StudyGroupSubject - Integration Tests', () => {
       expect(mockSessionManager.getUserSockets).toHaveBeenCalledWith(1);
       expect(mockChatGateway.server.to).toHaveBeenCalledWith('socket-1');
       expect(mockChatGateway.server.emit).toHaveBeenCalledWith(
-        'study_group_notification',
-        event,
+        'notification:new',
+        expect.objectContaining({ tipo_evento: 'join_request' }),
       );
     });
 
