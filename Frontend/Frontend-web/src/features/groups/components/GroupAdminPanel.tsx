@@ -13,6 +13,7 @@ interface GroupAdminPanelProps {
   ownerId?: number;
   canManage?: boolean;
   onInvite?: () => void;
+  showMembersSection?: boolean;
 }
 
 export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
@@ -20,6 +21,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   ownerId,
   canManage = false,
   onInvite,
+  showMembersSection = true,
 }) => {
   const [pendingRequests, setPendingRequests] = useState<GroupJoinRequest[]>([]);
   const [members, setMembers] = useState<GroupMembership[]>([]);
@@ -199,7 +201,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
         )}
       </div>
 
-      <div className={styles.section}>
+      {showMembersSection && <div className={styles.section}>
         <div className={styles.sectionHeader}>
           <Users size={20} color="#D9B97E" />
           <h3 className={styles.sectionTitle}>Miembros actuales</h3>
@@ -270,7 +272,7 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
             );
           })
         )}
-      </div>
+      </div>}
     </div>
 
       {/* Make Admin Confirmation */}

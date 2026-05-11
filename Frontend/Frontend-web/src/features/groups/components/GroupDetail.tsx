@@ -1,7 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useGroupInfo, useLeaveGroup } from '../hooks/useGroupInfo';
-import { useTransferOwnership } from '../hooks/useTransferOwnership';
 import { useDirectMessage } from '../hooks/useDirectMessage';
 import { MemberList } from './MemberList';
 import { InviteMemberModal } from './InviteMemberModal';
@@ -23,10 +22,10 @@ import styles from './GroupDetail.module.css';
 export const GroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const groupId = parseInt(id as string);
-  const { data: groupInfo, isLoading, error } = useGroupInfo(groupId);
+  const { data: groupInfo, isLoading, error, refetch } = useGroupInfo(groupId);
   const leaveGroup = useLeaveGroup();
-  const transferOwnership = useTransferOwnership();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
@@ -34,6 +33,12 @@ export const GroupDetail: React.FC = () => {
   const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+
+  // Member management state (for MemberList action buttons in the panel)
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
+  const [memberTransferTarget, setMemberTransferTarget] = useState<{ id: number; name: string } | null>(null);
+  const [processingMemberId, setProcessingMemberId] = useState<number | null>(null);
+
   const dm = useDirectMessage();
   const [availableUsers, setAvailableUsers] = useState<Array<{ id_user: number; full_name: string; email?: string }>>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -60,8 +65,18 @@ export const GroupDetail: React.FC = () => {
     userFullName: currentUser?.full_name || 'Usuario',
   });
 
+  // Issue 3 fix: reset panel when navigating between group/chat routes
+  useEffect(() => {
+    setShowInfoPanel(false);
+  }, [id]);
+
+  // Issue 4 fix: DM back button goes to /groups, not history(-1)
   const handleGoBack = () => {
-    navigate(-1);
+    if (location.pathname.startsWith('/chat/')) {
+      navigate('/groups');
+    } else {
+      navigate(-1);
+    }
   };
 
   const handleLeaveGroup = () => {
@@ -138,6 +153,47 @@ export const GroupDetail: React.FC = () => {
     showToast.success('Invitación enviada', 'La invitación fue enviada correctamente.');
   };
 
+  // Member management handlers (called from MemberList in the info panel)
+  const handleMemberTransfer = (userId: number) => {
+    const member = (groupInfo?.memberships || []).find((m) => m.id_user === userId);
+    setMemberTransferTarget({ id: userId, name: member?.user?.full_name || 'Usuario' });
+  };
+
+  const confirmMemberTransfer = async () => {
+    if (!memberTransferTarget) return;
+    setProcessingMemberId(memberTransferTarget.id);
+    try {
+      await groupsService.requestOwnershipTransfer(groupId, memberTransferTarget.id);
+      showToast.success('Solicitud enviada', `Se notificó a ${memberTransferTarget.name}.`);
+      refetch?.();
+    } catch (err: any) {
+      showToast.error('Error', err?.message || 'No se pudo solicitar la transferencia.');
+    } finally {
+      setProcessingMemberId(null);
+      setMemberTransferTarget(null);
+    }
+  };
+
+  const handleMemberRemove = (userId: number) => {
+    const member = (groupInfo?.memberships || []).find((m) => m.id_user === userId);
+    setRemoveMemberTarget({ id: userId, name: member?.user?.full_name || 'Usuario' });
+  };
+
+  const confirmMemberRemove = async () => {
+    if (!removeMemberTarget) return;
+    setProcessingMemberId(removeMemberTarget.id);
+    try {
+      await groupsService.removeMemberFromGroup(groupId, removeMemberTarget.id);
+      showToast.success('Miembro eliminado');
+      refetch?.();
+    } catch (err: any) {
+      showToast.error('Error', err?.message || 'No se pudo eliminar al miembro.');
+    } finally {
+      setProcessingMemberId(null);
+      setRemoveMemberTarget(null);
+    }
+  };
+
   // ── Loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -186,7 +242,7 @@ export const GroupDetail: React.FC = () => {
           <ArrowLeft size={18} /> Volver
         </button>
         <h1 className={styles.headerTitle}>{displayName}</h1>
-        {/* Three-dots: visible for group members (not DMs) */}
+        {/* Three-dots: only for group members (not DMs) */}
         {isMember && !isDirectMessage && (
           <button
             className={styles.menuButton}
@@ -320,7 +376,7 @@ export const GroupDetail: React.FC = () => {
                 )}
               </div>
 
-              {/* Members */}
+              {/* Members — with DM + Transfer + Remove buttons */}
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Miembros</h3>
                 <MemberList
@@ -329,17 +385,23 @@ export const GroupDetail: React.FC = () => {
                   ownerId={groupInfo.owner?.id_user}
                   currentUserId={currentUserId}
                   loadingUserId={dm.loadingUserId}
-                  onDirectMessage={dm.openDirectMessage}
+                  onDirectMessage={(userId) => {
+                    setShowInfoPanel(false);
+                    dm.openDirectMessage(userId);
+                  }}
+                  onTransfer={isOwner ? handleMemberTransfer : undefined}
+                  onRemove={isOwner ? handleMemberRemove : undefined}
                 />
               </div>
 
-              {/* Admin panel — owner only */}
+              {/* Admin panel (pending requests only, no duplicate members) */}
               {isOwner && (
                 <div className={styles.section}>
                   <GroupAdminPanel
                     groupId={groupId}
                     ownerId={groupInfo.owner?.id_user}
                     canManage={groupInfo.canManageMembers || false}
+                    showMembersSection={false}
                     onInvite={() => { setShowInfoPanel(false); handleOpenInvite(); }}
                   />
                 </div>
@@ -388,6 +450,30 @@ export const GroupDetail: React.FC = () => {
         variant="danger"
         onConfirm={confirmDeleteMessage}
         onCancel={() => setDeletingMessageId(null)}
+      />
+
+      <ConfirmModal
+        visible={removeMemberTarget !== null}
+        title="Eliminar miembro"
+        message={`¿Eliminar a ${removeMemberTarget?.name || 'este usuario'} del grupo?`}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        variant="danger"
+        onConfirm={confirmMemberRemove}
+        onCancel={() => setRemoveMemberTarget(null)}
+        loading={processingMemberId === removeMemberTarget?.id}
+      />
+
+      <ConfirmModal
+        visible={memberTransferTarget !== null}
+        title="Transferir propiedad"
+        message={`¿Transferir la propiedad del grupo a ${memberTransferTarget?.name || 'este usuario'}?`}
+        confirmLabel="Transferir"
+        cancelLabel="Cancelar"
+        variant="warning"
+        onConfirm={confirmMemberTransfer}
+        onCancel={() => setMemberTransferTarget(null)}
+        loading={processingMemberId === memberTransferTarget?.id}
       />
 
       <InviteMemberModal

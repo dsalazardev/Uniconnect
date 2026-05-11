@@ -25,16 +25,24 @@
 }
 
 .memberCard {
-  background-color: rgba(54, 54, 54, 0.5);
-  border-radius: 8px;
-  padding: 12px;
-  border: 1px solid rgba(217, 185, 126, 0.2);
+  background-color: rgba(42, 42, 42, 0.8);
+  border-radius: 10px;
+  padding: 14px 12px;
+  border: 1px solid rgba(217, 185, 126, 0.15);
 }
 
 .memberInfo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .avatar {
@@ -104,7 +112,7 @@
   border-radius: 8px;
   color: #D9B97E;
   cursor: pointer;
-  padding: 8px;
+  padding: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -119,6 +127,42 @@
 .dmButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.transferButton {
+  background: none;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  border-radius: 8px;
+  color: #A78BFA;
+  cursor: pointer;
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.transferButton:hover {
+  background-color: rgba(167, 139, 250, 0.1);
+}
+
+.removeButton {
+  background: none;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  color: #EF4444;
+  cursor: pointer;
+  padding: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.removeButton:hover {
+  background-color: rgba(239, 68, 68, 0.08);
 }
 
 .dmSpinner {
