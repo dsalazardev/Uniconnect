@@ -212,32 +212,34 @@ export class AuthService {
                 });
              }
 
-            let user = await this.usersService.findByEmail(userProfile.email);
+            const existingUser = await this.usersService.findByEmail(userProfile.email);
+            const isNewUser = !existingUser;
 
+            let user = existingUser;
             if (!user) {
                 // Asignar rol "student" por defecto a usuarios nuevos
                 const studentRole = await this.rolesService.getStudentRole();
                 if (!studentRole) {
                     throw new Error('Rol "student" no encontrado en la base de datos. Ejecuta el seeder.');
                 }
-                
+
                 user = await this.usersService.create({
                     email: userProfile.email,
                     full_name: userProfile.name || userProfile.email,
                     picture: userProfile.picture || null,
                     id_role: studentRole.id_role,
-                    google_sub: userProfile.sub, // Auth0 user ID
+                    google_sub: userProfile.sub,
                 });
             }
 
             const permissionsClaims = await this.permissionsService.getClaimsForRole(user.id_role);
-            const payload = { 
-                sub: user.id_user, 
+            const payload = {
+                sub: user.id_user,
                 permissions: permissionsClaims.map(p => p.claim),
                 auth0_sub: userProfile.sub,
-                roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+                roleName: user.role?.name || 'student'
             };
-            
+
             const jwt = this.jwtService.sign(payload);
 
             return {
@@ -249,12 +251,12 @@ export class AuthService {
                     user: {
                         id_user: user.id_user,
                         id_role: user.id_role,
-                        role: user.role, // ⭐ INCLUIR OBJETO ROLE COMPLETO
+                        role: user.role,
                         full_name: user.full_name,
                         email: user.email,
                         picture: user.picture,
                         id_program: user.id_program ?? null,
-                        needsOnboarding: user.id_program === null || user.id_program === undefined,
+                        needsOnboarding: isNewUser,
                     },
                     auth0_tokens: {
                         access_token: tokenResponse.access_token,
