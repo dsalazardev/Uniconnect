@@ -238,9 +238,10 @@ export class AuthService {
 
             const jwt = this.jwtService.sign(payload);
 
-            // needsOnboarding = true when the user has no program assigned yet.
-            // This covers both brand-new users and users created without completing onboarding.
-            const needsOnboarding = user.id_program === null || user.id_program === undefined;
+            // needsOnboarding = true only when BOTH id_program AND current_semester are absent.
+            const needsOnboarding =
+                (user.id_program === null || user.id_program === undefined) &&
+                (user.current_semester === null || user.current_semester === undefined);
 
             return {
                 success: true,
