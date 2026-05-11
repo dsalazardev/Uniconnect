@@ -2,11 +2,11 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column-reverse;
-  gap: 12px;
-  background-color: #2a2a2a;
+  gap: 8px;
+  background-color: #1e1e1e;
 }
 
 .messageWrapper {
@@ -45,9 +45,10 @@
 }
 
 .otherBubble {
-  background-color: #3a3a3a;
+  background-color: #2e2e2e;
   color: #fff;
   border-bottom-left-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .messageText {
@@ -67,7 +68,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #2a2a2a;
+  background-color: #1e1e1e;
 }
 
 .spinner {
@@ -95,7 +96,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #2a2a2a;
+  background-color: #1e1e1e;
 }
 
 .emptyIcon {

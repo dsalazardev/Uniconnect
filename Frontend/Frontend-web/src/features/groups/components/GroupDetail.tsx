@@ -17,7 +17,7 @@ import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import { groupsService } from '../services';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical } from 'lucide-react';
 import styles from './GroupDetail.module.css';
 
 export const GroupDetail: React.FC = () => {
@@ -33,6 +33,7 @@ export const GroupDetail: React.FC = () => {
   const [editingText, setEditingText] = useState('');
   const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
   const dm = useDirectMessage();
   const [availableUsers, setAvailableUsers] = useState<Array<{ id_user: number; full_name: string; email?: string }>>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -137,12 +138,13 @@ export const GroupDetail: React.FC = () => {
     showToast.success('Invitación enviada', 'La invitación fue enviada correctamente.');
   };
 
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
           <button onClick={handleGoBack} className={styles.backButton}>
-            <ArrowLeft size={20} /> Volver
+            <ArrowLeft size={18} /> Volver
           </button>
           <h1 className={styles.headerTitle}>Cargando...</h1>
         </div>
@@ -151,12 +153,13 @@ export const GroupDetail: React.FC = () => {
     );
   }
 
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (error || !groupInfo) {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
           <button onClick={handleGoBack} className={styles.backButton}>
-            <ArrowLeft size={20} /> Volver
+            <ArrowLeft size={18} /> Volver
           </button>
           <h1 className={styles.headerTitle}>Error</h1>
         </div>
@@ -171,104 +174,35 @@ export const GroupDetail: React.FC = () => {
     );
   }
 
+  const displayName = isDirectMessage ? otherUserName : groupInfo.name;
+
+  // ── Main render ───────────────────────────────────────────────────────────
   return (
     <div className={styles.container}>
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className={styles.header}>
         <button onClick={handleGoBack} className={styles.backButton}>
-          <ArrowLeft size={20} /> Volver
+          <ArrowLeft size={18} /> Volver
         </button>
-        <h1 className={styles.headerTitle}>
-          {isDirectMessage ? otherUserName : 'Detalle del Grupo'}
-        </h1>
-        {isMember && !isDirectMessage && groupInfo.canManageMembers && (
-          <button
-            onClick={handleOpenInvite}
-            className={styles.inviteButton}
-            title="Invitar Miembros"
-            disabled={loadingUsers}
-            style={{ marginRight: 8 }}
-          >
-            <UserPlus size={18} />
-            <span className={styles.leaveButtonText}>Invitar</span>
-          </button>
-        )}
+        <h1 className={styles.headerTitle}>{displayName}</h1>
+        {/* Three-dots: visible for group members (not DMs) */}
         {isMember && !isDirectMessage && (
           <button
-            onClick={handleLeaveGroup}
-            className={styles.leaveButton}
-            title="Abandonar Grupo"
-            disabled={!!groupInfo?.pending_owner_id}
+            className={styles.menuButton}
+            onClick={() => setShowInfoPanel(true)}
+            title="Información del grupo"
           >
-            <LogOut size={18} />
-            <span className={styles.leaveButtonText}>Salir</span>
+            <MoreVertical size={20} />
           </button>
         )}
       </div>
 
+      {/* ── Main content ───────────────────────────────────────────────────── */}
       <div className={styles.content}>
-        {!isDirectMessage && groupInfo.pending_owner_id === currentUserId && (
-          <TransferInvitationBanner
-            groupId={groupId}
-            ownerName={groupInfo.owner?.full_name}
-          />
-        )}
-        {!isDirectMessage && groupInfo.pending_owner_id && groupInfo.pending_owner_id !== currentUserId && (
-          <PendingTransferOwnerBanner
-            groupId={groupId}
-            candidateName={
-              groupInfo.memberships?.find(
-                (m) => m.id_user === groupInfo.pending_owner_id
-              )?.user?.full_name
-            }
-          />
-        )}
-
-        <div className={styles.section}>
-          <h2 className={styles.groupName}>
-            {isDirectMessage ? otherUserName : groupInfo.name}
-          </h2>
-          {!isDirectMessage && groupInfo.description && (
-            <p className={styles.description}>{groupInfo.description}</p>
-          )}
-          {!isDirectMessage && groupInfo.course && (
-            <div className={styles.courseInfo}>
-              <BookOpen size={20} className={styles.courseIcon} />
-              <span className={styles.courseName}>{groupInfo.course.name}</span>
-            </div>
-          )}
-        </div>
-
-        {!isDirectMessage && (
-          <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>Miembros</h3>
-            <MemberList
-              memberships={groupInfo.memberships || []}
-              canManage={groupInfo.canManageMembers || false}
-              ownerId={groupInfo.owner?.id_user}
-              currentUserId={currentUserId}
-              loadingUserId={dm.loadingUserId}
-              onDirectMessage={dm.openDirectMessage}
-            />
-          </div>
-        )}
-
-        {isOwner && !isDirectMessage && (
-          <div className={styles.section}>
-            <GroupAdminPanel
-              groupId={groupId}
-              ownerId={groupInfo.owner?.id_user}
-              canManage={groupInfo.canManageMembers || false}
-              onInvite={handleOpenInvite}
-            />
-          </div>
-        )}
-
-        {/* Chat Section - only for members */}
-        {isMember && (
+        {isMember ? (
+          /* Member: full-screen chat */
           <div className={styles.chatSection}>
-            <h3 className={styles.sectionTitle}>
-              {isDirectMessage ? 'Chat Privado' : 'Chat del Grupo'}
-            </h3>
             <div className={styles.chatContainer}>
               <MessageList
                 messages={chat.messages}
@@ -289,10 +223,146 @@ export const GroupDetail: React.FC = () => {
               />
             </div>
           </div>
+        ) : (
+          /* Non-member: show group info directly */
+          <div className={styles.nonMemberContent}>
+            <div className={styles.section}>
+              <h2 className={styles.groupName}>{displayName}</h2>
+              {!isDirectMessage && groupInfo.description && (
+                <p className={styles.description}>{groupInfo.description}</p>
+              )}
+              {!isDirectMessage && groupInfo.course && (
+                <div className={styles.courseInfo}>
+                  <BookOpen size={16} className={styles.courseIcon} />
+                  <span className={styles.courseName}>{groupInfo.course.name}</span>
+                </div>
+              )}
+            </div>
+            {!isDirectMessage && (
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>Miembros</h3>
+                <MemberList
+                  memberships={groupInfo.memberships || []}
+                  canManage={false}
+                  ownerId={groupInfo.owner?.id_user}
+                  currentUserId={currentUserId}
+                  loadingUserId={dm.loadingUserId}
+                  onDirectMessage={dm.openDirectMessage}
+                />
+              </div>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Leave Group Confirmation */}
+      {/* ── Right slide-in info panel ───────────────────────────────────────── */}
+      {showInfoPanel && (
+        <>
+          <div
+            className={styles.panelBackdrop}
+            onClick={() => setShowInfoPanel(false)}
+          />
+          <div className={styles.infoPanel}>
+
+            {/* Panel header */}
+            <div className={styles.infoPanelHeader}>
+              <button
+                className={styles.infoPanelCloseButton}
+                onClick={() => setShowInfoPanel(false)}
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <h2 className={styles.infoPanelTitle}>Información del grupo</h2>
+              {groupInfo.canManageMembers && (
+                <button
+                  onClick={() => { setShowInfoPanel(false); handleOpenInvite(); }}
+                  className={styles.infoPanelInviteBtn}
+                  title="Invitar miembros"
+                  disabled={loadingUsers}
+                >
+                  <UserPlus size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Panel scrollable content */}
+            <div className={styles.infoPanelContent}>
+
+              {/* Transfer banners */}
+              {groupInfo.pending_owner_id === currentUserId && (
+                <TransferInvitationBanner
+                  groupId={groupId}
+                  ownerName={groupInfo.owner?.full_name}
+                />
+              )}
+              {groupInfo.pending_owner_id && groupInfo.pending_owner_id !== currentUserId && (
+                <PendingTransferOwnerBanner
+                  groupId={groupId}
+                  candidateName={
+                    groupInfo.memberships?.find(
+                      (m) => m.id_user === groupInfo.pending_owner_id
+                    )?.user?.full_name
+                  }
+                />
+              )}
+
+              {/* Group info */}
+              <div className={styles.section}>
+                <h2 className={styles.groupName}>{groupInfo.name}</h2>
+                {groupInfo.description && (
+                  <p className={styles.description}>{groupInfo.description}</p>
+                )}
+                {groupInfo.course && (
+                  <div className={styles.courseInfo}>
+                    <BookOpen size={16} className={styles.courseIcon} />
+                    <span className={styles.courseName}>{groupInfo.course.name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Members */}
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>Miembros</h3>
+                <MemberList
+                  memberships={groupInfo.memberships || []}
+                  canManage={groupInfo.canManageMembers || false}
+                  ownerId={groupInfo.owner?.id_user}
+                  currentUserId={currentUserId}
+                  loadingUserId={dm.loadingUserId}
+                  onDirectMessage={dm.openDirectMessage}
+                />
+              </div>
+
+              {/* Admin panel — owner only */}
+              {isOwner && (
+                <div className={styles.section}>
+                  <GroupAdminPanel
+                    groupId={groupId}
+                    ownerId={groupInfo.owner?.id_user}
+                    canManage={groupInfo.canManageMembers || false}
+                    onInvite={() => { setShowInfoPanel(false); handleOpenInvite(); }}
+                  />
+                </div>
+              )}
+
+            </div>
+
+            {/* Panel footer actions */}
+            <div className={styles.panelActions}>
+              <button
+                onClick={() => { setShowInfoPanel(false); handleLeaveGroup(); }}
+                className={styles.leaveButton}
+                disabled={!!groupInfo?.pending_owner_id}
+              >
+                <LogOut size={16} /> Salir del grupo
+              </button>
+            </div>
+
+          </div>
+        </>
+      )}
+
+      {/* ── Modals (logic unchanged) ────────────────────────────────────────── */}
       <ConfirmModal
         visible={showLeaveConfirm}
         title={isDirectMessage ? 'Abandonar Chat' : 'Abandonar Grupo'}
@@ -309,7 +379,6 @@ export const GroupDetail: React.FC = () => {
         loading={leaveGroup.isPending}
       />
 
-      {/* Delete Message Confirmation */}
       <ConfirmModal
         visible={deletingMessageId != null}
         title="Eliminar mensaje"
@@ -321,7 +390,6 @@ export const GroupDetail: React.FC = () => {
         onCancel={() => setDeletingMessageId(null)}
       />
 
-      {/* Invite Member Modal */}
       <InviteMemberModal
         visible={showInviteModal}
         onClose={() => setShowInviteModal(false)}
@@ -330,7 +398,6 @@ export const GroupDetail: React.FC = () => {
         availableUsers={availableUsers}
       />
 
-      {/* Transfer Ownership Modal */}
       {groupInfo && (
         <TransferOwnershipModal
           visible={showTransferModal}
@@ -345,6 +412,7 @@ export const GroupDetail: React.FC = () => {
           }}
         />
       )}
+
     </div>
   );
 };
