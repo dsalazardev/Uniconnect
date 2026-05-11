@@ -56,7 +56,7 @@ export const LoginScreen: React.FC = observer(() => {
             ) : (
               <>
                 <Lock size={20} className={styles.googleIcon} />
-                Iniciar sesión con Auth0
+                Iniciar sesión
               </>
             )}
           </button>

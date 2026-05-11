@@ -90,9 +90,9 @@ export function useWebAuth() {
 
           isExchanging.current = true;
 
-          console.log("🔥 DEBUG LOGIN - Code from URL:", authCode);
-          console.log("🔥 DEBUG LOGIN - Verifier from sessionStorage:", codeVerifier);
-          console.log("🔥 DEBUG LOGIN - All sessionStorage Keys:", Object.keys(sessionStorage));
+          console.log("DEBUG LOGIN - Code from URL:", authCode);
+          console.log("DEBUG LOGIN - Verifier from sessionStorage:", codeVerifier);
+          console.log("DEBUG LOGIN - All sessionStorage Keys:", Object.keys(sessionStorage));
 
           sessionStorage.removeItem('auth_code_verifier');
           sessionStorage.removeItem('auth_state');
@@ -114,12 +114,16 @@ export function useWebAuth() {
             return;
           }
 
+          // Auth0 session is still active with the rejected account — force fresh login next time
+          sessionStorage.setItem('auth_force_login', 'true');
           setError(fenResponse.message || 'Error de autenticación');
           cleanUrlParams();
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Error en autenticación';
         console.error('Auth callback error:', err);
+        // Auth0 session may be stale — force fresh login next time
+        sessionStorage.setItem('auth_force_login', 'true');
         setError(message);
         cleanUrlParams();
       } finally {
@@ -160,13 +164,18 @@ export function useWebAuth() {
       const codeChallenge = await deriveCodeChallenge(codeVerifier);
       const redirectUri = window.location.origin + '/login';
 
+      // If a previous attempt failed (wrong domain, etc.), force Auth0 to show the login
+      // screen again instead of auto-reusing the cached SSO session
+      const forceLogin = sessionStorage.getItem('auth_force_login') === 'true';
+      sessionStorage.removeItem('auth_force_login');
+
       sessionStorage.setItem('auth_code_verifier', codeVerifier);
       sessionStorage.setItem('auth_state', state);
 
-      console.log("🔥 DEBUG INIT - Verifier stored in sessionStorage:", sessionStorage.getItem('auth_code_verifier') ? 'YES' : 'NO');
+      console.log("DEBUG INIT - Verifier stored in sessionStorage:", sessionStorage.getItem('auth_code_verifier') ? 'YES' : 'NO');
 
       const config = getAuth0Config();
-      const params = new URLSearchParams({
+      const authParams: Record<string, string> = {
         response_type: 'code',
         client_id: config.clientId,
         redirect_uri: redirectUri,
@@ -175,7 +184,13 @@ export function useWebAuth() {
         state: state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
-      });
+      };
+
+      if (forceLogin) {
+        authParams.prompt = 'login';
+      }
+
+      const params = new URLSearchParams(authParams);
 
       window.location.assign(`https://${config.domain}/authorize?${params.toString()}`);
     } catch (err) {

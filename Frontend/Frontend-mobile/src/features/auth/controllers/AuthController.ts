@@ -54,6 +54,10 @@ export class AuthController {
       if (!fenResponse.success || fenResponse.statusCode !== 200) {
         
         const errorDetail = fenResponse.message || 'Autenticación fallida';
+        
+        // Prevents session persistence when domain validation fails
+        await this.cleanupAuth0SessionOnError();
+        
         authStore.setError(errorDetail);
         
         // No mostrar toast si es un error de red o servidor (silenciar en login)
@@ -346,6 +350,24 @@ export class AuthController {
     
     const result = await this.refreshTokens();
     return result.success;
+  }
+
+  private async cleanupAuth0SessionOnError(): Promise<void> {
+    try {
+      const redirectUri = makeRedirectUri({
+        scheme: 'uniconnect',
+        path: 'login',
+      });
+      
+      const logoutUrl = `https://${AUTH0_CONFIG.domain}/v2/logout?client_id=${AUTH0_CONFIG.clientId}&returnTo=${encodeURIComponent(redirectUri)}`;
+            // Silent fetch to logout from Auth0 (clears session cookies)
+      await fetch(logoutUrl, { method: 'GET', mode: 'no-cors' }).catch(() => {});
+      
+      console.log('[Auth] Auth0 session cleared on auth failure (invalid domain)');
+    } catch (error) {
+      console.error('[Auth] Failed to cleanup Auth0 session on error:', error);
+      // Continue anyway - local cleanup is prioritized
+    }
   }
 
   async initializeAuth(): Promise<void> {
