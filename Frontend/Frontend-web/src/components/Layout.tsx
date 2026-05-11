@@ -100,6 +100,16 @@ export const Layout = () => {
     return <Outlet />;
   }
 
+  // Onboarding is fullscreen — render without navbar
+  if (location.pathname === '/onboarding') {
+    return (
+      <>
+        <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+        <Outlet />
+      </>
+    );
+  }
+
   return (
     <div className={styles.layout}>
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
