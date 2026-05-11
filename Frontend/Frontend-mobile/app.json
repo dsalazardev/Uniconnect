@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Uniconnect G1",
-    "slug": "Uniconnect",
+    "slug": "uniconnect_g",
     "scheme": "uniconnect",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -47,8 +47,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5a109489-3224-447a-9e19-0359f427f2f1",
-        "owner": "salazar04"
+        "projectId": "7541a88e-f9c1-4ab7-85f3-c010177e2b26"
       }
     }
   }
