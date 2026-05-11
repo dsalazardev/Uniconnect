@@ -155,4 +155,5 @@ export class AuthService {
   async completeOnboarding(id_program: number, current_semester: number): Promise<void> {
     await this.api.post(AUTH_ENDPOINTS.ONBOARDING, { id_program, current_semester });
   }
+
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth0Client, getAuth0Config } from '../lib/auth0-client';
+import { getAuth0Config } from '../lib/auth0-client';
 import { authService } from '../services';
 import { authStore } from '../store/AuthStore';
 
@@ -90,9 +90,9 @@ export function useWebAuth() {
 
           isExchanging.current = true;
 
-          console.log("🔥 DEBUG LOGIN - Code from URL:", authCode);
-          console.log("🔥 DEBUG LOGIN - Verifier from sessionStorage:", codeVerifier);
-          console.log("🔥 DEBUG LOGIN - All sessionStorage Keys:", Object.keys(sessionStorage));
+          console.log("DEBUG LOGIN - Code from URL:", authCode);
+          console.log("DEBUG LOGIN - Verifier from sessionStorage:", codeVerifier);
+          console.log("DEBUG LOGIN - All sessionStorage Keys:", Object.keys(sessionStorage));
 
           sessionStorage.removeItem('auth_code_verifier');
           sessionStorage.removeItem('auth_state');
@@ -104,7 +104,9 @@ export function useWebAuth() {
             authStore.setAuth(access_token, user, auth0_tokens);
             cleanUrlParams();
 
-            if (user.needsOnboarding) {
+            // Derive from actual fields — show onboarding only when BOTH are null
+            const needsOnboarding = user.id_program == null && user.current_semester == null;
+            if (needsOnboarding) {
               navigate('/onboarding', { replace: true });
             } else {
               navigate('/events', { replace: true });
@@ -163,8 +165,6 @@ export function useWebAuth() {
       sessionStorage.setItem('auth_code_verifier', codeVerifier);
       sessionStorage.setItem('auth_state', state);
 
-      console.log("🔥 DEBUG INIT - Verifier stored in sessionStorage:", sessionStorage.getItem('auth_code_verifier') ? 'YES' : 'NO');
-
       const config = getAuth0Config();
       const params = new URLSearchParams({
         response_type: 'code',
@@ -175,6 +175,7 @@ export function useWebAuth() {
         state: state,
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
+        prompt: 'login',
       });
 
       window.location.assign(`https://${config.domain}/authorize?${params.toString()}`);
@@ -185,15 +186,16 @@ export function useWebAuth() {
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    try {
-      const auth0 = await getAuth0Client();
-      authStore.clearAuth();
-      await auth0.logout({ logoutParams: { returnTo: window.location.origin + '/login' } });
-    } catch (err) {
-      console.error('Logout error:', err);
-      authStore.clearAuth();
-    }
+  const logout = useCallback(() => {
+    authStore.clearAuth();
+    const config = getAuth0Config();
+    const returnTo = encodeURIComponent(window.location.origin + '/login');
+    // Redirect directly to Auth0's logout endpoint to clear the SSO session cookie.
+    // Using the SDK's auth0.logout() is unreliable here because login was done via
+    // a manual PKCE flow, not through the SDK, so the SDK has no tokens cached.
+    window.location.assign(
+      `https://${config.domain}/v2/logout?client_id=${config.clientId}&returnTo=${returnTo}`
+    );
   }, []);
 
   return {

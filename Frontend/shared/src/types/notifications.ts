@@ -19,7 +19,9 @@ export type NotificationType =
   | 'member_removed'
   | 'join_request'
   | 'mention'
-  | 'admin_transfer_requested';
+  | 'admin_transfer_requested'
+  | 'admin_transfer_accepted'
+  | 'admin_transfer_declined';
 
 export type Notification = {
   id_notification: number;

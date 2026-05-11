@@ -32,6 +32,12 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
         return { name: 'close-circle' as const, color: '#EF4444' };
       case 'mention':
         return { name: 'at-circle' as const, color: '#38BDF8' };
+      case 'admin_transfer_requested':
+        return { name: 'shield' as const, color: '#A855F7' };
+      case 'admin_transfer_accepted':
+        return { name: 'shield-checkmark' as const, color: '#22C55E' };
+      case 'admin_transfer_declined':
+        return { name: 'shield-half' as const, color: '#EF4444' };
       default:
         return { name: 'notifications' as const, color: '#D9B97E' };
     }

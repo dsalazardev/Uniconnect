@@ -340,9 +340,12 @@ export class GroupsService {
   async removeMemberFromGroup(groupId: number, memberId: number): Promise<void> {
     try {
       await this.api.delete(GROUPS_ENDPOINTS.REMOVE_MEMBER(groupId, memberId));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error al sacar miembro del grupo:', error);
-      throw error;
+      const axiosError = error as { response?: { data?: { message?: string | string[] } } };
+      const raw = axiosError.response?.data?.message;
+      const message = Array.isArray(raw) ? raw[0] : raw || 'No se pudo sacar al miembro del grupo';
+      throw new Error(message);
     }
   }
 

@@ -10,10 +10,10 @@ export const LoginScreen: React.FC = observer(() => {
   const { isLoading, error, loginWithAuth0, logout } = useWebAuth();
   const navigate = useNavigate();
 
-  // Redirect to events if already authenticated
+  // Redirect once authenticated — respect onboarding state
   useEffect(() => {
     if (authStore.isAuthenticated && authStore.isReady) {
-      navigate('/events', { replace: true });
+      navigate(authStore.needsOnboarding ? '/onboarding' : '/events', { replace: true });
     }
   }, [authStore.isAuthenticated, authStore.isReady, navigate]);
 
@@ -56,7 +56,7 @@ export const LoginScreen: React.FC = observer(() => {
             ) : (
               <>
                 <Lock size={20} className={styles.googleIcon} />
-                Iniciar sesión con Auth0
+                Iniciar sesión
               </>
             )}
           </button>

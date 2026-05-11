@@ -33,11 +33,8 @@ describe('WebSocketNotificationObserver', () => {
   it('should emit notification via ChatGateway', () => {
     const event: StudyGroupEvent = {
       type: 'JOIN_REQUEST',
+      payload: { id_group: 100, group_name: 'Test Group' },
       targetUserId: 1,
-      groupId: 100,
-      groupName: 'Test Group',
-      actorId: 2,
-      actorName: 'John Doe',
       timestamp: new Date(),
     };
 
@@ -49,19 +46,16 @@ describe('WebSocketNotificationObserver', () => {
     expect(mockChatGateway.server.to).toHaveBeenCalledWith('socket-1');
     expect(mockChatGateway.server.to).toHaveBeenCalledWith('socket-2');
     expect(mockChatGateway.server.emit).toHaveBeenCalledWith(
-      'study_group_notification',
-      event,
+      'notification:new',
+      expect.objectContaining({ tipo_evento: 'join_request' }),
     );
   });
 
   it('should handle missing user session gracefully', () => {
     const event: StudyGroupEvent = {
       type: 'MEMBER_ACCEPTED',
+      payload: { id_group: 100, group_name: 'Test Group' },
       targetUserId: 1,
-      groupId: 100,
-      groupName: 'Test Group',
-      actorId: 2,
-      actorName: 'Admin',
       timestamp: new Date(),
     };
 
@@ -74,11 +68,8 @@ describe('WebSocketNotificationObserver', () => {
   it('should handle gateway errors gracefully', () => {
     const event: StudyGroupEvent = {
       type: 'MEMBER_REJECTED',
+      payload: { id_group: 100, group_name: 'Test Group' },
       targetUserId: 1,
-      groupId: 100,
-      groupName: 'Test Group',
-      actorId: 2,
-      actorName: 'Admin',
       timestamp: new Date(),
     };
 
@@ -94,29 +85,20 @@ describe('WebSocketNotificationObserver', () => {
     const events: StudyGroupEvent[] = [
       {
         type: 'JOIN_REQUEST',
+        payload: { id_group: 100, group_name: 'Test Group' },
         targetUserId: 1,
-        groupId: 100,
-        groupName: 'Test Group',
-        actorId: 2,
-        actorName: 'John',
         timestamp: new Date(),
       },
       {
         type: 'MEMBER_ACCEPTED',
+        payload: { id_group: 100, group_name: 'Test Group' },
         targetUserId: 1,
-        groupId: 100,
-        groupName: 'Test Group',
-        actorId: 2,
-        actorName: 'Admin',
         timestamp: new Date(),
       },
       {
         type: 'ADMIN_TRANSFER_REQUESTED',
+        payload: { id_group: 100, group_name: 'Test Group' },
         targetUserId: 1,
-        groupId: 100,
-        groupName: 'Test Group',
-        actorId: 2,
-        actorName: 'Owner',
         timestamp: new Date(),
       },
     ];

@@ -6,6 +6,11 @@ import { UpdateGroupDto } from './dto/update-group.dto';
 import { GroupBusinessValidator } from './validators/group-business.validator';
 import { MESSAGE_EVENTS } from '../messages/events/message.events';
 import { StudyGroupSubject } from './domain/observer/study-group-subject';
+import {
+  GroupStateContext,
+  EstadoActivo,
+  EstadoPendienteTransferencia,
+} from './domain/state';
 
 @Injectable()
 export class GroupsService {
@@ -160,6 +165,13 @@ export class GroupsService {
     // Validación de seguridad: Solo el dueño puede borrar
     if (group.owner_id !== userId) {
       throw new ForbiddenException('No tienes permisos para eliminar este grupo. Solo el propietario puede hacerlo.');
+    }
+
+    // Patrón State: el estado PendienteTransferencia bloquea la eliminación
+    if (group.pending_owner_id !== null) {
+      throw new BadRequestException(
+        'No puedes eliminar el grupo mientras hay una transferencia de administración pendiente. Cancela la transferencia primero.',
+      );
     }
 
     try {
@@ -617,18 +629,16 @@ export class GroupsService {
           },
         });
 
-        // Notificar al owner mediante Observer pattern
-        this.studyGroupSubject.notify({
-          type: 'JOIN_REQUEST',
-          payload: {
-            id_request: joinRequest.id_request,
-            id_group: groupId,
-            group_name: group.name ?? 'Grupo',
-            requester_id: userId,
-            requester_name: joinRequest.requester?.full_name ?? 'Usuario',
-          },
-          targetUserId: group.owner_id!,
-          timestamp: new Date(),
+        // Strategy pattern: eventEmitter → NotificationEventListener → enviarNotificacion (email + push + WS)
+        this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_SENT, {
+          id_request: joinRequest.id_request,
+          id_group: groupId,
+          group_name: group.name ?? 'Grupo',
+          owner_id: group.owner_id!,
+          requester_id: userId,
+          requester_name: joinRequest.requester?.full_name ?? 'Usuario',
+          requester_picture: joinRequest.requester?.picture ?? null,
+          requested_at: joinRequest.requested_at,
         });
 
         return joinRequest;
@@ -806,16 +816,12 @@ export class GroupsService {
       });
     });
 
-    // Notificar al requester mediante Observer pattern
-    this.studyGroupSubject.notify({
-      type: 'MEMBER_ACCEPTED',
-      payload: {
-        id_request: requestId,
-        id_group: groupId,
-        group_name: updatedRequest.group?.name ?? 'Grupo',
-      },
-      targetUserId: request.requester_id,
-      timestamp: new Date(),
+    // Strategy pattern: eventEmitter → NotificationEventListener → enviarNotificacion (email + push + WS)
+    this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_ACCEPTED, {
+      id_request: requestId,
+      id_group: groupId,
+      group_name: updatedRequest.group?.name ?? 'Grupo',
+      requester_id: request.requester_id,
     });
 
     return updatedRequest;
@@ -853,16 +859,12 @@ export class GroupsService {
       include: { group: { select: { name: true } } },
     });
 
-    // Notificar al requester mediante Observer pattern
-    this.studyGroupSubject.notify({
-      type: 'MEMBER_REJECTED',
-      payload: {
-        id_request: requestId,
-        id_group: groupId,
-        group_name: rejectedRequest.group?.name ?? 'Grupo',
-      },
-      targetUserId: request.requester_id,
-      timestamp: new Date(),
+    // Strategy pattern: eventEmitter → NotificationEventListener → enviarNotificacion (email + push + WS)
+    this.eventEmitter.emit(MESSAGE_EVENTS.GROUP_JOIN_REQUEST_REJECTED, {
+      id_request: requestId,
+      id_group: groupId,
+      group_name: rejectedRequest.group?.name ?? 'Grupo',
+      requester_id: request.requester_id,
     });
 
     return rejectedRequest;
@@ -1015,11 +1017,18 @@ export class GroupsService {
     // Verificar que quien ejecuta es el owner o un admin
     const group = await this.prisma.group.findUnique({
       where: { id_group: groupId },
-      select: { owner_id: true },
+      select: { owner_id: true, pending_owner_id: true },
     });
 
     if (!group || group.owner_id !== userId) {
       throw new ForbiddenException('No tienes permiso para sacar miembros');
+    }
+
+    // Patrón State: el estado PendienteTransferencia bloquea la eliminación de miembros
+    if (group.pending_owner_id !== null) {
+      throw new BadRequestException(
+        'No puedes eliminar miembros mientras hay una transferencia de administración pendiente. Cancela la transferencia primero.',
+      );
     }
 
     const membership = await this.prisma.membership.findUnique({
@@ -1216,10 +1225,6 @@ export class GroupsService {
     });
 
     if (!group) throw new NotFoundException('Grupo no encontrado');
-    if (group.is_direct_message) throw new BadRequestException('No puedes transferir propiedad de un chat privado');
-    if (group.owner_id !== currentUserId) throw new ForbiddenException('Solo el propietario puede iniciar una transferencia');
-    if (candidateId === currentUserId) throw new BadRequestException('No puedes transferirte la propiedad a ti mismo');
-    if (group.pending_owner_id !== null) throw new BadRequestException('Ya existe una solicitud de transferencia en curso para este grupo. Cancélala antes de iniciar una nueva.');
 
     // Verificar que el candidato es miembro del grupo
     const candidateMembership = await this.prisma.membership.findUnique({
@@ -1233,39 +1238,47 @@ export class GroupsService {
     });
     if (!candidate) throw new NotFoundException('El candidato no existe');
 
+    // Patrón State: determinar estado inicial y delegar validaciones + notificación
+    const initialState = group.pending_owner_id !== null
+      ? new EstadoPendienteTransferencia()
+      : new EstadoActivo();
+
+    const context = new GroupStateContext(
+      { ...group, name: group.name ?? null },
+      initialState,
+      this.studyGroupSubject,
+    );
+
+    // El estado valida precondiciones, realiza la transición y emite el evento al Observer
+    context.solicitar({
+      groupId,
+      currentUserId,
+      candidateId,
+      groupName: group.name ?? 'Grupo',
+      candidateName: candidate.full_name,
+    });
+
+    // Persistencia atómica en DB tras validación exitosa del estado
     const updatedGroup = await this.prisma.group.update({
       where: { id_group: groupId },
       data: { pending_owner_id: candidateId },
       select: { id_group: true, name: true, owner_id: true, pending_owner_id: true },
     });
 
-    // Notificar al candidato vía studyGroupSubject (dispara persistencia en DB + push Expo)
-    this.studyGroupSubject.notify({
-      type: 'ADMIN_TRANSFER_REQUESTED',
-      payload: {
-        id_group: groupId,
-        group_name: group.name ?? 'Grupo',
-        current_owner_id: currentUserId,
-        candidate_id: candidateId,
-        candidate_name: candidate.full_name,
-      },
-      targetUserId: candidateId,
-      timestamp: new Date(),
-    });
-
-    // Mantener el emit del eventEmitter para compatibilidad con otros listeners futuros
     this.eventEmitter.emit('group.ownership_transfer_requested', {
       id_group: groupId,
       group_name: group.name ?? 'Grupo',
       current_owner_id: currentUserId,
       candidate_id: candidateId,
       candidate_name: candidate.full_name,
+      estado: context.getNombreEstado(),
     });
 
     return {
       message: `Solicitud de transferencia enviada a ${candidate.full_name}. Esperando confirmación.`,
       group: updatedGroup,
       candidate,
+      estado: context.getNombreEstado(),
     };
   }
 
@@ -1282,13 +1295,21 @@ export class GroupsService {
 
     if (!group) throw new NotFoundException('Grupo no encontrado');
     if (group.is_direct_message) throw new BadRequestException('Operación no válida para chats privados');
-    if (group.pending_owner_id === null) throw new BadRequestException('No hay ninguna transferencia pendiente para este grupo');
-    if (group.pending_owner_id !== currentUserId) throw new ForbiddenException('No eres el candidato designado para recibir la propiedad de este grupo');
+
+    // Patrón State: el grupo debe estar en PendienteTransferencia para aceptar
+    const context = new GroupStateContext(
+      { ...group, name: group.name ?? null },
+      new EstadoPendienteTransferencia(),
+      this.studyGroupSubject,
+    );
+
+    // El estado valida precondiciones y emite el evento ADMIN_TRANSFER_ACCEPTED al Observer
+    context.aceptar({ groupId, currentUserId });
 
     const previousOwnerId = group.owner_id!;
 
+    // Actualización atómica en DB: admin_id cambia de forma transaccional
     return await this.prisma.$transaction(async (tx) => {
-      // 1. Transferir ownership y limpiar pending_owner_id
       const updatedGroup = await tx.group.update({
         where: { id_group: groupId },
         data: { owner_id: currentUserId, pending_owner_id: null },
@@ -1297,7 +1318,6 @@ export class GroupsService {
         },
       });
 
-      // 2. Nuevo owner → is_admin: true
       await tx.membership.update({
         where: { id_user_id_group: { id_user: currentUserId, id_group: groupId } },
         data: { is_admin: true },
@@ -1312,6 +1332,7 @@ export class GroupsService {
         group_name: group.name ?? 'Grupo',
         previous_owner_id: previousOwnerId,
         new_owner_id: currentUserId,
+        estado: context.getNombreEstado(),
       });
 
       return {
@@ -1319,6 +1340,7 @@ export class GroupsService {
         group: updatedGroup,
         previous_owner_id: previousOwnerId,
         new_owner_id: currentUserId,
+        estado: context.getNombreEstado(),
       };
     });
   }
@@ -1362,12 +1384,20 @@ export class GroupsService {
   async declineOwnershipTransfer(groupId: number, currentUserId: number) {
     const group = await this.prisma.group.findUnique({
       where: { id_group: groupId },
-      select: { id_group: true, owner_id: true, pending_owner_id: true, name: true },
+      select: { id_group: true, owner_id: true, pending_owner_id: true, name: true, is_direct_message: true },
     });
 
     if (!group) throw new NotFoundException('Grupo no encontrado');
-    if (group.pending_owner_id === null) throw new BadRequestException('No hay ninguna transferencia pendiente');
-    if (group.pending_owner_id !== currentUserId) throw new ForbiddenException('Solo el candidato designado puede declinar la transferencia');
+
+    // Patrón State: el grupo debe estar en PendienteTransferencia para rechazar
+    const context = new GroupStateContext(
+      { ...group, name: group.name ?? null },
+      new EstadoPendienteTransferencia(),
+      this.studyGroupSubject,
+    );
+
+    // El estado valida, transiciona a Activo y emite ADMIN_TRANSFER_DECLINED al Observer
+    context.rechazar({ groupId, currentUserId });
 
     await this.prisma.group.update({
       where: { id_group: groupId },
@@ -1379,9 +1409,13 @@ export class GroupsService {
       group_name: group.name ?? 'Grupo',
       owner_id: group.owner_id,
       declined_by: currentUserId,
+      estado: context.getNombreEstado(),
     });
 
-    return { message: 'Transferencia declinada.' };
+    return {
+      message: 'Transferencia declinada. El administrador original mantiene el rol.',
+      estado: context.getNombreEstado(),
+    };
   }
 
   async inviteUser(groupId: number, inviteeId: number, userId: number) {

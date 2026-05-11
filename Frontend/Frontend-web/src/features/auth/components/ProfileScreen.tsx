@@ -3,10 +3,11 @@ import { observer } from 'mobx-react-lite';
 import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '../store/AuthStore';
 import { useProfile } from '@/features/students/hooks/useProfile';
+import { usePerfilCompleto } from '@/features/students/hooks/usePerfilEstudiante';
 import { useStudentCourses } from '@/features/courses/hooks/useStudentCourses';
 import { AddCourseModal } from '@/features/courses/components/AddCourseModal';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { AlertTriangle, User, Edit3, X, BookOpen, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { AlertTriangle, User, Edit3, X, BookOpen, Plus, Trash2, BarChart2, Award } from 'lucide-react';
 import type { UpdateProfileData } from '@uniconnect/shared';
 import styles from './ProfileScreen.module.css';
 
@@ -29,6 +30,11 @@ export const ProfileScreen: React.FC = observer(() => {
   const [courseToDelete, setCourseToDelete] = useState<number | null>(null);
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
+  const [vistaCompleta, setVistaCompleta] = useState(false);
+
+  const currentUserId = user?.id_user ?? 0;
+  const { data: perfilCompleto, isLoading: loadingCompleto, error: errorCompleto } =
+    usePerfilCompleto(currentUserId, vistaCompleta);
 
   const handleOpenEdit = () => {
     setPhone(profile?.phone || '');
@@ -173,6 +179,71 @@ export const ProfileScreen: React.FC = observer(() => {
             <p className={styles.emptyCoursesText}>No tienes cursos registrados</p>
           )}
         </div>
+
+        {/* US-D02: Perfil completo con patrón Decorator */}
+        <div className={styles.section}>
+          <button
+            className={vistaCompleta ? styles.vistaBaseButton : styles.vistaCompletaButton}
+            onClick={() => setVistaCompleta(!vistaCompleta)}
+          >
+            {vistaCompleta ? 'Ocultar estadísticas e insignias' : 'Ver estadísticas e insignias'}
+          </button>
+        </div>
+
+        {vistaCompleta && loadingCompleto && (
+          <div className={styles.section}>
+            <LoadingSpinner size="sm" label="Cargando estadísticas..." />
+          </div>
+        )}
+
+        {vistaCompleta && errorCompleto && (
+          <div className={styles.section}>
+            <p className={styles.errorText}>Error: {errorCompleto}</p>
+          </div>
+        )}
+
+        {vistaCompleta && perfilCompleto && (
+          <>
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>
+                <BarChart2 size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                Estadísticas
+              </h2>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Grupos creados:</span>
+                <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposCreados}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Grupos en los que participo:</span>
+                <span className={styles.infoValue}>{perfilCompleto.estadisticas.gruposParticipa}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Mensajes enviados:</span>
+                <span className={styles.infoValue}>{perfilCompleto.estadisticas.mensajesEnviados}</span>
+              </div>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>
+                <Award size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+                Mis Insignias
+              </h2>
+              {perfilCompleto.insignias.length === 0 ? (
+                <p className={styles.emptyCoursesText}>Aún no has desbloqueado insignias. ¡Sigue participando!</p>
+              ) : (
+                <div className={styles.insigniasGrid}>
+                  {perfilCompleto.insignias.map((ins) => (
+                    <div key={ins.id} className={styles.insigniaCard} title={ins.descripcion}>
+                      <span className={styles.insigniaIcono}>{ins.icono}</span>
+                      <span className={styles.insigniaNombre}>{ins.nombre}</span>
+                      <span className={styles.insigniaDesc}>{ins.descripcion}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Actions */}
         <div className={styles.actions}>

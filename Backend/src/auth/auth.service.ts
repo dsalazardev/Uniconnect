@@ -60,7 +60,7 @@ export class AuthService {
         const payload = { 
             sub: user.id_user, 
             permissions: permissionsClaims.map(p => p.claim),
-            roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+            roleName: user.role?.name || 'student'
         };
                 
         const jwt = this.jwtService.sign(payload);
@@ -68,7 +68,7 @@ export class AuthService {
             access_token: jwt,
             user: {
                 ...user,
-                role: user.role, // ⭐ Asegurar que role esté incluido
+                role: user.role, 
             },            
         };
     }
@@ -99,7 +99,7 @@ export class AuthService {
         const payload = { 
             sub: user.id_user, 
             permissions: permissionsClaims.map(p => p.claim),
-            roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+            roleName: user.role?.name || 'student' 
         };
                 
         const jwt = this.jwtService.sign(payload);
@@ -107,7 +107,7 @@ export class AuthService {
             access_token: jwt,
             user: {
                 ...user,
-                role: user.role, // ⭐ Asegurar que role esté incluido
+                role: user.role, 
             },            
         };
     }
@@ -204,41 +204,44 @@ export class AuthService {
             
             const userProfile = await this.getAuth0UserProfile(tokenResponse.access_token);
             
-            // if (!userProfile.email || !userProfile.email.endsWith('@ucaldas.edu.co')) {
-            //     throw new UnauthorizedException({
-            //         success: false,
-            //         statusCode: 401,
-            //         message: 'Dominio de correo no permitido. Solo se permiten correos @ucaldas.edu.co'
-            //     });
-            // }
+            if (!userProfile.email || !userProfile.email.endsWith('@ucaldas.edu.co')) {
+                throw new UnauthorizedException({
+                     success: false,
+                     statusCode: 401,
+                     message: 'Dominio de correo no permitido. Solo se permiten correos @ucaldas.edu.co'
+                });
+             }
 
             let user = await this.usersService.findByEmail(userProfile.email);
 
             if (!user) {
-                // Asignar rol "student" por defecto a usuarios nuevos
                 const studentRole = await this.rolesService.getStudentRole();
                 if (!studentRole) {
                     throw new Error('Rol "student" no encontrado en la base de datos. Ejecuta el seeder.');
                 }
-                
                 user = await this.usersService.create({
                     email: userProfile.email,
                     full_name: userProfile.name || userProfile.email,
                     picture: userProfile.picture || null,
                     id_role: studentRole.id_role,
-                    google_sub: userProfile.sub, // Auth0 user ID
+                    google_sub: userProfile.sub,
                 });
             }
 
             const permissionsClaims = await this.permissionsService.getClaimsForRole(user.id_role);
-            const payload = { 
-                sub: user.id_user, 
+            const payload = {
+                sub: user.id_user,
                 permissions: permissionsClaims.map(p => p.claim),
                 auth0_sub: userProfile.sub,
-                roleName: user.role?.name || 'student' // ⭐ FIX: Include roleName in JWT payload
+                roleName: user.role?.name || 'student',
             };
-            
+
             const jwt = this.jwtService.sign(payload);
+
+            // needsOnboarding = true only when BOTH id_program AND current_semester are absent.
+            const needsOnboarding =
+                (user.id_program === null || user.id_program === undefined) &&
+                (user.current_semester === null || user.current_semester === undefined);
 
             return {
                 success: true,
@@ -249,20 +252,21 @@ export class AuthService {
                     user: {
                         id_user: user.id_user,
                         id_role: user.id_role,
-                        role: user.role, // ⭐ INCLUIR OBJETO ROLE COMPLETO
+                        role: user.role,
                         full_name: user.full_name,
                         email: user.email,
                         picture: user.picture,
                         id_program: user.id_program ?? null,
-                        needsOnboarding: user.id_program === null || user.id_program === undefined,
+                        current_semester: user.current_semester ?? null,
+                        needsOnboarding,
                     },
                     auth0_tokens: {
                         access_token: tokenResponse.access_token,
                         id_token: tokenResponse.id_token,
                         refresh_token: tokenResponse.refresh_token,
                         expires_in: tokenResponse.expires_in,
-                    }
-                }
+                    },
+                },
             };
 
         } catch (error) {
@@ -445,4 +449,5 @@ export class AuthService {
             });
         }
     }
+
 }

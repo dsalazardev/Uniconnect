@@ -171,6 +171,8 @@ describe('GroupsService - Observer Pattern (Event Emissions)', () => {
         id_group: 1,
         name: 'Test Group',
         owner_id: 10,
+        is_direct_message: false,
+        pending_owner_id: null,
       };
 
       const mockMembers = [
