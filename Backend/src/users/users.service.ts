@@ -530,7 +530,7 @@ export class UsersService {
         progress,
         current_semester: user.current_semester?.toString(),
         id_program: user.id_program ?? null,
-        needsOnboarding: user.id_program === null || user.id_program === undefined,
+        needsOnboarding: (user.id_program === null || user.id_program === undefined) && (user.current_semester === null || user.current_semester === undefined),
         roleName: user.role.name,
         courses: user.enrollments?.map(e => ({
           id_course: e.course!.id_course,

@@ -81,7 +81,10 @@ export class AuthStore {
     };
     
     this.error = null;
-    this.needsOnboarding = userData?.needsOnboarding ?? false;
+    // Derive needsOnboarding from actual data fields — both must be null
+    this.needsOnboarding =
+      userData?.needsOnboarding ??
+      (!userData?.id_program && !userData?.current_semester);
     
     if (auth0TokensData) {
       const expiresIn = auth0TokensData.expires_in || 86400;

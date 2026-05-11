@@ -12,12 +12,12 @@ export function useAppInitialization() {
         // AuthStore hydrates from localStorage synchronously on construction,
         // so isInitialized is true immediately on web.
         if (authStore.isAuthenticated) {
-          // Fetch fresh profile to get up-to-date needsOnboarding status
           try {
             const profile = await authService.getUserProfile();
+            // Keep needsOnboarding in sync with the server: true when id_program is null
             authStore.setNeedsOnboarding(profile.needsOnboarding ?? false);
           } catch {
-            // Use cached needsOnboarding — don't fail initialization
+            // Non-fatal — cached value from sessionStorage remains valid
           }
         }
       } catch (error) {

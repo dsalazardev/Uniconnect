@@ -1,105 +1,239 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { GraduationCap } from 'lucide-react';
+import { usePrograms } from '@/features/programs/hooks/usePrograms';
 import styles from './OnboardingScreen.module.css';
 
-interface OnboardingData {
-  id_program: number;
-  current_semester: number;
-}
+const TOTAL_STEPS = 3;
+
+const FEATURES = [
+  {
+    title: 'Conexiones académicas',
+    desc: 'Encuentra compañeros del mismo programa, semestre o con materias en común.',
+  },
+  {
+    title: 'Comunidad viva',
+    desc: 'Comparte recursos y aprende de quienes ya cursaron tus asignaturas.',
+  },
+  {
+    title: 'Grupos de estudio',
+    desc: 'Crea o únete a grupos temáticos y organiza proyectos académicos en equipo.',
+  },
+  {
+    title: 'Alertas relevantes',
+    desc: 'Notificaciones personalizadas sobre tu actividad y conexiones.',
+  },
+];
 
 interface OnboardingScreenProps {
-  onComplete: (data: OnboardingData) => Promise<void>;
-  programs?: Array<{ id_program: number; name: string }>;
+  onComplete: (data: { id_program: number; current_semester: number }) => Promise<void>;
 }
 
-export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
-  onComplete,
-  programs = [],
-}) => {
-  const navigate = useNavigate();
-  const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
-  const [currentSemester, setCurrentSemester] = useState<number>(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedProgramId, setSelectedProgramId] = useState<number | undefined>(undefined);
+  const [semesterText, setSemesterText] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ id_program?: string; current_semester?: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { data: programs, isLoading: loadingPrograms, isError: programsError } = usePrograms();
 
-    if (!selectedProgram) {
-      setError('Debes seleccionar un programa');
-      return;
+  const goToStep = (step: number) => setCurrentStep(step);
+
+  const validate = (): boolean => {
+    const errors: typeof fieldErrors = {};
+    if (selectedProgramId === undefined) {
+      errors.id_program = 'Selecciona un programa académico.';
     }
-
-    if (currentSemester < 1 || currentSemester > 12) {
-      setError('El semestre debe estar entre 1 y 12');
-      return;
+    const semester = parseInt(semesterText, 10);
+    if (!semesterText || isNaN(semester) || semester < 1 || semester > 12 || !Number.isInteger(semester)) {
+      errors.current_semester = 'Ingresa un semestre válido (1–12).';
     }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
-    setError(null);
-    setLoading(true);
-
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    const semester = parseInt(semesterText, 10);
+    setFieldErrors({});
+    setIsSubmitting(true);
     try {
-      await onComplete({
-        id_program: selectedProgram,
-        current_semester: currentSemester,
-      });
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Error al completar el onboarding');
+      await onComplete({ id_program: selectedProgramId!, current_semester: semester });
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const msg: string = error?.response?.data?.message || error?.message || '';
+      if (status === 400) {
+        if (msg.toLowerCase().includes('semester')) {
+          setFieldErrors({ current_semester: msg || 'Semestre inválido.' });
+        } else {
+          setFieldErrors({ id_program: msg || 'Datos inválidos.' });
+        }
+      } else if (status === 404) {
+        setFieldErrors({ id_program: 'Programa no válido, selecciona otro.' });
+      } else {
+        setFieldErrors({ id_program: msg || 'Error al guardar perfil. Intenta de nuevo.' });
+      }
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
+  const handleNext = () => {
+    if (currentStep < TOTAL_STEPS - 1) {
+      goToStep(currentStep + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) goToStep(currentStep - 1);
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <h1 className={styles.title}>Completa tu perfil</h1>
-        <p className={styles.subtitle}>
-          Necesitamos algunos datos para personalizar tu experiencia
-        </p>
-
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {error && <div className={styles.errorBanner}>{error}</div>}
-
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Programa Académico *</label>
-            <select
-              className={styles.select}
-              value={selectedProgram || ''}
-              onChange={(e) => setSelectedProgram(Number(e.target.value))}
-              disabled={loading}
-            >
-              <option value="">Selecciona tu programa</option>
-              {programs.map((program) => (
-                <option key={program.id_program} value={program.id_program}>
-                  {program.name}
-                </option>
-              ))}
-            </select>
+    <div className={styles.page}>
+      {/* ── Slides viewport ── */}
+      <div className={styles.slidesViewport}>
+        <div
+          className={styles.slidesTrack}
+          style={{ transform: `translateX(calc(${currentStep} * -100vw))` }}
+        >
+          {/* SLIDE 1 — Bienvenida */}
+          <div className={styles.slide}>
+            <div className={styles.slideContent}>
+              <div className={styles.logoContainer}>
+                <GraduationCap size={72} className={styles.logoIcon} />
+              </div>
+              <p className={styles.welcomeLabel}>Bienvenido a</p>
+              <h1 className={styles.titleGold}>UniConnect</h1>
+              <p className={styles.slideSubtitle}>Universidad de Caldas</p>
+              <div className={styles.divider} />
+              <p className={styles.tagline}>Tu plataforma de conexión estudiantil</p>
+            </div>
           </div>
 
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Semestre Actual *</label>
-            <input
-              type="number"
-              className={styles.input}
-              value={currentSemester}
-              onChange={(e) => setCurrentSemester(Number(e.target.value))}
-              min={1}
-              max={12}
-              disabled={loading}
+          {/* SLIDE 2 — Propuesta de valor */}
+          <div className={styles.slide}>
+            <div className={styles.slideContent}>
+              <h1 className={styles.titleGold}>Todo conectado,<br />para ti</h1>
+              <div className={styles.divider} />
+              <p className={styles.featuresSubtitle}>
+                UniConnect te acerca a los estudiantes, recursos y grupos que marcan
+                la diferencia en tu carrera.
+              </p>
+              <div className={styles.featuresGrid}>
+                {FEATURES.map((f) => (
+                  <div key={f.title} className={styles.featureCard}>
+                    <p className={styles.featureTitle}>{f.title}</p>
+                    <p className={styles.featureDesc}>{f.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SLIDE 3 — Perfil académico */}
+          <div className={styles.slide}>
+            <div className={styles.slideContent}>
+              <h1 className={styles.titleGold}>Tu perfil<br />académico</h1>
+              <div className={styles.divider} />
+              <p className={styles.formSubtitle}>
+                Solo necesitamos dos datos para conectarte con quienes realmente importan.
+              </p>
+
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Programa académico *</label>
+                {loadingPrograms ? (
+                  <div className={styles.loadingRow}>
+                    <span className={styles.spinnerGold} />
+                    <span className={styles.loadingText}>Cargando programas...</span>
+                  </div>
+                ) : programsError ? (
+                  <p className={styles.errorText}>
+                    No se pudieron cargar los programas. Intenta de nuevo.
+                  </p>
+                ) : (
+                  <select
+                    className={`${styles.select} ${fieldErrors.id_program ? styles.fieldInputError : ''}`}
+                    value={selectedProgramId ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setSelectedProgramId(val ? Number(val) : undefined);
+                      setFieldErrors((prev) => ({ ...prev, id_program: undefined }));
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">Selecciona tu programa</option>
+                    {programs?.map((p) => (
+                      <option key={p.id_program} value={p.id_program}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {fieldErrors.id_program && (
+                  <span className={styles.fieldError}>{fieldErrors.id_program}</span>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.fieldLabel}>Semestre actual *</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className={`${styles.input} ${fieldErrors.current_semester ? styles.fieldInputError : ''}`}
+                  placeholder="Ej: 4"
+                  value={semesterText}
+                  onChange={(e) => {
+                    setSemesterText(e.target.value.replace(/[^0-9]/g, ''));
+                    setFieldErrors((prev) => ({ ...prev, current_semester: undefined }));
+                  }}
+                  maxLength={2}
+                  disabled={isSubmitting}
+                />
+                {fieldErrors.current_semester && (
+                  <span className={styles.fieldError}>{fieldErrors.current_semester}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Bottom bar ── */}
+      <div className={styles.bottomBar}>
+        <div className={styles.dotsRow}>
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+            <div
+              key={i}
+              className={`${styles.dot} ${currentStep === i ? styles.dotActive : ''}`}
             />
-          </div>
-
+          ))}
+        </div>
+        <div className={styles.buttonsRow}>
+          {currentStep > 0 && (
+            <button
+              className={styles.backBtn}
+              onClick={handleBack}
+              disabled={isSubmitting}
+            >
+              Atrás
+            </button>
+          )}
           <button
-            type="submit"
-            className={styles.submitButton}
-            disabled={loading || !selectedProgram}
+            className={`${styles.nextBtn} ${isSubmitting ? styles.nextBtnDisabled : ''}`}
+            onClick={handleNext}
+            disabled={isSubmitting}
           >
-            {loading ? 'Guardando...' : 'Continuar'}
+            {isSubmitting ? (
+              <span className={styles.spinnerDark} />
+            ) : currentStep === TOTAL_STEPS - 1 ? (
+              'Guardar y continuar'
+            ) : (
+              'Siguiente →'
+            )}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
