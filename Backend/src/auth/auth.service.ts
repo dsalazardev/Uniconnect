@@ -212,10 +212,8 @@ export class AuthService {
                 });
              }
 
-            const existingUser = await this.usersService.findByEmail(userProfile.email);
-            const isNewUser = !existingUser;
+            let user = await this.usersService.findByEmail(userProfile.email);
 
-            let user = existingUser;
             if (!user) {
                 const studentRole = await this.rolesService.getStudentRole();
                 if (!studentRole) {
@@ -240,6 +238,10 @@ export class AuthService {
 
             const jwt = this.jwtService.sign(payload);
 
+            // needsOnboarding = true when the user has no program assigned yet.
+            // This covers both brand-new users and users created without completing onboarding.
+            const needsOnboarding = user.id_program === null || user.id_program === undefined;
+
             return {
                 success: true,
                 statusCode: 200,
@@ -254,7 +256,7 @@ export class AuthService {
                         email: user.email,
                         picture: user.picture,
                         id_program: user.id_program ?? null,
-                        needsOnboarding: isNewUser,
+                        needsOnboarding,
                     },
                     auth0_tokens: {
                         access_token: tokenResponse.access_token,
