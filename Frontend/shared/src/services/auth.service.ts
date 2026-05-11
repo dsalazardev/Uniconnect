@@ -155,4 +155,21 @@ export class AuthService {
   async completeOnboarding(id_program: number, current_semester: number): Promise<void> {
     await this.api.post(AUTH_ENDPOINTS.ONBOARDING, { id_program, current_semester });
   }
+
+  /**
+   * Register a new user with program and semester collected during onboarding.
+   * Uses the pending_registration_token issued by /auth/callback for first-time users.
+   */
+  async registerNewUser(
+    pendingToken: string,
+    id_program: number,
+    current_semester: number
+  ): Promise<{ success: boolean; statusCode: number; message: string; data: unknown }> {
+    const response = await this.api.post(AUTH_ENDPOINTS.REGISTER, {
+      pending_token: pendingToken,
+      id_program,
+      current_semester,
+    });
+    return response.data;
+  }
 }

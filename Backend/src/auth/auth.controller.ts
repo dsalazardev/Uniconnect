@@ -10,6 +10,7 @@ import { GetClaim } from './decorators/get-token-claim.decorator';
 import { RequireAll, RequireAny } from './decorators/permissions.decorator';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { TempLoginDto } from './dto/temp-login.dto';
+import { RegisterDto } from './dto/register.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -27,6 +28,15 @@ export class AuthController {
     @Post('temp-login')
     async tempLogin(@Body() dto: TempLoginDto){
         return this.authService.tempLogin(dto.googleSub);
+    }
+
+    @Post('register')
+    @ApiOperation({
+        summary: 'Complete new user registration with academic data',
+        description: 'Creates a new user in the database with the program and semester collected during onboarding. Requires the pending_registration_token issued by /auth/callback for new users.'
+    })
+    async register(@Body() dto: RegisterDto) {
+        return this.authService.registerNewUser(dto.pending_token, dto.id_program, dto.current_semester);
     }
 
     @Post('callback')

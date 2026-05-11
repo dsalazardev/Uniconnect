@@ -11,6 +11,7 @@ export const AUTH_ENDPOINTS = {
   LOGOUT: '/auth/logout',
   ALTERNATIVE_LOGIN: '/auth/temp-login',
   AUTH_CALLBACK: '/auth/callback',
+  REGISTER: '/auth/register',
   USER_PROFILE: '/users/profile',
   ONBOARDING: '/users/onboarding',
 } as const;
