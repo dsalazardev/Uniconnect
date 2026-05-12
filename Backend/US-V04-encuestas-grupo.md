@@ -83,7 +83,7 @@ En el gateway/servicio WebSocket existente del grupo, agregar los eventos de enc
 `feat(websocket): emitir eventos poll:vote_updated y poll:closed al room del grupo`
 
 **Estimación:**
-3 horas
+0,5 horas
 
 ---
 
@@ -96,4 +96,4 @@ Implementar un servicio `PollSchedulerService` que al crear una encuesta (`POST 
 `feat(polls): implementar PollSchedulerService para auto-cierre por temporizador con recuperación al arranque`
 
 **Estimación:**
-4 horas
+0,5 horas

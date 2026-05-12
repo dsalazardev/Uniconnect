@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MessagesGateway } from '../messages/messages.gateway';
 import { CreatePollDto } from './dto/create-poll.dto';
 
 export interface PollOptionResponse {
@@ -28,7 +29,10 @@ export interface PollResponse {
 
 @Injectable()
 export class PollsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly messagesGateway: MessagesGateway,
+  ) {}
 
   async createPoll(
     groupId: number,
@@ -93,7 +97,49 @@ export class PollsService {
       data: { id_poll: pollId, id_user: userId, id_option: optionId },
     });
 
-    return this.getPoll(pollId, userId);
+    const updated = await this.getPoll(pollId, userId);
+
+    // Emitir actualización de votos al room del grupo via el gateway existente
+    this.messagesGateway.sendMessageToGroup(updated.groupId, 'poll:vote_updated', {
+      pollId: updated.id,
+      options: updated.options,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Emite poll:closed al room del grupo.
+   * Llamado por PollSchedulerService (task 6) cuando expira el temporizador.
+   */
+  async emitPollClosed(pollId: number, closedAt: Date): Promise<void> {
+    const poll = await this.prisma.poll.findUnique({
+      where: { id_poll: pollId },
+      include: { options: { include: { votes: true } } },
+    });
+
+    if (!poll) return;
+
+    const totalVotes = poll.options.reduce(
+      (sum, o) => sum + o.votes.length,
+      0,
+    );
+
+    const options = poll.options.map((o) => ({
+      id: o.id_option,
+      text: o.text,
+      count: o.votes.length,
+      percentage:
+        totalVotes > 0
+          ? Math.round((o.votes.length / totalVotes) * 100)
+          : 0,
+    }));
+
+    this.messagesGateway.sendMessageToGroup(poll.id_group, 'poll:closed', {
+      pollId,
+      options,
+      closedAt: closedAt.toISOString(),
+    });
   }
 
   async getPoll(pollId: number, userId: number): Promise<PollResponse> {

@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PollsService } from './polls.service';
+import { PollSchedulerService } from './poll-scheduler.service';
 import { CreatePollDto } from './dto/create-poll.dto';
 import { CastVoteDto } from './dto/cast-vote.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -26,7 +27,10 @@ import { GetClaim } from '../auth/decorators/get-token-claim.decorator';
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class PollsController {
-  constructor(private readonly pollsService: PollsService) {}
+  constructor(
+    private readonly pollsService: PollsService,
+    private readonly pollSchedulerService: PollSchedulerService,
+  ) {}
 
   /**
    * POST /groups/:groupId/polls
@@ -36,12 +40,14 @@ export class PollsController {
   @ApiOperation({ summary: 'Crear una encuesta rápida en el chat de grupo' })
   @ApiResponse({ status: 201, description: 'Encuesta creada con opciones y estado inicial.' })
   @ApiResponse({ status: 400, description: 'closesAt debe ser en el futuro.' })
-  createPoll(
+  async createPoll(
     @Param('groupId', ParseIntPipe) groupId: number,
     @GetClaim('sub') userId: number,
     @Body() dto: CreatePollDto,
   ) {
-    return this.pollsService.createPoll(groupId, userId, dto);
+    const poll = await this.pollsService.createPoll(groupId, userId, dto);
+    this.pollSchedulerService.schedulePollClose(poll.id, new Date(poll.closesAt));
+    return poll;
   }
 
   /**
