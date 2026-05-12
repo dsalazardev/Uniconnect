@@ -89,13 +89,18 @@ export class PollsService {
     const existing = await this.prisma.poll_vote.findFirst({
       where: { id_poll: pollId, id_user: userId },
     });
-    if (existing) {
-      throw new ConflictException('Ya registraste tu voto en esta encuesta');
-    }
 
-    await this.prisma.poll_vote.create({
-      data: { id_poll: pollId, id_user: userId, id_option: optionId },
-    });
+    if (existing) {
+      // Permitir cambio de opción — actualiza el voto existente
+      await this.prisma.poll_vote.update({
+        where: { id_vote: existing.id_vote },
+        data: { id_option: optionId },
+      });
+    } else {
+      await this.prisma.poll_vote.create({
+        data: { id_poll: pollId, id_user: userId, id_option: optionId },
+      });
+    }
 
     const updated = await this.getPoll(pollId, userId);
 

@@ -288,8 +288,31 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     const handlePollVoteUpdated = (payload: any) => pollHandler.handleVoteUpdated(payload);
     const handlePollClosed = (payload: any) => pollHandler.handlePollClosed(payload);
 
+    // Nueva encuesta creada: añadirla al chat como un mensaje especial
+    const handlePollCreated = (payload: { poll: Poll; senderId: number; senderName: string }) => {
+      const syntheticMessage: Message = {
+        id_message: -(payload.poll.id),
+        id_membership: -1,
+        text_content: '',
+        send_at: new Date().toISOString(),
+        attachments: '',
+        is_edited: false,
+        edited_at: null,
+        files: [],
+        poll: payload.poll,
+        sender_name: payload.senderName,
+        sender_picture: null,
+        membership: {
+          user: { id_user: payload.senderId, full_name: payload.senderName, picture: '' },
+          group: { id_group: groupId, name: '' },
+        },
+      };
+      setMessages((prev) => [syntheticMessage, ...prev]);
+    };
+
     websocketService.on(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
     websocketService.on(POLL_WS_EVENTS.CLOSED, handlePollClosed);
+    websocketService.on('poll:created', handlePollCreated);
 
     // Cargar mensajes iniciales
     loadMessages();
@@ -305,6 +328,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off('message:mention', handleMention);
       websocketService.off(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
       websocketService.off(POLL_WS_EVENTS.CLOSED, handlePollClosed);
+      websocketService.off('poll:created', handlePollCreated);
     };
   }, [groupId, userId, serverUrl, loadMessages]);
 
@@ -439,15 +463,18 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
-  // Registrar voto en encuesta (optimistic: actualiza userVote localmente)
+  // Registrar o cambiar voto en encuesta (optimistic)
   const castVote = useCallback(async (pollId: number, optionId: number) => {
-    // Optimistic: mark userVote immediately so buttons disable
+    // Guardar voto anterior por si hay que revertir
+    let prevUserVote: number | null = null;
     setMessages((prev) =>
-      prev.map((msg) =>
-        msg.poll?.id === pollId
-          ? { ...msg, poll: { ...msg.poll!, userVote: optionId } }
-          : msg
-      )
+      prev.map((msg) => {
+        if (msg.poll?.id === pollId) {
+          prevUserVote = msg.poll.userVote ?? null;
+          return { ...msg, poll: { ...msg.poll!, userVote: optionId } };
+        }
+        return msg;
+      })
     );
     try {
       const updated = await pollService.castVote(pollId, optionId);
@@ -455,16 +482,15 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
         prev.map((msg) => (msg.poll?.id === pollId ? { ...msg, poll: updated } : msg))
       );
     } catch (err: any) {
-      // Revert optimistic on error
+      // Revertir al voto anterior en caso de error
       setMessages((prev) =>
         prev.map((msg) =>
           msg.poll?.id === pollId
-            ? { ...msg, poll: { ...msg.poll!, userVote: null } }
+            ? { ...msg, poll: { ...msg.poll!, userVote: prevUserVote } }
             : msg
         )
       );
-      const msg = err?.response?.data?.message || 'Error al registrar el voto.';
-      toast.error(msg);
+      toast.error(err?.response?.data?.message || 'Error al registrar el voto.');
     }
   }, []);
 

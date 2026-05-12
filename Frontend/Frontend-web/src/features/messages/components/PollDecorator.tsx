@@ -18,6 +18,8 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
   const isClosed = poll.status === 'CLOSED';
   const hasVoted = poll.userVote !== null && poll.userVote !== undefined;
   const totalVotes = poll.options.reduce((sum, o) => sum + o.count, 0);
+  // Show results when voted OR closed; allow changing vote while poll is ACTIVE
+  const showResults = hasVoted || isClosed;
 
   const handleVote = (option: PollOption) => {
     if (isClosed || hasVoted || !onVote) return;
@@ -57,19 +59,19 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
             <button
               key={option.id}
               className={`${styles.option} ${isVoted ? styles.optionVoted : ''} ${
-                isClosed || hasVoted ? styles.optionDisabled : styles.optionClickable
+                isClosed ? styles.optionDisabled : styles.optionClickable
               }`}
               onClick={() => handleVote(option)}
-              disabled={isClosed || hasVoted}
+              disabled={isClosed}
               aria-label={`Votar por ${option.text}`}
             >
               {/* Progress fill behind the row */}
               <div
                 className={styles.progressFill}
-                style={{ width: hasVoted || isClosed ? `${pct}%` : '0%' }}
+                style={{ width: showResults ? `${pct}%` : '0%' }}
               />
               <span className={styles.optionText}>{option.text}</span>
-              {(hasVoted || isClosed) && (
+              {showResults && (
                 <span className={styles.optionPct}>{pct.toFixed(0)}%</span>
               )}
               {isVoted && <span className={styles.checkMark}>✓</span>}

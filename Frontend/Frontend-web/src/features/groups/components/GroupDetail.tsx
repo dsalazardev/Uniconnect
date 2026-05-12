@@ -16,7 +16,7 @@ import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import { groupsService } from '../services';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical, BarChart2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical } from 'lucide-react';
 import { PollCreationModal } from '@/features/messages/components/PollCreationModal';
 import styles from './GroupDetail.module.css';
 
@@ -271,28 +271,16 @@ export const GroupDetail: React.FC = () => {
                 onFilePress={(file) => chat.downloadFile(file)}
                 onVotePoll={chat.castVote}
               />
-              <div className={styles.inputToolbar}>
-                {!editingMessageId && (
-                  <button
-                    className={styles.pollButton}
-                    type="button"
-                    onClick={() => setShowPollModal(true)}
-                    title="Crear encuesta"
-                    aria-label="Crear encuesta"
-                  >
-                    <BarChart2 size={20} />
-                  </button>
-                )}
-                <MessageInput
-                  onSend={handleSendOrEdit}
-                  disabled={!chat.isConnected && chat.messages.length === 0}
-                  placeholder="Escribe un mensaje..."
-                  editingMessageId={editingMessageId}
-                  initialText={editingText}
-                  onCancelEdit={handleCancelEdit}
-                  groupId={groupId}
-                />
-              </div>
+              <MessageInput
+                onSend={handleSendOrEdit}
+                disabled={!chat.isConnected && chat.messages.length === 0}
+                placeholder="Escribe un mensaje..."
+                editingMessageId={editingMessageId}
+                initialText={editingText}
+                onCancelEdit={handleCancelEdit}
+                groupId={groupId}
+                onPollClick={() => setShowPollModal(true)}
+              />
               {showPollModal && (
                 <PollCreationModal
                   onClose={() => setShowPollModal(false)}

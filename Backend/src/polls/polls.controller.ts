@@ -21,6 +21,7 @@ import { CreatePollDto } from './dto/create-poll.dto';
 import { CastVoteDto } from './dto/cast-vote.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetClaim } from '../auth/decorators/get-token-claim.decorator';
+import { MessagesGateway } from '../messages/messages.gateway';
 
 @ApiTags('polls')
 @ApiBearerAuth()
@@ -30,6 +31,7 @@ export class PollsController {
   constructor(
     private readonly pollsService: PollsService,
     private readonly pollSchedulerService: PollSchedulerService,
+    private readonly messagesGateway: MessagesGateway,
   ) {}
 
   /**
@@ -43,10 +45,17 @@ export class PollsController {
   async createPoll(
     @Param('groupId', ParseIntPipe) groupId: number,
     @GetClaim('sub') userId: number,
+    @GetClaim('name') userName: string,
     @Body() dto: CreatePollDto,
   ) {
     const poll = await this.pollsService.createPoll(groupId, userId, dto);
     this.pollSchedulerService.schedulePollClose(poll.id, new Date(poll.closesAt));
+    // Broadcast al room del grupo para que aparezca en el chat de todos
+    this.messagesGateway.sendMessageToGroup(groupId, 'poll:created', {
+      poll,
+      senderId: userId,
+      senderName: userName ?? 'Usuario',
+    });
     return poll;
   }
 
