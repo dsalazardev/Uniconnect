@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, User, MessageCircle } from 'lucide-react';
+import { Users, User, MessageCircle, ArrowRightLeft, UserMinus } from 'lucide-react';
 import styles from './MemberList.module.css';
 
 interface Member {
@@ -21,6 +21,8 @@ interface MemberListProps {
   currentUserId?: number;
   loadingUserId?: number | null;
   onDirectMessage?: (userId: number) => void;
+  onTransfer?: (userId: number) => void;
+  onRemove?: (userId: number) => void;
 }
 
 export const MemberList: React.FC<MemberListProps> = ({
@@ -30,6 +32,8 @@ export const MemberList: React.FC<MemberListProps> = ({
   currentUserId,
   loadingUserId,
   onDirectMessage,
+  onTransfer,
+  onRemove,
 }) => {
   if (memberships.length === 0) {
     return (
@@ -73,23 +77,53 @@ export const MemberList: React.FC<MemberListProps> = ({
                 <span className={styles.email}>{member.user.email}</span>
               )}
             </div>
-            {onDirectMessage && member.id_user && member.id_user !== currentUserId && (
-              <button
-                className={styles.dmButton}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDirectMessage(member.id_user!);
-                }}
-                disabled={loadingUserId === member.id_user}
-                title="Enviar mensaje"
-              >
-                {loadingUserId === member.id_user ? (
-                  <span className={styles.dmSpinner} />
-                ) : (
-                  <MessageCircle size={18} />
-                )}
-              </button>
-            )}
+            <div className={styles.actions}>
+              {onDirectMessage && member.id_user && member.id_user !== currentUserId && (
+                <button
+                  className={styles.dmButton}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDirectMessage(member.id_user!);
+                  }}
+                  disabled={loadingUserId === member.id_user}
+                  title="Enviar mensaje privado"
+                >
+                  {loadingUserId === member.id_user ? (
+                    <span className={styles.dmSpinner} />
+                  ) : (
+                    <MessageCircle size={16} />
+                  )}
+                </button>
+              )}
+              {canManage && member.id_user !== ownerId && member.id_user !== currentUserId && (
+                <>
+                  {onTransfer && (
+                    <button
+                      className={styles.transferButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTransfer(member.id_user!);
+                      }}
+                      title="Transferir propiedad"
+                    >
+                      <ArrowRightLeft size={15} />
+                    </button>
+                  )}
+                  {onRemove && (
+                    <button
+                      className={styles.removeButton}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove(member.id_user!);
+                      }}
+                      title="Eliminar miembro"
+                    >
+                      <UserMinus size={15} />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       ))}
