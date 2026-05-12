@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -121,12 +121,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   });
 
   // Con inverted FlatList no necesitamos scroll manual — ya empieza abajo
-  // Solo hacemos scroll al recibir el primer lote de mensajes
   useEffect(() => {
     if (messages.length > 0 && !loading) {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [loading]);
+
+  // Deduplicar mensajes de encuesta: conservar solo la primera aparición de cada poll.id
+  const dedupedMessages = useMemo(() => {
+    const seenPollIds = new Set<number>();
+    return messages.filter((msg) => {
+      if (!msg.poll) return true;
+      if (seenPollIds.has(msg.poll.id)) return false;
+      seenPollIds.add(msg.poll.id);
+      return true;
+    });
+  }, [messages]);
 
   const handleSend = () => {
     if (!inputText.trim()) return;
@@ -274,7 +284,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         {/* FlatList ocupa todo el espacio disponible */}
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={dedupedMessages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id_message.toString()}
           contentContainerStyle={styles.messagesList}          style={styles.flatList}

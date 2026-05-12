@@ -32,7 +32,7 @@ export const PollMessageCard: React.FC<PollMessageCardProps> = ({
   }, [isClosed, poll.closesAt]);
 
   const handleVote = (option: PollOption) => {
-    if (isClosed || hasVoted || !onVote) return;
+    if (isClosed || !onVote) return;
     onVote(poll.id, option.id);
   };
 
@@ -66,11 +66,11 @@ export const PollMessageCard: React.FC<PollMessageCardProps> = ({
               style={[
                 styles.option,
                 isVoted && styles.optionVoted,
-                (isClosed || hasVoted) && styles.optionDisabled,
+                isClosed && styles.optionDisabled,
               ]}
               onPress={() => handleVote(option)}
-              disabled={isClosed || hasVoted}
-              activeOpacity={isClosed || hasVoted ? 1 : 0.7}
+              disabled={isClosed}
+              activeOpacity={isClosed ? 1 : 0.7}
             >
               {/* Progress fill */}
               {showResults && (

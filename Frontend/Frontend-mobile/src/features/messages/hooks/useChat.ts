@@ -219,8 +219,38 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     const handlePollVoteUpdated = (payload: any) => pollHandler.handleVoteUpdated(payload);
     const handlePollClosed = (payload: any) => pollHandler.handlePollClosed(payload);
 
+    // Encuesta nueva: añadirla al chat como mensaje sintético (igual que web)
+    const handlePollCreated = (payload: { poll: Poll; senderId: number; senderName: string }) => {
+      const syntheticId = -(1_000_000_000 + payload.poll.id);
+      const syntheticMessage: Message = {
+        id_message: syntheticId,
+        id_membership: -1,
+        text_content: '',
+        send_at: new Date().toISOString(),
+        attachments: '',
+        is_edited: false,
+        edited_at: null,
+        files: [],
+        poll: payload.poll,
+        sender_name: payload.senderName,
+        sender_picture: null,
+        membership: {
+          user: { id_user: payload.senderId, full_name: payload.senderName, picture: '' },
+          group: { id_group: groupId, name: '' },
+        },
+      };
+      setMessages((prev) => {
+        const alreadyPresent = prev.some(
+          (m) => m.id_message === syntheticId || m.poll?.id === payload.poll.id
+        );
+        if (alreadyPresent) return prev;
+        return [syntheticMessage, ...prev];
+      });
+    };
+
     websocketService.on(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
     websocketService.on(POLL_WS_EVENTS.CLOSED, handlePollClosed);
+    websocketService.on('poll:created', handlePollCreated);
 
     // Cargar mensajes iniciales
     loadMessages();
@@ -235,6 +265,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off('message:mention', handleMention);
       websocketService.off(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
       websocketService.off(POLL_WS_EVENTS.CLOSED, handlePollClosed);
+      websocketService.off('poll:created', handlePollCreated);
     };
   }, [groupId, userId, serverUrl, loadMessages]);
 
@@ -359,33 +390,47 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
-  // Registrar voto en encuesta con optimistic UI
+  // Registrar o cambiar voto — optimismo completo: userVote + porcentajes al instante
   const castVote = useCallback(async (pollId: number, optionId: number) => {
-    // Optimistic: marcar userVote localmente para deshabilitar botones de inmediato
+    let prevPoll: Poll | undefined;
+
     setMessages((prev) =>
-      prev.map((msg) =>
-        msg.poll?.id === pollId
-          ? { ...msg, poll: { ...msg.poll!, userVote: optionId } }
-          : msg
-      )
+      prev.map((msg) => {
+        if (msg.poll?.id !== pollId) return msg;
+        prevPoll = msg.poll;
+
+        const prevVote = msg.poll.userVote ?? null;
+        const isNewVote = prevVote === null;
+        const currentTotal = msg.poll.options.reduce((s, o) => s + o.count, 0);
+        const newTotal = isNewVote ? currentTotal + 1 : currentTotal;
+
+        const newOptions = msg.poll.options.map((o) => {
+          let count = o.count;
+          if (o.id === optionId) count += 1;
+          if (!isNewVote && o.id === prevVote && prevVote !== optionId) count -= 1;
+          return {
+            ...o,
+            count,
+            percentage: newTotal > 0 ? Math.round((count / newTotal) * 100) : 0,
+          };
+        });
+
+        return { ...msg, poll: { ...msg.poll!, options: newOptions, userVote: optionId } };
+      })
     );
+
     try {
       const updated = await pollService.castVote(pollId, optionId);
       setMessages((prev) =>
         prev.map((msg) => (msg.poll?.id === pollId ? { ...msg, poll: updated } : msg))
       );
     } catch (err: any) {
-      // Revertir estado optimista
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.poll?.id === pollId
-            ? { ...msg, poll: { ...msg.poll!, userVote: null } }
-            : msg
+          msg.poll?.id === pollId && prevPoll ? { ...msg, poll: prevPoll } : msg
         )
       );
-      const message =
-        err?.response?.data?.message || 'Error al registrar el voto.';
-      Alert.alert('Encuesta', message);
+      Alert.alert('Encuesta', err?.response?.data?.message || 'Error al registrar el voto.');
     }
   }, []);
 
