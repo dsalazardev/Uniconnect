@@ -293,6 +293,14 @@ export const GroupDetail: React.FC = () => {
                   <span className={styles.courseName}>{groupInfo.course.name}</span>
                 </div>
               )}
+              {!isDirectMessage && (
+                <div className={styles.statusRow}>
+                  <span className={`${styles.statusDot} ${groupInfo.pending_owner_id ? styles.statusDotPending : styles.statusDotActive}`} />
+                  <span className={`${styles.statusLabel} ${groupInfo.pending_owner_id ? styles.statusLabelPending : styles.statusLabelActive}`}>
+                    {groupInfo.pending_owner_id ? 'Transfiriendo propiedad' : 'Activo'}
+                  </span>
+                </div>
+              )}
             </div>
             {!isDirectMessage && (
               <div className={styles.section}>
@@ -374,6 +382,12 @@ export const GroupDetail: React.FC = () => {
                     <span className={styles.courseName}>{groupInfo.course.name}</span>
                   </div>
                 )}
+                <div className={styles.statusRow}>
+                  <span className={`${styles.statusDot} ${groupInfo.pending_owner_id ? styles.statusDotPending : styles.statusDotActive}`} />
+                  <span className={`${styles.statusLabel} ${groupInfo.pending_owner_id ? styles.statusLabelPending : styles.statusLabelActive}`}>
+                    {groupInfo.pending_owner_id ? 'Transfiriendo propiedad' : 'Activo'}
+                  </span>
+                </div>
               </div>
 
               {/* Members — with DM + Transfer + Remove buttons */}
