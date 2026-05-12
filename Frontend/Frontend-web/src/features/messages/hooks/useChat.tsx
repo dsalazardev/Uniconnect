@@ -459,31 +459,44 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
-  // Registrar o cambiar voto en encuesta (optimistic)
+  // Registrar o cambiar voto — optimismo completo: userVote + porcentajes al instante
   const castVote = useCallback(async (pollId: number, optionId: number) => {
-    // Guardar voto anterior por si hay que revertir
-    let prevUserVote: number | null = null;
+    let prevPoll: Poll | undefined;
+
     setMessages((prev) =>
       prev.map((msg) => {
-        if (msg.poll?.id === pollId) {
-          prevUserVote = msg.poll.userVote ?? null;
-          return { ...msg, poll: { ...msg.poll!, userVote: optionId } };
-        }
-        return msg;
+        if (msg.poll?.id !== pollId) return msg;
+        prevPoll = msg.poll;
+
+        const prevVote = msg.poll.userVote ?? null;
+        const isNewVote = prevVote === null;
+        const currentTotal = msg.poll.options.reduce((s, o) => s + o.count, 0);
+        const newTotal = isNewVote ? currentTotal + 1 : currentTotal;
+
+        const newOptions = msg.poll.options.map((o) => {
+          let count = o.count;
+          if (o.id === optionId) count += 1;
+          if (!isNewVote && o.id === prevVote && prevVote !== optionId) count -= 1;
+          return {
+            ...o,
+            count,
+            percentage: newTotal > 0 ? Math.round((count / newTotal) * 100) : 0,
+          };
+        });
+
+        return { ...msg, poll: { ...msg.poll!, options: newOptions, userVote: optionId } };
       })
     );
+
     try {
       const updated = await pollService.castVote(pollId, optionId);
       setMessages((prev) =>
         prev.map((msg) => (msg.poll?.id === pollId ? { ...msg, poll: updated } : msg))
       );
     } catch (err: any) {
-      // Revertir al voto anterior en caso de error
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.poll?.id === pollId
-            ? { ...msg, poll: { ...msg.poll!, userVote: prevUserVote } }
-            : msg
+          msg.poll?.id === pollId && prevPoll ? { ...msg, poll: prevPoll } : msg
         )
       );
       toast.error(err?.response?.data?.message || 'Error al registrar el voto.');
