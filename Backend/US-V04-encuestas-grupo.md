@@ -70,7 +70,7 @@ Crear la entidad `Poll` con campos: `id`, `groupId`, `createdBy`, `question`, `o
 `feat(polls): crear entidad Poll, PollVote y endpoints REST con validación de voto único`
 
 **Estimación:**
-1 horas
+0,5 horas
 
 ---
 

@@ -1,0 +1,39 @@
+enum PollStatus {
+  ACTIVE
+  CLOSED
+}
+
+model poll {
+  id_poll    Int         @id @default(autoincrement())
+  id_group   Int
+  created_by Int
+  question   String      @db.VarChar
+  closes_at  DateTime    @db.Timestamptz(6)
+  status     PollStatus  @default(ACTIVE)
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  group      group       @relation(fields: [id_group], references: [id_group], onDelete: Cascade)
+  creator    user        @relation("PollCreator", fields: [created_by], references: [id_user])
+  options    poll_option[]
+  votes      poll_vote[]
+}
+
+model poll_option {
+  id_option Int         @id @default(autoincrement())
+  id_poll   Int
+  text      String      @db.VarChar
+  poll      poll        @relation(fields: [id_poll], references: [id_poll], onDelete: Cascade)
+  votes     poll_vote[]
+}
+
+model poll_vote {
+  id_vote    Int         @id @default(autoincrement())
+  id_poll    Int
+  id_user    Int
+  id_option  Int
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  poll       poll        @relation(fields: [id_poll], references: [id_poll], onDelete: Cascade)
+  option     poll_option @relation(fields: [id_option], references: [id_option])
+  voter      user        @relation("PollVoter", fields: [id_user], references: [id_user])
+
+  @@unique([id_poll, id_user])
+}

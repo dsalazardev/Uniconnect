@@ -19,6 +19,7 @@ import { MessagesModule } from './messages/messages.module';
 import { GroupInvitationsModule } from './group-invitations/group-invitations.module';
 import { FilesModule } from './files/files.module';
 import { EventsModule } from './events/events.module';
+import { PollsModule } from './polls/polls.module';
 import { LoggerMiddleware } from './core/logger/logger.middleware';
 
 @Module({
@@ -51,6 +52,7 @@ import { LoggerMiddleware } from './core/logger/logger.middleware';
     GroupInvitationsModule,
     FilesModule,
     EventsModule,
+    PollsModule,
   ],
   controllers: [AppController],
   providers: [AppService, RolesService, PermissionsService],
