@@ -97,6 +97,28 @@
   overflow: hidden;
 }
 
+.inputToolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.pollButton {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 10px 10px 10px 12px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.pollButton:hover {
+  color: #D9B97E;
+}
+
 /* ── Non-member view ─────────────────────────────────────────── */
 .nonMemberContent {
   flex: 1;

@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { messagesService } from '../services';
+import { Alert } from 'react-native';
+import { messagesService, pollService } from '../services';
 import { websocketService } from '../services/websocket.service';
 import { filesService } from '../services/files.service';
 import { Message, MessageSendData, TypingData } from '../types';
 import { getServerUrl } from '../config/websocket.config';
+import {
+  PollSocketHandler,
+  POLL_WS_EVENTS,
+  type Poll,
+  type PollOption,
+} from '@uniconnect/shared';
 
 interface UseChatOptions {
   groupId: number;
@@ -21,6 +28,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   const [typingUsers, setTypingUsers] = useState<TypingData[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [pollsState, setPollsState] = useState<Map<number, Poll>>(new Map());
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   // Cursor: id_message del mensaje más antiguo cargado
@@ -173,6 +181,77 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     };
     websocketService.on('message:mention', handleMention);
 
+    // Poll WebSocket listeners vía PollSocketHandler compartido
+    const pollHandler = new PollSocketHandler(
+      (pollId: number, options: PollOption[]) => {
+        setPollsState((prev) => {
+          const existing = prev.get(pollId);
+          if (!existing) return prev;
+          const next = new Map(prev);
+          next.set(pollId, { ...existing, options });
+          return next;
+        });
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.poll?.id === pollId ? { ...msg, poll: { ...msg.poll!, options } } : msg
+          )
+        );
+      },
+      (pollId: number, options: PollOption[], closedAt: string) => {
+        setPollsState((prev) => {
+          const existing = prev.get(pollId);
+          if (!existing) return prev;
+          const next = new Map(prev);
+          next.set(pollId, { ...existing, options, status: 'CLOSED' });
+          return next;
+        });
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.poll?.id === pollId
+              ? { ...msg, poll: { ...msg.poll!, options, status: 'CLOSED' } }
+              : msg
+          )
+        );
+        void closedAt;
+      }
+    );
+
+    const handlePollVoteUpdated = (payload: any) => pollHandler.handleVoteUpdated(payload);
+    const handlePollClosed = (payload: any) => pollHandler.handlePollClosed(payload);
+
+    // Encuesta nueva: añadirla al chat como mensaje sintético (igual que web)
+    const handlePollCreated = (payload: { poll: Poll; senderId: number; senderName: string }) => {
+      const syntheticId = -(1_000_000_000 + payload.poll.id);
+      const syntheticMessage: Message = {
+        id_message: syntheticId,
+        id_membership: -1,
+        text_content: '',
+        send_at: new Date().toISOString(),
+        attachments: '',
+        is_edited: false,
+        edited_at: null,
+        files: [],
+        poll: payload.poll,
+        sender_name: payload.senderName,
+        sender_picture: null,
+        membership: {
+          user: { id_user: payload.senderId, full_name: payload.senderName, picture: '' },
+          group: { id_group: groupId, name: '' },
+        },
+      };
+      setMessages((prev) => {
+        const alreadyPresent = prev.some(
+          (m) => m.id_message === syntheticId || m.poll?.id === payload.poll.id
+        );
+        if (alreadyPresent) return prev;
+        return [syntheticMessage, ...prev];
+      });
+    };
+
+    websocketService.on(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
+    websocketService.on(POLL_WS_EVENTS.CLOSED, handlePollClosed);
+    websocketService.on('poll:created', handlePollCreated);
+
     // Cargar mensajes iniciales
     loadMessages();
 
@@ -184,6 +263,9 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off('message:deleted', handleMessageDeleted);
       websocketService.off('user:typing', handleUserTyping);
       websocketService.off('message:mention', handleMention);
+      websocketService.off(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
+      websocketService.off(POLL_WS_EVENTS.CLOSED, handlePollClosed);
+      websocketService.off('poll:created', handlePollCreated);
     };
   }, [groupId, userId, serverUrl, loadMessages]);
 
@@ -308,6 +390,50 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
+  // Registrar o cambiar voto — optimismo completo: userVote + porcentajes al instante
+  const castVote = useCallback(async (pollId: number, optionId: number) => {
+    let prevPoll: Poll | undefined;
+
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.poll?.id !== pollId) return msg;
+        prevPoll = msg.poll;
+
+        const prevVote = msg.poll.userVote ?? null;
+        const isNewVote = prevVote === null;
+        const currentTotal = msg.poll.options.reduce((s, o) => s + o.count, 0);
+        const newTotal = isNewVote ? currentTotal + 1 : currentTotal;
+
+        const newOptions = msg.poll.options.map((o) => {
+          let count = o.count;
+          if (o.id === optionId) count += 1;
+          if (!isNewVote && o.id === prevVote && prevVote !== optionId) count -= 1;
+          return {
+            ...o,
+            count,
+            percentage: newTotal > 0 ? Math.round((count / newTotal) * 100) : 0,
+          };
+        });
+
+        return { ...msg, poll: { ...msg.poll!, options: newOptions, userVote: optionId } };
+      })
+    );
+
+    try {
+      const updated = await pollService.castVote(pollId, optionId);
+      setMessages((prev) =>
+        prev.map((msg) => (msg.poll?.id === pollId ? { ...msg, poll: updated } : msg))
+      );
+    } catch (err: any) {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.poll?.id === pollId && prevPoll ? { ...msg, poll: prevPoll } : msg
+        )
+      );
+      Alert.alert('Encuesta', err?.response?.data?.message || 'Error al registrar el voto.');
+    }
+  }, []);
+
   return {
     messages,
     loading,
@@ -324,5 +450,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     searchMessages,
     reloadMessages: loadMessages,
     downloadFile,
+    castVote,
+    pollsState,
   };
 };

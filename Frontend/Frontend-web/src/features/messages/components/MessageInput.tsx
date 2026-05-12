@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Paperclip } from 'lucide-react';
+import { Send, X, Paperclip, BarChart2 } from 'lucide-react';
 import { filesService } from '../services/files.service';
 import styles from './MessageInput.module.css';
 
@@ -12,6 +12,7 @@ interface MessageInputProps {
   initialText?: string;
   onCancelEdit?: () => void;
   groupId?: number;
+  onPollClick?: () => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -23,6 +24,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   initialText,
   onCancelEdit,
   groupId,
+  onPollClick,
 }) => {
   const [text, setText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -127,6 +129,18 @@ export const MessageInput: React.FC<MessageInputProps> = ({
               style={{ display: 'none' }}
               onChange={handleFileSelect}
             />
+            {onPollClick && (
+              <button
+                type="button"
+                className={styles.attachButton}
+                onClick={onPollClick}
+                disabled={disabled}
+                aria-label="Crear encuesta"
+                title="Crear encuesta"
+              >
+                <BarChart2 size={20} />
+              </button>
+            )}
           </>
         )}
         <textarea
