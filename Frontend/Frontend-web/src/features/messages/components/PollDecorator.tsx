@@ -22,7 +22,7 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
   const showResults = hasVoted || isClosed;
 
   const handleVote = (option: PollOption) => {
-    if (isClosed || hasVoted || !onVote) return;
+    if (isClosed || !onVote) return;
     onVote(poll.id, option.id);
   };
 

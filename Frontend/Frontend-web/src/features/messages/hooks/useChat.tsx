@@ -253,13 +253,6 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     // Poll WebSocket listeners
     const pollHandler = new PollSocketHandler(
       (pollId: number, options: PollOption[]) => {
-        setPollsState((prev) => {
-          const existing = prev.get(pollId);
-          if (!existing) return prev;
-          const next = new Map(prev);
-          next.set(pollId, { ...existing, options });
-          return next;
-        });
         setMessages((prev) =>
           prev.map((msg) =>
             msg.poll?.id === pollId ? { ...msg, poll: { ...msg.poll!, options } } : msg
@@ -267,13 +260,6 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
         );
       },
       (pollId: number, options: PollOption[], closedAt: string) => {
-        setPollsState((prev) => {
-          const existing = prev.get(pollId);
-          if (!existing) return prev;
-          const next = new Map(prev);
-          next.set(pollId, { ...existing, options, status: 'CLOSED' });
-          return next;
-        });
         setMessages((prev) =>
           prev.map((msg) =>
             msg.poll?.id === pollId
@@ -290,8 +276,11 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Nueva encuesta creada: añadirla al chat como un mensaje especial
     const handlePollCreated = (payload: { poll: Poll; senderId: number; senderName: string }) => {
+      // Usamos un ID negativo basado en el poll.id con offset grande para evitar
+      // colisión con mensajes optimistas (-Date.now()) y con otros polls
+      const syntheticId = -(1_000_000_000 + payload.poll.id);
       const syntheticMessage: Message = {
-        id_message: -(payload.poll.id),
+        id_message: syntheticId,
         id_membership: -1,
         text_content: '',
         send_at: new Date().toISOString(),
@@ -307,7 +296,14 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
           group: { id_group: groupId, name: '' },
         },
       };
-      setMessages((prev) => [syntheticMessage, ...prev]);
+      // Deduplicar: no agregar si ya existe un mensaje con ese id o con ese poll.id
+      setMessages((prev) => {
+        const alreadyPresent = prev.some(
+          (m) => m.id_message === syntheticId || m.poll?.id === payload.poll.id
+        );
+        if (alreadyPresent) return prev;
+        return [syntheticMessage, ...prev];
+      });
     };
 
     websocketService.on(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
