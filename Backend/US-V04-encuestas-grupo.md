@@ -37,7 +37,7 @@ En el dashboard web (`web/`), integrar los elementos de `shared/` en la vista de
 `feat(web): integrar PollDecorator y votación en tiempo real en el chat de grupo web`
 
 **Estimación:**
-4 horas
+2 horas
 
 ---
 

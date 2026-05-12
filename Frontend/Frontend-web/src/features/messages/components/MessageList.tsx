@@ -3,6 +3,7 @@ import { MessageCircle, Pencil, Trash2, MoreVertical, X } from 'lucide-react';
 import type { Message } from '@uniconnect/shared';
 import { BaseMessage } from './BaseMessage';
 import { WithFileAttachment } from './WithFileAttachment';
+import { PollDecorator } from './PollDecorator';
 import styles from './MessageList.module.css';
 
 interface MessageListProps {
@@ -12,6 +13,7 @@ interface MessageListProps {
   onEdit?: (message: Message) => void;
   onDelete?: (messageId: number) => void;
   onFilePress?: (file: { id_file: number; file_name: string }) => void;
+  onVotePoll?: (pollId: number, optionId: number) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -21,6 +23,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   onEdit,
   onDelete,
   onFilePress,
+  onVotePoll,
 }) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
@@ -75,7 +78,13 @@ export const MessageList: React.FC<MessageListProps> = ({
                 }`}
               >
                 <WithFileAttachment files={message.files ?? []} onFilePress={onFilePress}>
-                  {message.text_content ? (
+                  {message.poll ? (
+                    <PollDecorator
+                      poll={message.poll}
+                      currentUserId={currentUserId}
+                      onVote={onVotePoll}
+                    />
+                  ) : message.text_content ? (
                     <BaseMessage text={message.text_content} isOwnMessage={isOwnMessage} />
                   ) : null}
                 </WithFileAttachment>

@@ -16,7 +16,8 @@ import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import { groupsService } from '../services';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical, BarChart2 } from 'lucide-react';
+import { PollCreationModal } from '@/features/messages/components/PollCreationModal';
 import styles from './GroupDetail.module.css';
 
 export const GroupDetail: React.FC = () => {
@@ -33,6 +34,7 @@ export const GroupDetail: React.FC = () => {
   const [deletingMessageId, setDeletingMessageId] = useState<number | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
 
   // Member management state (for MemberList action buttons in the panel)
   const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
@@ -267,16 +269,36 @@ export const GroupDetail: React.FC = () => {
                 onEdit={handleEditMessage}
                 onDelete={handleDeleteMessage}
                 onFilePress={(file) => chat.downloadFile(file)}
+                onVotePoll={chat.castVote}
               />
-              <MessageInput
-                onSend={handleSendOrEdit}
-                disabled={!chat.isConnected && chat.messages.length === 0}
-                placeholder="Escribe un mensaje..."
-                editingMessageId={editingMessageId}
-                initialText={editingText}
-                onCancelEdit={handleCancelEdit}
-                groupId={groupId}
-              />
+              <div className={styles.inputToolbar}>
+                {!editingMessageId && (
+                  <button
+                    className={styles.pollButton}
+                    type="button"
+                    onClick={() => setShowPollModal(true)}
+                    title="Crear encuesta"
+                    aria-label="Crear encuesta"
+                  >
+                    <BarChart2 size={20} />
+                  </button>
+                )}
+                <MessageInput
+                  onSend={handleSendOrEdit}
+                  disabled={!chat.isConnected && chat.messages.length === 0}
+                  placeholder="Escribe un mensaje..."
+                  editingMessageId={editingMessageId}
+                  initialText={editingText}
+                  onCancelEdit={handleCancelEdit}
+                  groupId={groupId}
+                />
+              </div>
+              {showPollModal && (
+                <PollCreationModal
+                  onClose={() => setShowPollModal(false)}
+                  onSubmit={chat.createPoll}
+                />
+              )}
             </div>
           </div>
         ) : (
