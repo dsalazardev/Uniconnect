@@ -26,8 +26,18 @@ export const MessageList: React.FC<MessageListProps> = ({
   onVotePoll,
 }) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Deduplicate poll messages: keep only the first occurrence of each poll.id
+  const dedupedMessages = React.useMemo(() => {
+    const seenPollIds = new Set<number>();
+    return messages.filter((msg) => {
+      if (!msg.poll) return true;
+      if (seenPollIds.has(msg.poll.id)) return false;
+      seenPollIds.add(msg.poll.id);
+      return true;
+    });
+  }, [messages]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -55,7 +65,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   return (
     <div ref={containerRef} className={styles.messagesContainer}>
-      {messages.map((message) => {
+      {dedupedMessages.map((message) => {
         const isOwnMessage = message.membership?.user?.id_user === currentUserId;
         const senderName = message.membership?.user?.full_name || 'Usuario';
         const showActions = isOwnMessage && onEdit && onDelete;
