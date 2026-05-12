@@ -23,34 +23,46 @@ export class PollSchedulerService implements OnModuleInit, OnModuleDestroy {
   /**
    * On server start: close any polls that expired while the server was down,
    * then re-schedule all remaining active polls.
+   * Wrapped in try/catch so a missing table (pre-migration) does not crash startup.
    */
   async onModuleInit(): Promise<void> {
-    const now = new Date();
+    try {
+      const now = new Date();
 
-    // Close polls that expired during downtime
-    const expired = await this.prisma.poll.findMany({
-      where: { status: 'ACTIVE', closes_at: { lte: now } },
-      select: { id_poll: true },
-    });
+      // Close polls that expired during downtime
+      const expired = await this.prisma.poll.findMany({
+        where: { status: 'ACTIVE', closes_at: { lte: now } },
+        select: { id_poll: true },
+      });
 
-    for (const { id_poll } of expired) {
-      this.logger.log(`Closing expired poll ${id_poll} on startup`);
-      await this.closePoll(id_poll);
+      for (const { id_poll } of expired) {
+        this.logger.log(`Closing expired poll ${id_poll} on startup`);
+        await this.closePoll(id_poll);
+      }
+
+      // Re-schedule polls that are still in the future
+      const active = await this.prisma.poll.findMany({
+        where: { status: 'ACTIVE', closes_at: { gt: now } },
+        select: { id_poll: true, closes_at: true },
+      });
+
+      for (const { id_poll, closes_at } of active) {
+        this.schedulePollClose(id_poll, closes_at);
+      }
+
+      this.logger.log(
+        `PollSchedulerService initialized — closed ${expired.length} expired, scheduled ${active.length} active polls`,
+      );
+    } catch (err: any) {
+      // P2021 = table does not exist (migration not run yet). Skip gracefully.
+      if (err?.code === 'P2021') {
+        this.logger.warn(
+          'Poll table not found — run `prisma migrate dev` to create it. Scheduler will be inactive until then.',
+        );
+      } else {
+        this.logger.error('PollSchedulerService init error:', err);
+      }
     }
-
-    // Re-schedule polls that are still in the future
-    const active = await this.prisma.poll.findMany({
-      where: { status: 'ACTIVE', closes_at: { gt: now } },
-      select: { id_poll: true, closes_at: true },
-    });
-
-    for (const { id_poll, closes_at } of active) {
-      this.schedulePollClose(id_poll, closes_at);
-    }
-
-    this.logger.log(
-      `PollSchedulerService initialized — closed ${expired.length} expired, scheduled ${active.length} active polls`,
-    );
   }
 
   onModuleDestroy(): void {
