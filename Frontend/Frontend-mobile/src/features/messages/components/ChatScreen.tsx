@@ -111,6 +111,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     emitTyping,
     loadMoreMessages,
     downloadFile,
+    castVote,
   } = useChat({
     groupId,
     userId,
@@ -193,13 +194,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         isOwnMessage={isOwnMessage}
         isAdmin={isAdmin}
         showSenderInfo={showSenderInfo}
+        currentUserId={userId}
         onEdit={() => {
           // Implementar lógica de edición (abrir modal con input)
           // Por ahora solo lo dejamos preparado
-          
+
         }}
         onDelete={() => deleteMessage(item.id_message)}
         onFilePress={downloadFile}
+        onVotePoll={castVote}
       />
     );
   };

@@ -19,7 +19,7 @@ En el módulo `shared/` implementar toda la lógica reutilizable de encuestas:
 `feat(shared): agregar PollDecorator, PollService y handler WebSocket de encuestas`
 
 **Estimación:**
-4 horas
+2 horas
 
 ---
 
@@ -37,7 +37,7 @@ En el dashboard web (`web/`), integrar los elementos de `shared/` en la vista de
 `feat(web): integrar PollDecorator y votación en tiempo real en el chat de grupo web`
 
 **Estimación:**
-2 horas
+1 horas
 
 ---
 
@@ -55,7 +55,7 @@ En el dashboard móvil (`mobile/`), integrar los elementos de `shared/` en la vi
 `feat(mobile): integrar PollMessageCard con lógica compartida en el chat de grupo móvil`
 
 **Estimación:**
-3 horas
+1 horas
 
 ---
 
@@ -70,7 +70,7 @@ Crear la entidad `Poll` con campos: `id`, `groupId`, `createdBy`, `question`, `o
 `feat(polls): crear entidad Poll, PollVote y endpoints REST con validación de voto único`
 
 **Estimación:**
-5 horas
+1 horas
 
 ---
 

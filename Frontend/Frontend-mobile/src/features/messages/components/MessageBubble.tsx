@@ -5,6 +5,7 @@ import { Message } from '../types';
 import { BaseMessage } from './decorators/BaseMessage';
 import { WithFileAttachment } from './decorators/withFileAttachment';
 import { WithMentions } from './decorators/withMentions';
+import { PollMessageCard } from './PollMessageCard';
 
 interface MessageBubbleProps {
   message: Message;
@@ -12,9 +13,11 @@ interface MessageBubbleProps {
   isAdmin: boolean;
   showSenderInfo?: boolean;
   currentUserName?: string;
+  currentUserId?: number;
   onEdit?: () => void;
   onDelete?: () => void;
   onFilePress?: (file: { id_file: number; file_name: string }) => void;
+  onVotePoll?: (pollId: number, optionId: number) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -23,12 +26,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isAdmin,
   showSenderInfo = false,
   currentUserName,
+  currentUserId = 0,
   onEdit,
   onDelete,
   onFilePress,
+  onVotePoll,
 }) => {
   const hasFiles = (message.files?.length ?? 0) > 0;
   const hasText = !!message.text_content?.trim();
+  const hasPoll = !!message.poll;
 
   const showOptions = () => {
     const options: any[] = [];
@@ -64,10 +70,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     </Pressable>
   ) : null;
 
+  // ── Decorador Poll: se compone encima de la cadena de decoradores ─────────
+  const pollContent = hasPoll ? (
+    <PollMessageCard
+      poll={message.poll!}
+      currentUserId={currentUserId}
+      onVote={onVotePoll}
+    />
+  ) : null;
+
   // ── Decorador 1: archivos adjuntos ────────────────────────────────────────
   const withFiles = (
     <WithFileAttachment files={message.files ?? []} onFilePress={onFilePress}>
-      {baseContent}
+      {hasPoll ? pollContent : baseContent}
     </WithFileAttachment>
   );
 
