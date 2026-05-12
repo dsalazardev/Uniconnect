@@ -10,4 +10,5 @@ export { ProgramsService } from './programs.service';
 export { StudentsService } from './students.service';
 export { AuthService } from './auth.service';
 export { NotificationObserverService, notificationObserver } from './notification-observer.service';
+export { PollService } from './poll.service';
 
