@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      web: ${{ steps.filter.outputs.web }}
+      mobile: ${{ steps.filter.outputs.mobile }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'Backend/**'
+            web:
+              - 'Frontend/Frontend-web/**'
+            mobile:
+              - 'Frontend/Frontend-mobile/**'
+            shared:
+              - 'Frontend/shared/**'
+
+  quality:
+    name: Quality (${{ matrix.package }})
+    needs: changes
+    if: ${{ needs.changes.outputs[matrix.package] == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [backend, web, mobile, shared]
+        include:
+          - package: backend
+            workdir: Backend
+            typecheck-script: type-check
+            needs-prisma: true
+          - package: web
+            workdir: Frontend/Frontend-web
+            typecheck-script: type-check
+            needs-prisma: false
+          - package: mobile
+            workdir: Frontend/Frontend-mobile
+            typecheck-script: type-check
+            needs-prisma: false
+          - package: shared
+            workdir: Frontend/shared
+            typecheck-script: typecheck
+            needs-prisma: false
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        if: matrix.package == 'backend'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: ${{ matrix.package == 'backend' && 'pnpm' || 'npm' }}
+          cache-dependency-path: ${{ matrix.package == 'backend' && 'Backend/pnpm-lock.yaml' || 'package-lock.json' }}
+
+      - name: Install Backend dependencies
+        if: matrix.package == 'backend'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install workspace dependencies
+        if: matrix.package != 'backend'
+        run: npm ci
+        working-directory: .
+
+      - name: Generate Prisma Client
+        if: matrix.needs-prisma
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run ${{ matrix.typecheck-script }}
+
+      - name: Test with coverage
+        run: npm run test -- --coverage --passWithNoTests
+        env:
+          CI: true
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.package }}
+          path: ${{ matrix.workdir }}/coverage/
+
+      - name: Report coverage to PR
+        if: github.event_name == 'pull_request' && always()
+        uses: romeovs/lcov-reporter-action@v0.4.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          lcov-file: ./coverage/lcov.info
+          delete-old-comments: true
+
+  notify-failure:
+    name: Notify Slack on failure
+    needs: [quality]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": ":rotating_light: CI pipeline failed for ${{ github.repository }} on branch ${{ github.ref_name }}. Check the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }

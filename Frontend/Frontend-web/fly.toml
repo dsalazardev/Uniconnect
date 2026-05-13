@@ -1,0 +1,19 @@
+# fly.toml - Uniconnect Frontend Web (Vite + Nginx)
+app = 'uniconnect-web-uc'
+primary_region = 'iad'
+
+[build]
+  dockerfile = "Frontend/Frontend-web/Dockerfile"
+  context = "."
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256
