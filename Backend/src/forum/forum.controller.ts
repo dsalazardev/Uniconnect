@@ -9,7 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException,
+  ForbiddenException,  // solo para acceptAnswer (verificación is_admin)
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -62,10 +62,13 @@ export class ForumController {
       where: { id_user: userId, id_group: groupId },
       select: { id_membership: true },
     });
-    if (!membership) {
-      throw new ForbiddenException('Se requiere matrícula en la asignatura.');
-    }
-    return this.forumService.createQuestion(groupId, membership.id_membership, dto);
+    // La CoR en ForumService valida la matrícula — se pasa null si no existe
+    return this.forumService.createQuestion(
+      groupId,
+      userId,
+      membership?.id_membership ?? null,
+      dto,
+    );
   }
 
   /**

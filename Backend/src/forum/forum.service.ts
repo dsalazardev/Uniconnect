@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { CreateAnswerDto } from './dto/create-answer.dto';
+import { buildValidacionPreguntaChain } from './domain/chain-of-responsibility/validacion-pregunta.factory';
 
 @Injectable()
 export class ForumService {
@@ -21,7 +22,24 @@ export class ForumService {
     return questions.map((q) => this.formatQuestion(q));
   }
 
-  async createQuestion(groupId: number, membershipId: number, dto: CreateQuestionDto) {
+  async createQuestion(groupId: number, userId: number, membershipId: number | null, dto: CreateQuestionDto) {
+    // Cadena CoR: matrícula → contenido → estadoGrupo
+    const chain = buildValidacionPreguntaChain();
+    const resultado = chain.manejar({
+      userId,
+      groupId,
+      membershipId,
+      title: dto.title,
+      body: dto.body,
+    });
+
+    if (!resultado.valido) {
+      if (resultado.codigoError === 'FORUM_MATRICULA_REQUERIDA') {
+        throw new ForbiddenException(resultado.mensaje);
+      }
+      throw new BadRequestException(resultado.mensaje);
+    }
+
     const question = await this.prisma.forum_question.create({
       data: {
         id_group: groupId,
