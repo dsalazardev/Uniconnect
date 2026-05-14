@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -47,6 +47,7 @@ export default function ForumDashboard() {
 
   // Thread
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const expandedIdRef = useRef<number | null>(null);
   const [threadAnswers, setThreadAnswers] = useState<ForumAnswer[]>([]);
   const [loadingThread, setLoadingThread] = useState(false);
   const [replyBody, setReplyBody] = useState('');
@@ -77,6 +78,10 @@ export default function ForumDashboard() {
       setQuestions([...data].sort((a, b) => b.voteCount - a.voteCount));
     } finally { setLoadingQ(false); }
   }, []);
+
+  useEffect(() => {
+    expandedIdRef.current = expandedId;
+  }, [expandedId]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -110,15 +115,12 @@ export default function ForumDashboard() {
       setQuestions((prev) =>
         prev.map((q) => q.id === p.questionId ? { ...q, answerCount: (q.answerCount ?? 0) + 1 } : q)
       );
-      setExpandedId((prevExpanded) => {
-        if (prevExpanded === p.questionId) {
-          setThreadAnswers((prev) => {
-            if (prev.some((a) => a.id === p.answer.id)) return prev;
-            return [...prev, p.answer];
-          });
-        }
-        return prevExpanded;
-      });
+      if (expandedIdRef.current === p.questionId) {
+        setThreadAnswers((prev) => {
+          if (prev.some((a) => a.id === p.answer.id)) return prev;
+          return [...prev, p.answer];
+        });
+      }
     };
     websocketService.on('forum:vote_updated', onVote);
     websocketService.on('forum:answer_accepted', onAccepted);
@@ -148,18 +150,43 @@ export default function ForumDashboard() {
   };
 
   const voteQuestion = async (qId: number) => {
-    setQuestions((prev) => [...prev.map((q) => q.id === qId ? { ...q, voteCount: q.voteCount + 1 } : q)].sort((a, b) => b.voteCount - a.voteCount));
+    let wasVoted = false;
+    setQuestions((prev) => {
+      const q = prev.find((x) => x.id === qId);
+      wasVoted = q?.userVoted ?? false;
+      return [...prev.map((x) => x.id === qId
+        ? { ...x, voteCount: wasVoted ? x.voteCount - 1 : x.voteCount + 1, userVoted: !wasVoted }
+        : x
+      )].sort((a, b) => b.voteCount - a.voteCount);
+    });
     try { await forumService.voteQuestion(qId); }
-    catch (e: any) {
-      setQuestions((prev) => [...prev.map((q) => q.id === qId ? { ...q, voteCount: q.voteCount - 1 } : q)].sort((a, b) => b.voteCount - a.voteCount));
-      if (e?.response?.status === 409) Alert.alert('Foro', 'Ya votaste en esta pregunta.');
+    catch {
+      setQuestions((prev) =>
+        [...prev.map((x) => x.id === qId
+          ? { ...x, voteCount: wasVoted ? x.voteCount + 1 : x.voteCount - 1, userVoted: wasVoted }
+          : x
+        )].sort((a, b) => b.voteCount - a.voteCount)
+      );
     }
   };
 
   const voteAnswer = async (aId: number) => {
-    setThreadAnswers((prev) => prev.map((a) => a.id === aId ? { ...a, voteCount: a.voteCount + 1 } : a));
+    let wasVoted = false;
+    setThreadAnswers((prev) => {
+      const a = prev.find((x) => x.id === aId);
+      wasVoted = a?.userVoted ?? false;
+      return prev.map((x) => x.id === aId
+        ? { ...x, voteCount: wasVoted ? x.voteCount - 1 : x.voteCount + 1, userVoted: !wasVoted }
+        : x
+      );
+    });
     try { await forumService.voteAnswer(aId); }
-    catch { setThreadAnswers((prev) => prev.map((a) => a.id === aId ? { ...a, voteCount: a.voteCount - 1 } : a)); }
+    catch {
+      setThreadAnswers((prev) => prev.map((x) => x.id === aId
+        ? { ...x, voteCount: wasVoted ? x.voteCount + 1 : x.voteCount - 1, userVoted: wasVoted }
+        : x
+      ));
+    }
   };
 
   const submitReply = async (questionId: number) => {
@@ -207,8 +234,8 @@ export default function ForumDashboard() {
             <Text style={styles.tweetContent} numberOfLines={isExpanded ? undefined : 3}>{q.body}</Text>
             <View style={styles.tweetActions}>
               <TouchableOpacity style={styles.voteBtn} onPress={() => voteQuestion(q.id)}>
-                <Ionicons name="chevron-up" size={14} color="#9CA3AF" />
-                <Text style={styles.voteBtnText}>{q.voteCount}</Text>
+                <Ionicons name={q.userVoted ? 'heart' : 'heart-outline'} size={14} color={q.userVoted ? '#D9B97E' : '#9CA3AF'} />
+                <Text style={[styles.voteBtnText, q.userVoted && styles.voteBtnTextActive]}>{q.voteCount}</Text>
               </TouchableOpacity>
               <View style={styles.replyCount}>
                 <Ionicons name="chatbubble-outline" size={13} color="#6B7280" />
@@ -244,8 +271,8 @@ export default function ForumDashboard() {
                       </View>
                       <Text style={styles.replyText}>{a.body}</Text>
                       <TouchableOpacity style={styles.voteBtn} onPress={() => voteAnswer(a.id)}>
-                        <Ionicons name="chevron-up" size={13} color="#9CA3AF" />
-                        <Text style={styles.voteBtnText}>{a.voteCount}</Text>
+                        <Ionicons name={a.userVoted ? 'heart' : 'heart-outline'} size={13} color={a.userVoted ? '#D9B97E' : '#9CA3AF'} />
+                        <Text style={[styles.voteBtnText, a.userVoted && styles.voteBtnTextActive]}>{a.voteCount}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -447,7 +474,8 @@ const styles = StyleSheet.create({
 
   tweetActions:  { flexDirection: 'row', alignItems: 'center', gap: 14 },
   voteBtn:       { flexDirection: 'row', alignItems: 'center', gap: 3, padding: 4 },
-  voteBtnText:   { fontSize: 13, fontWeight: '600', color: '#9CA3AF' },
+  voteBtnText:       { fontSize: 13, fontWeight: '600', color: '#9CA3AF' },
+  voteBtnTextActive: { color: '#D9B97E' },
   replyCount:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
   replyCountText:{ fontSize: 13, color: '#6B7280' },
 

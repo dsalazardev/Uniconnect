@@ -3,7 +3,6 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MessagesGateway } from '../messages/messages.gateway';
@@ -20,16 +19,28 @@ export class ForumService {
 
   // ── Consultas ────────────────────────────────────────────────────────────────
 
-  async getQuestions(courseId: number) {
+  async getQuestions(courseId: number, userId: number) {
     const questions = await this.prisma.forum_question.findMany({
       where: { id_course: courseId },
       orderBy: [{ vote_count: 'desc' }, { created_at: 'asc' }],
       include: { author: { select: { id_user: true, full_name: true, picture: true } } },
     });
-    return questions.map(this.formatQuestion);
+
+    const votedIds = new Set(
+      (await this.prisma.forum_vote.findMany({
+        where: {
+          id_user: userId,
+          entity_type: 'QUESTION',
+          entity_id: { in: questions.map((q) => q.id_question) },
+        },
+        select: { entity_id: true },
+      })).map((v) => v.entity_id),
+    );
+
+    return questions.map((q) => this.formatQuestion(q, votedIds.has(q.id_question)));
   }
 
-  async getAnswers(questionId: number) {
+  async getAnswers(questionId: number, userId: number) {
     const question = await this.prisma.forum_question.findUnique({
       where: { id_question: questionId },
     });
@@ -40,7 +51,19 @@ export class ForumService {
       orderBy: [{ is_accepted: 'desc' }, { vote_count: 'desc' }, { created_at: 'asc' }],
       include: { author: { select: { id_user: true, full_name: true, picture: true } } },
     });
-    return answers.map(this.formatAnswer);
+
+    const votedIds = new Set(
+      (await this.prisma.forum_vote.findMany({
+        where: {
+          id_user: userId,
+          entity_type: 'ANSWER',
+          entity_id: { in: answers.map((a) => a.id_answer) },
+        },
+        select: { entity_id: true },
+      })).map((v) => v.entity_id),
+    );
+
+    return answers.map((a) => this.formatAnswer(a, votedIds.has(a.id_answer)));
   }
 
   // ── Escritura ─────────────────────────────────────────────────────────────────
@@ -149,13 +172,16 @@ export class ForumService {
     });
     if (!question) throw new NotFoundException('Pregunta no encontrada.');
 
-    try {
+    const existing = await this.prisma.forum_vote.findFirst({
+      where: { id_user: userId, entity_type: 'QUESTION', entity_id: questionId },
+    });
+
+    if (existing) {
+      await this.prisma.forum_vote.delete({ where: { id_vote: existing.id_vote } });
+    } else {
       await this.prisma.forum_vote.create({
         data: { id_user: userId, entity_type: 'QUESTION', entity_id: questionId },
       });
-    } catch (e: any) {
-      if (e?.code === 'P2002') throw new ConflictException('Ya registraste tu voto en esta pregunta.');
-      throw e;
     }
 
     const newCount = await this.prisma.forum_vote.count({
@@ -173,7 +199,7 @@ export class ForumService {
       voteCount: newCount,
     });
 
-    return this.formatQuestion(updated);
+    return this.formatQuestion(updated, !existing);
   }
 
   async castVoteAnswer(answerId: number, userId: number) {
@@ -183,13 +209,16 @@ export class ForumService {
     });
     if (!answer) throw new NotFoundException('Respuesta no encontrada.');
 
-    try {
+    const existing = await this.prisma.forum_vote.findFirst({
+      where: { id_user: userId, entity_type: 'ANSWER', entity_id: answerId },
+    });
+
+    if (existing) {
+      await this.prisma.forum_vote.delete({ where: { id_vote: existing.id_vote } });
+    } else {
       await this.prisma.forum_vote.create({
         data: { id_user: userId, entity_type: 'ANSWER', entity_id: answerId },
       });
-    } catch (e: any) {
-      if (e?.code === 'P2002') throw new ConflictException('Ya registraste tu voto en esta respuesta.');
-      throw e;
     }
 
     const newCount = await this.prisma.forum_vote.count({
@@ -207,12 +236,12 @@ export class ForumService {
       voteCount: newCount,
     });
 
-    return this.formatAnswer(updated);
+    return this.formatAnswer(updated, !existing);
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
-  private formatQuestion(q: any) {
+  private formatQuestion(q: any, userVoted = false) {
     return {
       id: q.id_question,
       courseId: q.id_course,
@@ -224,10 +253,11 @@ export class ForumService {
       voteCount: q.vote_count,
       answerCount: q.answer_count,
       createdAt: q.created_at.toISOString(),
+      userVoted,
     };
   }
 
-  private formatAnswer(a: any) {
+  private formatAnswer(a: any, userVoted = false) {
     return {
       id: a.id_answer,
       questionId: a.id_question,
@@ -237,6 +267,7 @@ export class ForumService {
       voteCount: a.vote_count,
       isAccepted: a.is_accepted,
       createdAt: a.created_at.toISOString(),
+      userVoted,
     };
   }
 }

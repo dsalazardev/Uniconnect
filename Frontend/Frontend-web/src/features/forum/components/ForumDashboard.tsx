@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { ChevronUp, MessageSquare, Plus, Send, CheckCircle, X } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Heart, MessageSquare, Plus, Send, CheckCircle, X } from 'lucide-react';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { forumService } from '@/features/messages/services';
 import { websocketService } from '@/features/messages/services/websocket.service';
@@ -31,6 +31,7 @@ export const ForumDashboard: React.FC = () => {
 
   // Thread state: which question is expanded, its answers
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const expandedIdRef = useRef<number | null>(null);
   const [threadAnswers, setThreadAnswers] = useState<ForumAnswer[]>([]);
   const [loadingThread, setLoadingThread] = useState(false);
   const [replyBody, setReplyBody] = useState('');
@@ -66,6 +67,10 @@ export const ForumDashboard: React.FC = () => {
       setLoadingQuestions(false);
     }
   }, []);
+
+  useEffect(() => {
+    expandedIdRef.current = expandedId;
+  }, [expandedId]);
 
   useEffect(() => {
     if (!selectedCourseId) return;
@@ -105,15 +110,12 @@ export const ForumDashboard: React.FC = () => {
       setQuestions((prev) =>
         prev.map((q) => q.id === p.questionId ? { ...q, answerCount: (q.answerCount ?? 0) + 1 } : q)
       );
-      setExpandedId((prevExpanded) => {
-        if (prevExpanded === p.questionId) {
-          setThreadAnswers((prev) => {
-            if (prev.some((a) => a.id === p.answer.id)) return prev;
-            return [...prev, p.answer];
-          });
-        }
-        return prevExpanded;
-      });
+      if (expandedIdRef.current === p.questionId) {
+        setThreadAnswers((prev) => {
+          if (prev.some((a) => a.id === p.answer.id)) return prev;
+          return [...prev, p.answer];
+        });
+      }
     };
     websocketService.on('forum:vote_updated', onVote);
     websocketService.on('forum:answer_accepted', onAccepted);
@@ -144,25 +146,47 @@ export const ForumDashboard: React.FC = () => {
     }
   };
 
-  // ── Vote question ────────────────────────────────────────────────────────────
+  // ── Vote question (toggle) ───────────────────────────────────────────────────
   const voteQuestion = async (qId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setQuestions((prev) =>
-      [...prev.map((q) => q.id === qId ? { ...q, voteCount: q.voteCount + 1 } : q)]
-        .sort((a, b) => b.voteCount - a.voteCount)
-    );
+    let wasVoted = false;
+    setQuestions((prev) => {
+      const q = prev.find((x) => x.id === qId);
+      wasVoted = q?.userVoted ?? false;
+      return [...prev.map((x) => x.id === qId
+        ? { ...x, voteCount: wasVoted ? x.voteCount - 1 : x.voteCount + 1, userVoted: !wasVoted }
+        : x
+      )].sort((a, b) => b.voteCount - a.voteCount);
+    });
     try { await forumService.voteQuestion(qId); }
-    catch { setQuestions((prev) =>
-      [...prev.map((q) => q.id === qId ? { ...q, voteCount: q.voteCount - 1 } : q)]
-        .sort((a, b) => b.voteCount - a.voteCount)
-    ); }
+    catch {
+      setQuestions((prev) =>
+        [...prev.map((x) => x.id === qId
+          ? { ...x, voteCount: wasVoted ? x.voteCount + 1 : x.voteCount - 1, userVoted: wasVoted }
+          : x
+        )].sort((a, b) => b.voteCount - a.voteCount)
+      );
+    }
   };
 
-  // ── Vote answer ──────────────────────────────────────────────────────────────
+  // ── Vote answer (toggle) ─────────────────────────────────────────────────────
   const voteAnswer = async (aId: number) => {
-    setThreadAnswers((prev) => prev.map((a) => a.id === aId ? { ...a, voteCount: a.voteCount + 1 } : a));
+    let wasVoted = false;
+    setThreadAnswers((prev) => {
+      const a = prev.find((x) => x.id === aId);
+      wasVoted = a?.userVoted ?? false;
+      return prev.map((x) => x.id === aId
+        ? { ...x, voteCount: wasVoted ? x.voteCount - 1 : x.voteCount + 1, userVoted: !wasVoted }
+        : x
+      );
+    });
     try { await forumService.voteAnswer(aId); }
-    catch { setThreadAnswers((prev) => prev.map((a) => a.id === aId ? { ...a, voteCount: a.voteCount - 1 } : a)); }
+    catch {
+      setThreadAnswers((prev) => prev.map((x) => x.id === aId
+        ? { ...x, voteCount: wasVoted ? x.voteCount + 1 : x.voteCount - 1, userVoted: wasVoted }
+        : x
+      ));
+    }
   };
 
   // ── Submit reply ─────────────────────────────────────────────────────────────
@@ -295,11 +319,11 @@ export const ForumDashboard: React.FC = () => {
                       <p className={styles.tweetContent}>{q.body}</p>
                       <div className={styles.tweetActions}>
                         <button
-                          className={styles.voteBtn}
+                          className={`${styles.voteBtn} ${q.userVoted ? styles.voteBtnActive : ''}`}
                           onClick={(e) => voteQuestion(q.id, e)}
-                          title="Votar"
+                          title={q.userVoted ? 'Quitar like' : 'Dar like'}
                         >
-                          <ChevronUp size={14} /> {q.voteCount}
+                          <Heart size={14} fill={q.userVoted ? 'currentColor' : 'none'} /> {q.voteCount}
                         </button>
                         <span className={styles.replyCount}>
                           <MessageSquare size={13} /> {q.answerCount ?? 0} respuestas
@@ -336,8 +360,12 @@ export const ForumDashboard: React.FC = () => {
                                 </div>
                                 <p className={styles.replyText}>{a.body}</p>
                                 <div className={styles.replyActions}>
-                                  <button className={styles.voteBtn} onClick={() => voteAnswer(a.id)}>
-                                    <ChevronUp size={13} /> {a.voteCount}
+                                  <button
+                                    className={`${styles.voteBtn} ${a.userVoted ? styles.voteBtnActive : ''}`}
+                                    onClick={() => voteAnswer(a.id)}
+                                    title={a.userVoted ? 'Quitar like' : 'Dar like'}
+                                  >
+                                    <Heart size={13} fill={a.userVoted ? 'currentColor' : 'none'} /> {a.voteCount}
                                   </button>
                                   {isTeacher && !a.isAccepted && q.status === 'OPEN' && (
                                     <button className={styles.acceptBtn} onClick={() => acceptAnswer(a.id)}>

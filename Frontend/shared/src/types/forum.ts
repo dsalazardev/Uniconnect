@@ -12,6 +12,7 @@ export interface ForumQuestion {
   voteCount: number;
   answerCount: number;
   createdAt: string;
+  userVoted?: boolean;
 }
 
 export interface ForumAnswer {
@@ -23,6 +24,7 @@ export interface ForumAnswer {
   voteCount: number;
   isAccepted: boolean;
   createdAt: string;
+  userVoted?: boolean;
 }
 
 export interface CreateQuestionDto {

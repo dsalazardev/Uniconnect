@@ -33,8 +33,11 @@ export class ForumController {
   @Get('courses/:courseId/forum/questions')
   @ApiOperation({ summary: 'Listar preguntas del foro de una asignatura' })
   @ApiResponse({ status: 200, description: 'Preguntas ordenadas por votos desc.' })
-  getQuestions(@Param('courseId', ParseIntPipe) courseId: number) {
-    return this.forumService.getQuestions(courseId);
+  getQuestions(
+    @Param('courseId', ParseIntPipe) courseId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.forumService.getQuestions(courseId, userId);
   }
 
   /** POST /courses/:courseId/forum/questions — requiere matrícula (inscrita o finalizada) */
@@ -53,8 +56,11 @@ export class ForumController {
   /** GET /forum/questions/:questionId/answers */
   @Get('forum/questions/:questionId/answers')
   @ApiOperation({ summary: 'Listar respuestas de una pregunta' })
-  getAnswers(@Param('questionId', ParseIntPipe) questionId: number) {
-    return this.forumService.getAnswers(questionId);
+  getAnswers(
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.forumService.getAnswers(questionId, userId);
   }
 
   /** POST /forum/questions/:questionId/answers — requiere matrícula */

@@ -190,6 +190,7 @@
   transition: color 0.12s, background 0.12s;
 }
 .voteBtn:hover { color: #D9B97E; background: rgba(217,185,126,0.08); }
+.voteBtnActive { color: #D9B97E; }
 
 .replyCount {
   display: flex;
