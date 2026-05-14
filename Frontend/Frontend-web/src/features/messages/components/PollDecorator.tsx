@@ -16,10 +16,11 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
   children,
 }) => {
   const isClosed = poll.status === 'CLOSED';
+  const hasVoted = poll.userVote !== null && poll.userVote !== undefined;
   const totalVotes = poll.options.reduce((sum, o) => sum + o.count, 0);
 
   const handleVote = (option: PollOption) => {
-    if (isClosed || !onVote) return;
+    if (isClosed || hasVoted || !onVote) return;
     onVote(poll.id, option.id);
   };
 
@@ -56,10 +57,10 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
             <button
               key={option.id}
               className={`${styles.option} ${isVoted ? styles.optionVoted : ''} ${
-                isClosed ? styles.optionDisabled : styles.optionClickable
+                isClosed || hasVoted ? styles.optionDisabled : styles.optionClickable
               }`}
               onClick={() => handleVote(option)}
-              disabled={isClosed}
+              disabled={isClosed || hasVoted}
               aria-label={`Votar por ${option.text}`}
             >
               {/* Progress fill behind the row */}

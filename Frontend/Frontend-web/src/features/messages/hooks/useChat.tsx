@@ -459,34 +459,38 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
-  // Registrar o cambiar voto — optimismo completo: userVote + porcentajes al instante
+  // Registrar voto — un único voto por usuario, sin retractación
   const castVote = useCallback(async (pollId: number, optionId: number) => {
     let prevPoll: Poll | undefined;
+    let alreadyVoted = false;
 
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.poll?.id !== pollId) return msg;
         prevPoll = msg.poll;
 
-        const prevVote = msg.poll.userVote ?? null;
-        const isNewVote = prevVote === null;
+        if (msg.poll.userVote !== null) {
+          alreadyVoted = true;
+          return msg;
+        }
+
         const currentTotal = msg.poll.options.reduce((s, o) => s + o.count, 0);
-        const newTotal = isNewVote ? currentTotal + 1 : currentTotal;
+        const newTotal = currentTotal + 1;
 
         const newOptions = msg.poll.options.map((o) => {
-          let count = o.count;
-          if (o.id === optionId) count += 1;
-          if (!isNewVote && o.id === prevVote && prevVote !== optionId) count -= 1;
+          const count = o.id === optionId ? o.count + 1 : o.count;
           return {
             ...o,
             count,
-            percentage: newTotal > 0 ? Math.round((count / newTotal) * 100) : 0,
+            percentage: Math.round((count / newTotal) * 100),
           };
         });
 
         return { ...msg, poll: { ...msg.poll!, options: newOptions, userVote: optionId } };
       })
     );
+
+    if (alreadyVoted) return;
 
     try {
       const updated = await pollService.castVote(pollId, optionId);
