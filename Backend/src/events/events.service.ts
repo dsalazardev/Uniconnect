@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
-import { MessagesGateway } from '../messages/messages.gateway';
 import { CreateEventDto } from './dto/create-event.dto';
+import { MESSAGE_EVENTS } from '../messages/events/message.events';
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly gateway: MessagesGateway,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // ── GET /categories ──────────────────────────────────────────────────────
@@ -36,7 +37,6 @@ export class EventsService {
         creator: { select: { id_user: true, full_name: true, picture: true } },
       },
     });
-
     if (!event) throw new NotFoundException(`Evento con id ${id} no encontrado`);
     return event;
   }
@@ -45,9 +45,7 @@ export class EventsService {
   async createEvent(dto: CreateEventDto, createdBy: number) {
     await this.prisma.event_category
       .findUniqueOrThrow({ where: { id_category: dto.id_category } })
-      .catch(() => {
-        throw new NotFoundException(`Categoría con id ${dto.id_category} no encontrada`);
-      });
+      .catch(() => { throw new NotFoundException(`Categoría con id ${dto.id_category} no encontrada`); });
 
     const event = await this.prisma.event.create({
       data: {
@@ -65,18 +63,19 @@ export class EventsService {
       },
     });
 
-    // Emitir event:published a todos los usuarios suscritos a esta categoría
+    // Obtener suscriptores de esta categoría
     const subscriptions = await this.prisma.event_category_subscription.findMany({
       where: { id_category: dto.id_category },
       select: { id_user: true },
     });
 
-    for (const { id_user } of subscriptions) {
-      this.gateway.sendToUser(id_user, 'event:published', {
-        event,
-        categoryId: dto.id_category,
-      });
-    }
+    // Emitir evento del sistema → NotificationEventListener lo procesa
+    // Esto guarda en tabla notification + emite notification:new por WS
+    this.eventEmitter.emit(MESSAGE_EVENTS.EVENT_PUBLISHED, {
+      event,
+      subscriberIds: subscriptions.map((s) => s.id_user),
+      categoryName: event.category.name,
+    });
 
     return event;
   }
@@ -85,9 +84,7 @@ export class EventsService {
   async subscribeCategory(categoryId: number, userId: number) {
     await this.prisma.event_category
       .findUniqueOrThrow({ where: { id_category: categoryId } })
-      .catch(() => {
-        throw new NotFoundException(`Categoría con id ${categoryId} no encontrada`);
-      });
+      .catch(() => { throw new NotFoundException(`Categoría con id ${categoryId} no encontrada`); });
 
     try {
       return await this.prisma.event_category_subscription.create({
@@ -95,9 +92,7 @@ export class EventsService {
         select: { id_subscription: true, id_category: true, created_at: true },
       });
     } catch (err: any) {
-      if (err?.code === 'P2002') {
-        throw new ConflictException('Ya estás suscrito a esta categoría');
-      }
+      if (err?.code === 'P2002') throw new ConflictException('Ya estás suscrito a esta categoría');
       throw err;
     }
   }
@@ -107,13 +102,8 @@ export class EventsService {
     const sub = await this.prisma.event_category_subscription.findUnique({
       where: { id_user_id_category: { id_user: userId, id_category: categoryId } },
     });
-
     if (!sub) throw new NotFoundException('No estás suscrito a esta categoría');
-
-    await this.prisma.event_category_subscription.delete({
-      where: { id_subscription: sub.id_subscription },
-    });
-
+    await this.prisma.event_category_subscription.delete({ where: { id_subscription: sub.id_subscription } });
     return { message: 'Suscripción eliminada' };
   }
 

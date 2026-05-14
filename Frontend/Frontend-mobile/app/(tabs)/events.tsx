@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/src/constants/api';
+import { authStore } from '@/src/features/auth/store/AuthStore';
 import { websocketService } from '@/src/features/messages/services/websocket.service';
 import { showToast } from '@/src/lib/toast';
 
@@ -169,7 +170,15 @@ const EventsScreen: React.FC = () => {
 
   useEffect(() => {
     if (!websocketService.isConnected()) websocketService.connect();
-    websocketService.setOnReconnectCallback(() => {});
+
+    // Identificar al usuario para unirse a user-{id} room sin necesitar un grupo
+    const identify = () => {
+      const userId = authStore.user?.id_user;
+      if (userId) websocketService.emit('user:identify', { id_user: userId });
+    };
+    identify();
+    websocketService.setOnReconnectCallback(identify);
+
     const handler = (payload: { event: EventV2; categoryId?: number }) => {
       showToast.info(`Nuevo evento: ${payload.event?.title ?? 'Sin título'}`);
       const pubCat = payload.categoryId ?? payload.event?.id_category ?? null;

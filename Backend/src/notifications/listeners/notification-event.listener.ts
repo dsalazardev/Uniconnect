@@ -179,6 +179,31 @@ export class NotificationEventListener {
     }
   }
 
+  @OnEvent(MESSAGE_EVENTS.EVENT_PUBLISHED)
+  async handleEventPublished(payload: {
+    event: { id_event: number; title: string; category: { name: string } };
+    subscriberIds: number[];
+    categoryName: string;
+  }) {
+    try {
+      await Promise.all(
+        payload.subscriberIds.map((userId) =>
+          this.notificationsService.enviarNotificacion({
+            id_user: userId,
+            mensaje: `Nuevo evento en ${payload.categoryName}: "${payload.event.title}"`,
+            tipo_evento: 'event_published',
+            entidad_relacionada_id: payload.event.id_event,
+          }),
+        ),
+      );
+      this.logger.log(
+        `EVENT_PUBLISHED: notificaciones enviadas a ${payload.subscriberIds.length} suscriptor(es) — evento ${payload.event.id_event}`,
+      );
+    } catch (error) {
+      this.logger.error('Error handling EVENT_PUBLISHED:', error);
+    }
+  }
+
   @OnEvent('group.ownership_transfer_requested')
   async handleOwnershipTransferRequested(payload: {
     id_group: number;

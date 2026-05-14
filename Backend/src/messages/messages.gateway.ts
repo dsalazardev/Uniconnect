@@ -729,6 +729,35 @@ export class MessagesGateway
   }
 
   /**
+   * Identificar usuario sin necesidad de grupo — une el socket a user-{userId}.
+   * Usado por páginas que no tienen contexto de grupo (Eventos, Foro antes de
+   * seleccionar materia) para que las notificaciones directas lleguen correctamente.
+   */
+  @SubscribeMessage('user:identify')
+  handleUserIdentify(
+    @MessageBody() data: { id_user: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.id_user) return { success: false };
+    client.join(`user-${data.id_user}`);
+    client.data.id_user = data.id_user;
+
+    // Registrar en el session manager para que InAppWebSocketStrategy lo encuentre
+    if (!this.sessionManager.getUserSockets(data.id_user).includes(client.id)) {
+      this.sessionManager.addUserSession({
+        socketId: client.id,
+        userId: data.id_user,
+        membershipId: 0,
+        groupId: 0,
+        connectedAt: new Date(),
+      });
+    }
+
+    this.logger.log(`user:identify → socket ${client.id} identified as user ${data.id_user}`);
+    return { success: true };
+  }
+
+  /**
    * Unir un socket al room del foro de un grupo.
    * El cliente emite 'forum:join' con { groupId } al abrir la vista del foro.
    */

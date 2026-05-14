@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Bell, BellOff, Calendar, Clock, MapPin } from 'lucide-react';
 import { api } from '@/constants/api';
+import { authStore } from '@/features/auth/store/AuthStore';
 import { websocketService } from '@/features/messages/services/websocket.service';
 import { showToast } from '@/lib/toast';
 import styles from './EventsDashboard.module.css';
@@ -110,7 +111,14 @@ export const EventsDashboard: React.FC = () => {
     const serverUrl = (import.meta as any).env?.VITE_WEBSOCKET_URL || 'http://localhost:8007';
     if (!websocketService.isConnected()) websocketService.connect(serverUrl);
 
-    websocketService.setOnReconnectCallback(() => {});
+    // Identificar al usuario en el servidor para unirse a su room personal (user-{id})
+    // sin necesidad de estar en un grupo — necesario para recibir notificaciones de eventos
+    const identify = () => {
+      const userId = authStore.user?.id_user;
+      if (userId) websocketService.emit('user:identify', { id_user: userId });
+    };
+    identify();
+    websocketService.setOnReconnectCallback(identify);
 
     const onEventPublished = (payload: { event: EventV2; categoryId?: number }) => {
       showToast.info(`Nuevo evento: ${payload.event?.title ?? 'Sin título'}`);
