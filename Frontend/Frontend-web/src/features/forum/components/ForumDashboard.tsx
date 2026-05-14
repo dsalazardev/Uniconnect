@@ -95,11 +95,35 @@ export const ForumDashboard: React.FC = () => {
         prev.map((a) => ({ ...a, isAccepted: a.id === p.answerId }))
       );
     };
+    const onQuestionCreated = (q: ForumQuestion) => {
+      setQuestions((prev) => {
+        if (prev.some((x) => x.id === q.id)) return prev;
+        return [q, ...prev];
+      });
+    };
+    const onAnswerCreated = (p: { questionId: number; answer: ForumAnswer }) => {
+      setQuestions((prev) =>
+        prev.map((q) => q.id === p.questionId ? { ...q, answerCount: (q.answerCount ?? 0) + 1 } : q)
+      );
+      setExpandedId((prevExpanded) => {
+        if (prevExpanded === p.questionId) {
+          setThreadAnswers((prev) => {
+            if (prev.some((a) => a.id === p.answer.id)) return prev;
+            return [...prev, p.answer];
+          });
+        }
+        return prevExpanded;
+      });
+    };
     websocketService.on('forum:vote_updated', onVote);
     websocketService.on('forum:answer_accepted', onAccepted);
+    websocketService.on('forum:question_created', onQuestionCreated);
+    websocketService.on('forum:answer_created', onAnswerCreated);
     return () => {
       websocketService.off('forum:vote_updated', onVote);
       websocketService.off('forum:answer_accepted', onAccepted);
+      websocketService.off('forum:question_created', onQuestionCreated);
+      websocketService.off('forum:answer_created', onAnswerCreated);
     };
   }, []);
 
