@@ -279,4 +279,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(217,185,126,0.15)',
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#D9B97E',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  tabTextActive: {
+    color: '#D9B97E',
+  },
 });

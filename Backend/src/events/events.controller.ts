@@ -1,94 +1,90 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { EventsService } from './events.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Body,
+  ParseIntPipe,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
-import { AdminOnly } from '../auth/decorators/admin-only.decorator';
 import { GetClaim } from '../auth/decorators/get-token-claim.decorator';
-import { EventType } from './enums/event-type.enum';
-import { EventFilters } from './dto/event-filters.dto';
+import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto';
 
 @ApiTags('events')
 @ApiBearerAuth()
-@Controller('events')
+@UseGuards(JwtAuthGuard)
+@Controller()
 export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
-  @Get()
-  @UseGuards(JwtAuthGuard) // ⭐ Solo requiere autenticación, no admin
-  @ApiOperation({ summary: 'Consultar eventos académicos con filtros opcionales' })
-  @ApiQuery({ name: 'date', required: false, description: 'Fecha exacta en formato ISO 8601 (YYYY-MM-DD)' })
-  @ApiQuery({ name: 'type', required: false, enum: EventType, description: 'Tipo de evento' })
-  @ApiQuery({ name: 'startDate', required: false, description: 'Fecha inicial del rango en formato ISO 8601' })
-  @ApiQuery({ name: 'endDate', required: false, description: 'Fecha final del rango en formato ISO 8601' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Número de página (default: 1)' })
-  @ApiQuery({ name: 'pageSize', required: false, type: Number, description: 'Tamaño de página (default: 20)' })
-  async findAll(
-    @Query() queryParams: EventFilters & { page?: string; pageSize?: string },
-    @GetClaim('sub') userId: number, // ⭐ FIX: Use 'sub' from JWT payload (standard claim)
-  ) {
-    const { page = '1', pageSize = '20', ...filters } = queryParams;
-    const pageNum = parseInt(page, 10) || 1;
-    const pageSizeNum = parseInt(pageSize, 10) || 20;
-
-    return this.eventsService.findAll(
-      filters,
-      { page: pageNum, pageSize: pageSizeNum },
-      userId, // ⭐ NUEVO: Pasar userId para filtrado por carrera
-    );
+  // ── GET /categories ──────────────────────────────────────────────────────
+  @Get('categories')
+  @ApiOperation({ summary: 'Obtener todas las categorías de eventos' })
+  getCategories() {
+    return this.eventsService.getCategories();
   }
 
-  @Get(':id')
-  @UseGuards(JwtAuthGuard) // ⭐ Solo requiere autenticación, no admin
-  @ApiOperation({ summary: 'Obtener un evento por ID' })
-  async findOne(
-    @Param('id') id: string,
-    @GetClaim('sub') userId: number, // ⭐ FIX: Use 'sub' from JWT payload (standard claim)
-  ) {
-    return this.eventsService.findOne(id, userId); // ⭐ NUEVO: Pasar userId para validación de acceso
+  // ── GET /events/categories/subscriptions ─────────────────────────────────
+  // Debe ir ANTES de /events/:id para que Express no lo trate como id="categories"
+  @Get('events/categories/subscriptions')
+  @ApiOperation({ summary: 'Obtener IDs de categorías suscritas por el usuario autenticado' })
+  getSubscriptions(@GetClaim('sub') userId: number) {
+    return this.eventsService.getSubscriptions(userId);
   }
 
-  @Post()
-  @UseGuards(JwtAuthGuard, AdminGuard) // ⭐ Requiere autenticación Y ser admin
-  @AdminOnly()
-  @ApiOperation({ summary: 'Crear un nuevo evento (Solo administradores)' })
-  async create(
-    @Body() createEventDto: CreateEventDto,
-    @GetClaim('sub') userId: number, // ⭐ FIX: Use 'sub' from JWT payload (standard claim)
-  ) {
-    // ⭐ DIAGNOSTIC: Log incoming request at controller level
-    console.log('🔍 [EventsController.create] Incoming request:', {
-      userId,
-      dto: createEventDto,
-      userFromRequest: 'extracted from JWT',
-    });
-
-    return this.eventsService.create(createEventDto, userId);
-  }
-
-  @Put(':id')
-  @UseGuards(JwtAuthGuard, AdminGuard) // ⭐ Requiere autenticación Y ser admin
-  @AdminOnly()
-  @ApiOperation({ summary: 'Actualizar un evento existente (Solo administradores)' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateEventDto: UpdateEventDto,
-    @GetClaim('sub') userId: number, // ⭐ FIX: Use 'sub' from JWT payload (standard claim)
-    @GetClaim('roleName') userRole: string, // ⭐ Extract role from JWT
-  ) {
-    return this.eventsService.update(id, updateEventDto, userId, userRole);
-  }
-
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard) // ⭐ Solo requiere autenticación (validación de propiedad en service)
-  @ApiOperation({ summary: 'Eliminar un evento propio (creador o superadmin)' })
-  async deleteOwn(
-    @Param('id') id: string,
+  // ── POST /events/categories/:categoryId/subscribe ────────────────────────
+  @Post('events/categories/:categoryId/subscribe')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Suscribirse a una categoría de eventos' })
+  subscribeCategory(
+    @Param('categoryId', ParseIntPipe) categoryId: number,
     @GetClaim('sub') userId: number,
-    @GetClaim('roleName') userRole: string,
   ) {
-    return this.eventsService.deleteOwn(id, userId, userRole);
+    return this.eventsService.subscribeCategory(categoryId, userId);
+  }
+
+  // ── DELETE /events/categories/:categoryId/subscribe ──────────────────────
+  @Delete('events/categories/:categoryId/subscribe')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancelar suscripción a una categoría de eventos' })
+  unsubscribeCategory(
+    @Param('categoryId', ParseIntPipe) categoryId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.eventsService.unsubscribeCategory(categoryId, userId);
+  }
+
+  // ── GET /events?categoryId= ──────────────────────────────────────────────
+  @Get('events')
+  @ApiOperation({ summary: 'Obtener eventos, filtrado opcional por categoryId' })
+  @ApiQuery({ name: 'categoryId', required: false, type: Number })
+  getEvents(@Query('categoryId') categoryId?: string) {
+    const id = categoryId ? parseInt(categoryId, 10) : undefined;
+    return this.eventsService.getEvents(id);
+  }
+
+  // ── GET /events/:id ──────────────────────────────────────────────────────
+  @Get('events/:id')
+  @ApiOperation({ summary: 'Obtener un evento por ID' })
+  getEventById(@Param('id', ParseIntPipe) id: number) {
+    return this.eventsService.getEventById(id);
+  }
+
+  // ── POST /events ─────────────────────────────────────────────────────────
+  @Post('events')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Crear un nuevo evento (requiere autenticación)' })
+  createEvent(
+    @Body() dto: CreateEventDto,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.eventsService.createEvent(dto, userId);
   }
 }

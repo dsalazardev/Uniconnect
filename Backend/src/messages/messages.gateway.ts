@@ -137,6 +137,9 @@ export class MessagesGateway
       client.join(roomName);
       this.sessionManager.joinGroupRoom(data.id_group, client.id);
 
+      // Unirse a la sala personal del usuario para recibir notificaciones directas
+      client.join(`user-${data.id_user}`);
+
       // Establecer presencia inicial a 'online'
       this.sessionManager.setUserPresence(data.id_user, 'online');
 
@@ -707,6 +710,66 @@ export class MessagesGateway
   sendMessageToGroup(id_group: number, event: string, data: any) {
     const roomName = `group-${id_group}`;
     this.server.to(roomName).emit(event, data);
+  }
+
+  /**
+   * Emitir evento al room del foro de un grupo (subject-{groupId}).
+   * Usado por ForumService para forum:vote_updated y forum:answer_accepted.
+   */
+  sendToSubjectRoom(groupId: number, event: string, data: any) {
+    this.server.to(`subject-${groupId}`).emit(event, data);
+  }
+
+  /**
+   * Emitir evento directamente a un usuario específico (user-{userId}).
+   * Requiere que el socket haya hecho join a la sala personal en handleAuthenticate.
+   */
+  sendToUser(userId: number, event: string, data: any) {
+    this.server.to(`user-${userId}`).emit(event, data);
+  }
+
+  /**
+   * Identificar usuario sin necesidad de grupo — une el socket a user-{userId}.
+   * Usado por páginas que no tienen contexto de grupo (Eventos, Foro antes de
+   * seleccionar materia) para que las notificaciones directas lleguen correctamente.
+   */
+  @SubscribeMessage('user:identify')
+  handleUserIdentify(
+    @MessageBody() data: { id_user: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.id_user) return { success: false };
+    client.join(`user-${data.id_user}`);
+    client.data.id_user = data.id_user;
+
+    // Registrar en el session manager para que InAppWebSocketStrategy lo encuentre
+    if (!this.sessionManager.getUserSockets(data.id_user).includes(client.id)) {
+      this.sessionManager.addUserSession({
+        socketId: client.id,
+        userId: data.id_user,
+        membershipId: 0,
+        groupId: 0,
+        connectedAt: new Date(),
+      });
+    }
+
+    this.logger.log(`user:identify → socket ${client.id} identified as user ${data.id_user}`);
+    return { success: true };
+  }
+
+  /**
+   * Unir un socket al room del foro de un grupo.
+   * El cliente emite 'forum:join' con { groupId } al abrir la vista del foro.
+   */
+  @SubscribeMessage('forum:join')
+  handleForumJoin(
+    @MessageBody() data: { groupId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = `subject-${data.groupId}`;
+    void client.join(room);
+    this.logger.log(`Socket ${client.id} joined forum room ${room}`);
+    return { success: true, room };
   }
 
   /**

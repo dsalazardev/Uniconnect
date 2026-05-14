@@ -5,7 +5,7 @@ import { Layout } from './components/Layout';
 import { LoadingSpinner } from './components/elements';
 import { EventDetail } from './features/events/components';
 import { GroupDetail } from './features/groups/components';
-import { EventsPage } from './pages/EventsPage';
+import { EventsDashboard } from './features/events/components/EventsDashboard';
 import { GroupsPage } from './pages/GroupsPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
@@ -14,6 +14,7 @@ import { StudentList, StudentProfile } from './features/students/components';
 import { ConnectionList } from './features/connections/components';
 import { CourseList } from './features/courses/components';
 import { ProgramList } from './features/programs/components';
+import { ForumPage } from './features/forum/components/ForumPage';
 
 // Lazy-load LoginScreen so @auth0/auth0-spa-js is only loaded when
 // the user navigates to /login, preventing postMessage errors on other pages.
@@ -52,7 +53,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'events',
-        element: <EventsPage />,
+        element: <EventsDashboard />,
       },
       {
         path: 'events/:id',
@@ -93,6 +94,10 @@ export const router = createBrowserRouter([
       {
         path: 'courses',
         element: <CourseList />,
+      },
+      {
+        path: 'forum',
+        element: <ForumPage />,
       },
       {
         path: 'programs',

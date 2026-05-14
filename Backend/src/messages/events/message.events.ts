@@ -39,6 +39,9 @@ export const MESSAGE_EVENTS = {
   CONNECTION_REQUEST_SENT: 'connection.request.sent',
   CONNECTION_REQUEST_ACCEPTED: 'connection.request.accepted',
   CONNECTION_REQUEST_REJECTED: 'connection.request.rejected',
+
+  // Eventos de publicación de eventos universitarios
+  EVENT_PUBLISHED: 'event.published',
 } as const;
 
 /**

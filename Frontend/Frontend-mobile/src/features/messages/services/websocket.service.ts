@@ -24,6 +24,7 @@ class WebSocketService {
   private maxReconnectAttempts: number = 5;
   private pendingAuthData: AuthenticateData | null = null;
   private appStateSubscription: ReturnType<typeof AppState.addEventListener> | null = null;
+  private onReconnectCallback: (() => void) | null = null;
 
   /**
    * Conectar al servidor WebSocket
@@ -62,22 +63,24 @@ class WebSocketService {
     if (!this.socket) return;
 
     this.socket.on('connect', () => {
-      
+
       this.reconnectAttempts = 0;
-      
+
       // Autenticar con datos pendientes o con sesión previa
       if (this.pendingAuthData) {
-        
+
         this.authenticate(this.pendingAuthData);
         this.pendingAuthData = null;
       } else if (this.currentUserId && this.currentGroupId) {
-        
+
         this.authenticate({
           id_user: this.currentUserId,
           id_membership: this.currentMembershipId ?? undefined,
           id_group: this.currentGroupId,
         });
       }
+
+      this.onReconnectCallback?.();
     });
 
     this.socket.on('disconnect', (reason) => {
@@ -342,6 +345,10 @@ class WebSocketService {
     }
   }
 
+  emit(event: string, data?: any) {
+    this.socket?.emit(event, data);
+  }
+
   /**
    * Desconectar del WebSocket
    */
@@ -382,6 +389,10 @@ class WebSocketService {
    */
   getCurrentUserId(): number | null {
     return this.currentUserId;
+  }
+
+  setOnReconnectCallback(callback: (() => void) | null) {
+    this.onReconnectCallback = callback;
   }
 }
 

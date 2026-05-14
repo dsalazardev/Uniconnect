@@ -20,6 +20,7 @@ import { GroupInvitationsModule } from './group-invitations/group-invitations.mo
 import { FilesModule } from './files/files.module';
 import { EventsModule } from './events/events.module';
 import { PollsModule } from './polls/polls.module';
+import { ForumModule } from './forum/forum.module';
 import { LoggerMiddleware } from './core/logger/logger.middleware';
 
 @Module({
@@ -53,6 +54,7 @@ import { LoggerMiddleware } from './core/logger/logger.middleware';
     FilesModule,
     EventsModule,
     PollsModule,
+    ForumModule,
   ],
   controllers: [AppController],
   providers: [AppService, RolesService, PermissionsService],

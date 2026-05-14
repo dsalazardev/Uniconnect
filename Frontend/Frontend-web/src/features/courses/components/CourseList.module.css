@@ -127,6 +127,29 @@
   font-weight: 600;
 }
 
+.columnForum {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+}
+
+.forumBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(217,185,126,0.12);
+  border: 1px solid rgba(217,185,126,0.3);
+  border-radius: 8px;
+  color: #D9B97E;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.forumBtn:hover { background: rgba(217,185,126,0.22); }
+
 .center {
   display: flex;
   flex-direction: column;
