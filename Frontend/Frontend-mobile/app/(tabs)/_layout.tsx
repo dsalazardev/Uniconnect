@@ -12,6 +12,7 @@ export default function TabLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="community" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="forum" />
       </Stack>
       
     </SafeAreaView>

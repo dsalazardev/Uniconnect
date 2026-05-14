@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   FlatList,
   TouchableOpacity,
   TextInput,
@@ -11,6 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +19,6 @@ import { api } from '@/src/constants/api';
 import { forumService } from '@/src/features/forum/services';
 import { websocketService } from '@/src/features/messages/services/websocket.service';
 import { authStore } from '@/src/features/auth';
-import { Navbar } from '@/src/components/Navbar';
 import type { ForumQuestion, ForumAnswer } from '@uniconnect/shared';
 import { QuestionCreationModal } from '@/src/features/forum/components/QuestionCreationModal';
 
@@ -54,6 +54,7 @@ export default function ForumDashboard() {
 
   // New question modal
   const [showModal, setShowModal] = useState(false);
+  const [showCourseDropdown, setShowCourseDropdown] = useState(false);
 
   // ── Courses ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -267,18 +268,18 @@ export default function ForumDashboard() {
   };
 
   // ── Main render ───────────────────────────────────────────────────────────────
+  const selectedCourse = courses.find((c) => c.id_course === selectedId);
+
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <Navbar />
-
       {/* Header */}
       <View style={styles.pageHeader}>
-        <View>
+        <View style={styles.pageTitleRow}>
+          <Ionicons name="help-circle-outline" size={20} color="#D9B97E" />
           <Text style={styles.pageTitle}>Foro Académico</Text>
-          <Text style={styles.pageSubtitle}>Preguntas y respuestas por asignatura</Text>
         </View>
         {selectedId && (
           <TouchableOpacity style={styles.newBtn} onPress={() => setShowModal(true)}>
@@ -288,30 +289,48 @@ export default function ForumDashboard() {
         )}
       </View>
 
-      {/* Filter chips */}
-      <View style={styles.filterWrapper}>
+      {/* Filtro desplegable */}
+      <View style={styles.filterSection}>
+        <Text style={styles.filterLabel}>Materia</Text>
         {loadingCourses ? (
-          <ActivityIndicator size="small" color="#D9B97E" style={{ marginLeft: 16 }} />
+          <ActivityIndicator size="small" color="#D9B97E" style={{ marginTop: 8 }} />
         ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterScroll}
-          >
-            {courses.map((c) => (
-              <TouchableOpacity
-                key={c.id_course}
-                style={[styles.chip, selectedId === c.id_course && styles.chipActive]}
-                onPress={() => setSelectedId(c.id_course)}
-              >
-                <Text style={[styles.chipText, selectedId === c.id_course && styles.chipTextActive]}>
-                  {c.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <TouchableOpacity style={styles.selectBox} onPress={() => setShowCourseDropdown(true)} activeOpacity={0.8}>
+            <Text style={styles.selectText} numberOfLines={1}>
+              {selectedCourse?.name ?? 'Selecciona una materia'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color="#6B7280" />
+          </TouchableOpacity>
+        )}
+        {selectedCourse && (
+          <View style={styles.selectedCourseRow}>
+            <Text style={styles.qCount}>{questions.length} {questions.length === 1 ? 'pregunta' : 'preguntas'}</Text>
+          </View>
         )}
       </View>
+
+      {/* Dropdown modal */}
+      <Modal visible={showCourseDropdown} transparent animationType="fade" onRequestClose={() => setShowCourseDropdown(false)}>
+        <TouchableOpacity style={styles.dropdownBackdrop} activeOpacity={1} onPress={() => setShowCourseDropdown(false)}>
+          <View style={styles.dropdownPanel}>
+            <Text style={styles.dropdownTitle}>Selecciona una materia</Text>
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+              {courses.map((c) => (
+                <TouchableOpacity
+                  key={c.id_course}
+                  style={[styles.dropdownItem, selectedId === c.id_course && styles.dropdownItemActive]}
+                  onPress={() => { setSelectedId(c.id_course); setShowCourseDropdown(false); }}
+                >
+                  <Text style={[styles.dropdownItemText, selectedId === c.id_course && styles.dropdownItemTextActive]} numberOfLines={2}>
+                    {c.name}
+                  </Text>
+                  {selectedId === c.id_course && <Ionicons name="checkmark" size={16} color="#D9B97E" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Questions feed */}
       {loadingQ ? (
@@ -344,21 +363,29 @@ export default function ForumDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#1e1e1e' },
-  pageHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
-  pageTitle:   { fontSize: 20, fontWeight: '800', color: '#f0f0f0' },
-  pageSubtitle:{ fontSize: 12, color: '#6B7280', marginTop: 2 },
+  container:    { flex: 1, backgroundColor: '#1e1e1e' },
 
-  newBtn:      { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#D9B97E', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
-  newBtnText:  { fontSize: 13, fontWeight: '700', color: '#1a1a1a' },
+  pageHeader:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
+  pageTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pageTitle:    { fontSize: 18, fontWeight: '800', color: '#f0f0f0' },
 
-  filterWrapper: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  filterScroll:  { paddingHorizontal: 14, paddingVertical: 10, gap: 8, flexDirection: 'row' },
+  newBtn:       { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#D9B97E', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
+  newBtnText:   { fontSize: 13, fontWeight: '700', color: '#1a1a1a' },
 
-  chip:         { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: '#2a2a2a', marginRight: 8 },
-  chipActive:   { backgroundColor: 'rgba(217,185,126,0.12)', borderColor: '#D9B97E' },
-  chipText:     { fontSize: 13, fontWeight: '500', color: '#9CA3AF' },
-  chipTextActive:{ color: '#D9B97E', fontWeight: '700' },
+  filterSection:     { paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  filterLabel:       { fontSize: 11, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  selectBox:         { flexDirection: 'row', alignItems: 'center', backgroundColor: '#252525', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  selectText:        { flex: 1, fontSize: 14, fontWeight: '500', color: '#f0f0f0' },
+  selectedCourseRow: { marginTop: 8 },
+  qCount:            { fontSize: 12, color: '#6B7280' },
+
+  dropdownBackdrop:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  dropdownPanel:         { backgroundColor: '#1a1a1a', borderTopLeftRadius: 16, borderTopRightRadius: 16, borderWidth: 1, borderColor: 'rgba(217,185,126,0.2)', paddingBottom: 28, maxHeight: '60%' },
+  dropdownTitle:         { fontSize: 13, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5, paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.07)' },
+  dropdownItem:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  dropdownItemActive:    { backgroundColor: 'rgba(217,185,126,0.07)' },
+  dropdownItemText:      { flex: 1, fontSize: 14, color: '#ccc' },
+  dropdownItemTextActive:{ color: '#D9B97E', fontWeight: '600' },
 
   center:     { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
   emptyText:  { fontSize: 14, color: '#555' },

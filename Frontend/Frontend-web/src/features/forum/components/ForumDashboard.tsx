@@ -193,22 +193,26 @@ export const ForumDashboard: React.FC = () => {
         <p className={styles.pageSubtitle}>Preguntas y respuestas por asignatura</p>
       </div>
 
-      {/* ── Filtro de materias ──────────────────────────────────────────────── */}
-      <div className={styles.filterBar}>
+      {/* ── Filtro desplegable de materias ──────────────────────────────────── */}
+      <div className={styles.filterRow}>
+        <span className={styles.filterLabel}>Materia</span>
         {loadingCourses ? (
-          <span className={styles.filterLoading}>Cargando materias...</span>
-        ) : courses.length === 0 ? (
-          <span className={styles.filterEmpty}>No tienes materias registradas</span>
+          <span className={styles.filterLoading}>Cargando...</span>
         ) : (
-          courses.map((c) => (
-            <button
-              key={c.id_course}
-              className={`${styles.chip} ${selectedCourseId === c.id_course ? styles.chipActive : ''}`}
-              onClick={() => setSelectedCourseId(c.id_course)}
-            >
-              {c.name}
-            </button>
-          ))
+          <select
+            className={styles.filterSelect}
+            value={selectedCourseId ?? ''}
+            onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+          >
+            {courses.length === 0 && (
+              <option value="" disabled>Sin materias registradas</option>
+            )}
+            {courses.map((c) => (
+              <option key={c.id_course} value={c.id_course}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
@@ -219,7 +223,7 @@ export const ForumDashboard: React.FC = () => {
           {/* Sub-header de la materia seleccionada */}
           <div className={styles.forumHeader}>
             <div>
-              <h2 className={styles.courseName}>{selectedCourse?.name}</h2>
+              <h2 className={styles.courseLabel}>{selectedCourse?.name}</h2>
               <span className={styles.questionCount}>{questions.length} preguntas</span>
             </div>
             <button className={styles.newBtn} onClick={() => setShowNewQ(true)}>

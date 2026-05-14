@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ForumQuestion, ForumAnswer } from '@uniconnect/shared';
@@ -77,7 +76,6 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({
   useEffect(() => { loadAnswers(); }, [loadAnswers]);
 
   const handleVoteAnswer = async (answerId: number) => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAnswers((prev) =>
       sortAnswers(prev.map((a) => a.id === answerId ? { ...a, voteCount: a.voteCount + 1 } : a))
     );
