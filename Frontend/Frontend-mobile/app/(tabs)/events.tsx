@@ -1,254 +1,483 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // ⭐ CORRECCIÓN: Usar safe-area-context
-import { observer } from 'mobx-react-lite';
-import { eventsStore } from '@/src/features/events/store/events.store';
-import { authStore } from '@/src/features/auth/store/AuthStore';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  EventFilters,
-  EventList,
-  LoadingIndicator,
-  ErrorMessage,
-  EmptyState,
-  CreateEventModal,
-  EditEventModal,
-} from '@/src/features/events/components';
-import { CreateEventPayload, Event, UpdateEventPayload } from '@/src/features/events/types/event.types';
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { api } from '@/src/constants/api';
+import { websocketService } from '@/src/features/messages/services/websocket.service';
+import { showToast } from '@/src/lib/toast';
 
-/**
- * EventsScreen - Main screen for academic events query
- * Uses MobX observer to make component reactive
- * Follows MVC pattern with complete decoupling from business logic
- * 
- * ⭐ HU-09: Implements role-based event creation
- * - Only admin and superadmin can see "Create Event" button
- * - Students cannot create events (button not rendered)
- * - Automatic refresh after event creation
- * - Uses react-native-safe-area-context for SafeAreaView
- * 
- * Validates: Requirements 1.1, 1.3, 1.4, 1.5, 4.4, 4.5, 5.1, 5.4, 7.1, 7.3, 7.4
- */
-const EventsScreen: React.FC = observer(() => {
-  // ⭐ NUEVO: Modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  
-  // ⭐ NUEVO: Edit modal state
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+// ── Local types (new schema) ────────────────────────────────────────────────
+interface EventCategory {
+  id_category: number;
+  name: string;
+  color: string;
+}
 
-  // Load events on component mount
-  useEffect(() => {
-    
-    eventsStore.loadEvents();
-  }, []);
+interface EventV2 {
+  id_event: number;
+  id_category: number;
+  title: string;
+  description: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  category?: EventCategory;
+}
 
-  // ⭐ Computed - Check if user can create events
-  // Only admin and superadmin can create events
-  // ⭐ FIX: Use null-safe access with fallback to roleName from JWT
-  const canCreateEvents = React.useMemo(() => {
-    const userRole = authStore.user?.role?.name || authStore.user?.roleName;
-    
-    return userRole ? ['admin', 'superadmin'].includes(userRole) : false;
-  }, [authStore.user?.role?.name, authStore.user?.roleName]);
+type EventStatus = 'UPCOMING' | 'ONGOING' | 'FINISHED';
 
-  
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function getEventStatus(startDate: string): EventStatus {
+  const now = new Date();
+  const start = new Date(startDate);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+  if (start >= todayStart && start < todayEnd) return 'ONGOING';
+  if (start >= todayEnd) return 'UPCOMING';
+  return 'FINISHED';
+}
 
-  /**
-   * ⭐ NUEVO: Handle event creation
-   * Calls store action and handles success/error
-   */
-  const handleCreateEvent = async (payload: CreateEventPayload) => {
-    // ⭐ DIAGNOSTIC: Log auth state before creating event
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
 
-    const success = await eventsStore.createEvent(payload);
+const STATUS_LABEL: Record<EventStatus, string> = {
+  UPCOMING: 'Próximo',
+  ONGOING: 'En curso',
+  FINISHED: 'Finalizado',
+};
 
-    if (success) {
-      // Success - close modal and show success message
-      setModalVisible(false);
-      Alert.alert('Éxito', 'Evento creado correctamente');
-    } else {
-      // Error - show error message (modal stays open)
-      Alert.alert(
-        'Error',
-        eventsStore.createError || 'No se pudo crear el evento. Intenta nuevamente.'
-      );
-    }
-  };
+const STATUS_COLOR: Record<EventStatus, string> = {
+  UPCOMING: '#D9B97E',
+  ONGOING: '#34d399',
+  FINISHED: '#6B7280',
+};
 
-  /**
-   * ⭐ NUEVO: Handle edit button press
-   * Opens edit modal with selected event
-   */
-  const handleEdit = (event: Event) => {
-    
-    setSelectedEvent(event);
-    setEditModalVisible(true);
-  };
-
-  /**
-   * ⭐ NUEVO: Handle event update
-   * Calls store action and handles success/error
-   */
-  const handleSave = async (id: number, payload: UpdateEventPayload) => {
-    
-    
-    const success = await eventsStore.updateEvent(id, payload);
-
-    if (success) {
-      // Success - close modal and show success message
-      setEditModalVisible(false);
-      setSelectedEvent(null);
-      Alert.alert('Éxito', 'Evento actualizado correctamente');
-    } else {
-      // Error - show error message (modal stays open)
-      Alert.alert(
-        'Error',
-        eventsStore.updateError || 'No se pudo actualizar el evento. Intenta nuevamente.'
-      );
-    }
-  };
-
-  /**
-   * ⭐ NUEVO: Handle event deletion
-   * Calls store action and handles success/error
-   */
-  const handleDelete = async (id: number) => {
-    try {
-      await eventsStore.deleteEvent(id);
-      Alert.alert('Éxito', 'Evento eliminado correctamente');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : 'No se pudo eliminar el evento. Intenta nuevamente.';
-      Alert.alert('Error', errorMessage);
-    }
-  };
-
-  /**
-   * ⭐ NUEVO: Get current user info for EventCard
-   */
-  const currentUser = React.useMemo(() => {
-    if (!authStore.user) return undefined;
-    
-    return authStore.user;
-  }, [authStore.user]);
-
-  // Rendering logic based on store state
+// ── EventCard (inline) ───────────────────────────────────────────────────────
+const EventCard = React.memo(({ event }: { event: EventV2 }) => {
+  const status = getEventStatus(event.start_date);
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* ⭐ NUEVO: Header with Create Button (conditional) */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Eventos Académicos</Text>
-          
-          {/* Render button ONLY if user can create events */}
-          {canCreateEvents && (
-            <TouchableOpacity
-              style={styles.createButton}
-              onPress={() => setModalVisible(true)}
-            >
-              <Text style={styles.createButtonText}>+ Nuevo Evento</Text>
-            </TouchableOpacity>
-          )}
+    <View style={styles.card}>
+      <View style={styles.cardTopRow}>
+        <View style={[styles.statusBadge, { borderColor: STATUS_COLOR[status] }]}>
+          <Text style={[styles.statusText, { color: STATUS_COLOR[status] }]}>
+            {STATUS_LABEL[status]}
+          </Text>
         </View>
-
-        {/* Filters - Always visible */}
-        <EventFilters
-          filters={eventsStore.filters}
-          onFilterChange={eventsStore.setFilter.bind(eventsStore)}
-          onClearFilters={eventsStore.clearFilters.bind(eventsStore)}
-        />
-
-        {/* Conditional rendering based on state */}
-        {eventsStore.loading && <LoadingIndicator />}
-        
-        {!eventsStore.loading && eventsStore.error && (
-          <ErrorMessage
-            message={eventsStore.error}
-            onRetry={() => eventsStore.loadEvents()}
-          />
-        )}
-        
-        {/* ⭐ FIX CRÍTICO: Validación defensiva con Array.isArray */}
-        {!eventsStore.loading && !eventsStore.error && Array.isArray(eventsStore.events) && eventsStore.events.length === 0 && (
-          <EmptyState />
-        )}
-        
-        {/* ⭐ FIX CRÍTICO: Validación defensiva con Array.isArray */}
-        {!eventsStore.loading && !eventsStore.error && Array.isArray(eventsStore.events) && eventsStore.events.length > 0 && (
-          <EventList 
-            events={eventsStore.events} 
-            currentUser={currentUser}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+        {event.category && (
+          <View style={[styles.categoryDot, { backgroundColor: event.category.color }]} />
         )}
       </View>
-
-      {/* ⭐ NUEVO: Create Event Modal */}
-      <CreateEventModal
-        visible={modalVisible}
-        onClose={() => {
-          setModalVisible(false);
-          eventsStore.clearCreateError();
-        }}
-        onSubmit={handleCreateEvent}
-        isSubmitting={eventsStore.isCreating}
-      />
-
-      {/* ⭐ NUEVO: Edit Event Modal */}
-      <EditEventModal
-        visible={editModalVisible}
-        event={selectedEvent}
-        onClose={() => {
-          setEditModalVisible(false);
-          setSelectedEvent(null);
-          eventsStore.clearUpdateError();
-        }}
-        onSave={handleSave}
-        isSubmitting={eventsStore.isUpdating}
-      />
-    </SafeAreaView>
+      <Text style={styles.cardTitle} numberOfLines={2}>{event.title}</Text>
+      <View style={styles.cardMeta}>
+        <View style={styles.metaRow}>
+          <Ionicons name="calendar-outline" size={13} color="#6B7280" />
+          <Text style={styles.metaText}>{formatDate(event.start_date)}</Text>
+        </View>
+        <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={13} color="#6B7280" />
+          <Text style={styles.metaText} numberOfLines={1}>{event.location}</Text>
+        </View>
+      </View>
+    </View>
   );
 });
 
+// ── Main screen ──────────────────────────────────────────────────────────────
+const EventsScreen: React.FC = () => {
+  const [categories, setCategories] = useState<EventCategory[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [events, setEvents] = useState<EventV2[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [subscribed, setSubscribed] = useState<Set<number>>(new Set());
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const selectedCategoryRef = useRef<number | null>(null);
+  useEffect(() => { selectedCategoryRef.current = selectedCategoryId; }, [selectedCategoryId]);
+
+  // ── Load categories ────────────────────────────────────────────────────────
+  useEffect(() => {
+    api.get('/categories')
+      .then((r) => setCategories(Array.isArray(r.data) ? r.data : []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  // ── Load subscriptions ─────────────────────────────────────────────────────
+  useEffect(() => {
+    api.get('/events/categories/subscriptions')
+      .then((r) => {
+        const list: number[] = Array.isArray(r.data) ? r.data : r.data?.data ?? [];
+        setSubscribed(new Set(list));
+      })
+      .catch(() => { /* treat all as unsubscribed */ });
+  }, []);
+
+  // ── Load events when category changes ──────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const params = selectedCategoryId ? { categoryId: selectedCategoryId } : {};
+    api.get('/events', { params })
+      .then((r) => {
+        if (!cancelled) {
+          const data: EventV2[] = Array.isArray(r.data) ? r.data : r.data?.data ?? [];
+          setEvents(data);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError((err as Error).message ?? 'Error al cargar eventos');
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [selectedCategoryId]);
+
+  // ── WebSocket ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!websocketService.isConnected()) {
+      websocketService.connect();
+    }
+
+    websocketService.setOnReconnectCallback(() => {
+      // Nada que re-unir: las notificaciones llegan por user-room, no por sala de grupo
+    });
+
+    const onEventPublished = (payload: { event: EventV2; categoryId?: number }) => {
+      showToast.info(`Nuevo evento: ${payload.event?.title ?? 'Sin título'}`);
+
+      const publishedCategory = payload.categoryId ?? payload.event?.id_category ?? null;
+      const active = selectedCategoryRef.current;
+
+      if (active === null || active === publishedCategory) {
+        setEvents((prev) => {
+          if (prev.some((e) => e.id_event === payload.event.id_event)) return prev;
+          return [payload.event, ...prev];
+        });
+      }
+    };
+
+    websocketService.on('event:published', onEventPublished);
+
+    return () => {
+      websocketService.off('event:published', onEventPublished);
+      websocketService.setOnReconnectCallback(null);
+    };
+  }, []);
+
+  // ── Toggle subscription ────────────────────────────────────────────────────
+  const toggleSubscription = async (categoryId: number) => {
+    if (togglingId === categoryId) return;
+    setTogglingId(categoryId);
+
+    const wasSubscribed = subscribed.has(categoryId);
+    setSubscribed((prev) => {
+      const next = new Set(prev);
+      wasSubscribed ? next.delete(categoryId) : next.add(categoryId);
+      return next;
+    });
+
+    try {
+      if (wasSubscribed) {
+        await api.delete(`/events/categories/${categoryId}/subscribe`);
+      } else {
+        await api.post(`/events/categories/${categoryId}/subscribe`);
+      }
+    } catch {
+      setSubscribed((prev) => {
+        const next = new Set(prev);
+        wasSubscribed ? next.add(categoryId) : next.delete(categoryId);
+        return next;
+      });
+      showToast.error('No se pudo actualizar la suscripción');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Eventos universitarios</Text>
+        <Text style={styles.headerSub}>Explora los eventos de tu programa</Text>
+      </View>
+
+      {/* Category chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}
+      >
+        {/* "Todos" chip (no bell) */}
+        <TouchableOpacity
+          style={[styles.chip, selectedCategoryId === null && styles.chipActive]}
+          onPress={() => setSelectedCategoryId(null)}
+        >
+          <Text style={[styles.chipText, selectedCategoryId === null && styles.chipTextActive]}>
+            Todos
+          </Text>
+        </TouchableOpacity>
+
+        {categories.map((cat) => {
+          const isActive = selectedCategoryId === cat.id_category;
+          const isSub = subscribed.has(cat.id_category);
+          const isToggling = togglingId === cat.id_category;
+
+          return (
+            <View key={cat.id_category} style={styles.chipGroup}>
+              <TouchableOpacity
+                style={[
+                  styles.chip,
+                  styles.chipWithBell,
+                  isActive && styles.chipActive,
+                ]}
+                onPress={() => setSelectedCategoryId(cat.id_category)}
+              >
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.bellBtn, isSub && styles.bellBtnActive]}
+                onPress={() => toggleSubscription(cat.id_category)}
+                disabled={isToggling}
+              >
+                {isToggling ? (
+                  <ActivityIndicator size={10} color="#D9B97E" />
+                ) : (
+                  <Ionicons
+                    name={isSub ? 'notifications' : 'notifications-off-outline'}
+                    size={12}
+                    color={isSub ? '#D9B97E' : '#6B7280'}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      {/* Content */}
+      {loading && (
+        <View style={styles.centerMsg}>
+          <ActivityIndicator color="#D9B97E" />
+          <Text style={styles.centerText}>Cargando eventos...</Text>
+        </View>
+      )}
+
+      {!loading && error && (
+        <View style={styles.centerMsg}>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => setSelectedCategoryId((prev) => prev)}
+          >
+            <Text style={styles.retryText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {!loading && !error && events.length === 0 && (
+        <View style={styles.centerMsg}>
+          <Ionicons name="calendar-outline" size={40} color="#444" />
+          <Text style={styles.centerText}>No hay eventos en esta categoría</Text>
+        </View>
+      )}
+
+      {!loading && !error && events.length > 0 && (
+        <FlatList
+          data={events}
+          keyExtractor={(item) => String(item.id_event)}
+          renderItem={({ item }) => <EventCard event={item} />}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </SafeAreaView>
+  );
+};
+
+// ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#363636',
+    backgroundColor: '#1e1e1e',
   },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  // ⭐ NUEVO: Header styles
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#f0f0f0',
+    marginBottom: 2,
   },
-  createButton: {
-    backgroundColor: '#D9B97E',
+  headerSub: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+
+  // ── Chips ──────────────────────────────────────────────────────────────────
+  chipsRow: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingBottom: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
   },
-  createButtonText: {
-    color: '#1a1a1a',
-    fontSize: 14,
+  chipGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    backgroundColor: '#252525',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  chipWithBell: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    borderRightWidth: 0,
+  },
+  chipActive: {
+    backgroundColor: 'rgba(217,185,126,0.15)',
+    borderColor: 'rgba(217,185,126,0.55)',
+  },
+  chipText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  chipTextActive: {
+    color: '#D9B97E',
+  },
+  bellBtn: {
+    backgroundColor: '#252525',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+    width: 28,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bellBtnActive: {
+    backgroundColor: 'rgba(217,185,126,0.1)',
+    borderColor: 'rgba(217,185,126,0.4)',
+  },
+
+  // ── States ─────────────────────────────────────────────────────────────────
+  centerMsg: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 48,
+  },
+  centerText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#f87171',
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  retryBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+  },
+  retryText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+
+  // ── List ───────────────────────────────────────────────────────────────────
+  listContent: {
+    padding: 16,
+    gap: 12,
+  },
+
+  // ── Card ───────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: '#252525',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    padding: 16,
+    gap: 8,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statusBadge: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#f0f0f0',
+    lineHeight: 21,
+  },
+  cardMeta: {
+    gap: 5,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    flex: 1,
   },
 });
 

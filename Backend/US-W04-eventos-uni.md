@@ -13,7 +13,7 @@ Crea `Frontend-web/src/features/events/components/EventsDashboard.tsx` y su arch
 `feat(events): implementar dashboard de eventos con filtro por categoría`
 
 **Estimación:**
-2 horas
+1 horas
 
 ---
 
@@ -26,7 +26,7 @@ En `EventsDashboard.tsx`, agrega un ícono de suscripción (campana) en cada chi
 `feat(events): agregar suscripción a categorías y Observer WebSocket de nuevos eventos`
 
 **Estimación:**
-2 horas
+1.5 horas
 
 ---
 
@@ -41,7 +41,7 @@ En `Backend/prisma/schema/`, crea `event.prisma` con los siguientes modelos: `ev
 `feat(events): crear modelos Prisma y endpoints REST de eventos y categorías`
 
 **Estimación:**
-1 hora
+1.5 horas
 
 ---
 
@@ -54,4 +54,4 @@ En `event.prisma`, añade el modelo `event_category_subscription` (`id_subscript
 `feat(events): implementar suscripciones a categorías y Observer WebSocket de publicación`
 
 **Estimación:**
-5 horas
+2 horas
