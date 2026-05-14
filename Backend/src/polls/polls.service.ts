@@ -106,15 +106,12 @@ export class PollsService {
     });
 
     if (existing) {
-      await this.prisma.poll_vote.update({
-        where: { id_vote: existing.id_vote },
-        data: { id_option: optionId },
-      });
-    } else {
-      await this.prisma.poll_vote.create({
-        data: { id_poll: pollId, id_user: userId, id_option: optionId },
-      });
+      throw new ConflictException('Ya has votado en esta encuesta.');
     }
+
+    await this.prisma.poll_vote.create({
+      data: { id_poll: pollId, id_user: userId, id_option: optionId },
+    });
 
     // Calcular conteos en memoria con una sola query liviana (sin getPoll completo).
     // Esto hace que el evento WS llegue a todos los clientes ~150ms antes.
