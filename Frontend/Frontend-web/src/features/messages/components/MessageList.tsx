@@ -3,6 +3,7 @@ import { MessageCircle, Pencil, Trash2, MoreVertical, X } from 'lucide-react';
 import type { Message } from '@uniconnect/shared';
 import { BaseMessage } from './BaseMessage';
 import { WithFileAttachment } from './WithFileAttachment';
+import { PollDecorator } from './PollDecorator';
 import styles from './MessageList.module.css';
 
 interface MessageListProps {
@@ -12,6 +13,7 @@ interface MessageListProps {
   onEdit?: (message: Message) => void;
   onDelete?: (messageId: number) => void;
   onFilePress?: (file: { id_file: number; file_name: string }) => void;
+  onVotePoll?: (pollId: number, optionId: number) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -21,10 +23,21 @@ export const MessageList: React.FC<MessageListProps> = ({
   onEdit,
   onDelete,
   onFilePress,
+  onVotePoll,
 }) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Deduplicate poll messages: keep only the first occurrence of each poll.id
+  const dedupedMessages = React.useMemo(() => {
+    const seenPollIds = new Set<number>();
+    return messages.filter((msg) => {
+      if (!msg.poll) return true;
+      if (seenPollIds.has(msg.poll.id)) return false;
+      seenPollIds.add(msg.poll.id);
+      return true;
+    });
+  }, [messages]);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -52,7 +65,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   return (
     <div ref={containerRef} className={styles.messagesContainer}>
-      {messages.map((message) => {
+      {dedupedMessages.map((message) => {
         const isOwnMessage = message.membership?.user?.id_user === currentUserId;
         const senderName = message.membership?.user?.full_name || 'Usuario';
         const showActions = isOwnMessage && onEdit && onDelete;
@@ -75,7 +88,13 @@ export const MessageList: React.FC<MessageListProps> = ({
                 }`}
               >
                 <WithFileAttachment files={message.files ?? []} onFilePress={onFilePress}>
-                  {message.text_content ? (
+                  {message.poll ? (
+                    <PollDecorator
+                      poll={message.poll}
+                      currentUserId={currentUserId}
+                      onVote={onVotePoll}
+                    />
+                  ) : message.text_content ? (
                     <BaseMessage text={message.text_content} isOwnMessage={isOwnMessage} />
                   ) : null}
                 </WithFileAttachment>

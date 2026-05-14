@@ -15,3 +15,4 @@ export * from './messages';
 export * from './notifications';
 export * from './programs';
 export * from './students';
+export * from './polls';

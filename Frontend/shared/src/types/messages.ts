@@ -1,4 +1,5 @@
 // Message types
+import type { Poll } from './polls';
 
 export interface MessageFile {
   id_file: number;
@@ -18,6 +19,7 @@ export interface Message {
   is_edited: boolean;
   edited_at: string | null;
   files?: MessageFile[];
+  poll?: Poll;
   sender_name?: string;
   sender_picture?: string | null;
   membership?: {

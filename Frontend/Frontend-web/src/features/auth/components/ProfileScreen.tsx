@@ -251,9 +251,6 @@ export const ProfileScreen: React.FC = observer(() => {
             <Edit3 size={16} />
             Editar Perfil
           </button>
-          <button onClick={() => authStore.clearAuth()} className={styles.logoutButton}>
-            Cerrar Sesión
-          </button>
         </div>
       </div>
 

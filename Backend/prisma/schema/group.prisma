@@ -15,4 +15,5 @@ model group {
   group_invitation    group_invitation[]
   group_join_requests group_join_request[]
   memberships         membership[]
+  polls               poll[]
 }

@@ -23,7 +23,16 @@
 
 .logoPlaceholder {
   font-size: 80px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+}
+
+.ucaldasLogo {
+  width: 110px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  mix-blend-mode: screen;
+  opacity: 0.9;
 }
 
 .titleContainer {

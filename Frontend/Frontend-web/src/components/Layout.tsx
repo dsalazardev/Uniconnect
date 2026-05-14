@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { Home, Users, GitBranch, Calendar, MessageCircle, UserCircle, LogOut, SlidersHorizontal } from 'lucide-react';
+import { Home, Users, GitBranch, Calendar, MessageCircle, UserCircle, LogOut, SlidersHorizontal, Menu, X } from 'lucide-react';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { notificationsService } from '@/features/notifications/services';
 import { notificationsStore } from '@/features/notifications/store/notifications.store';
@@ -19,7 +19,9 @@ export const Layout = () => {
   const unreadCount = notificationsStore.unreadCount;
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Iniciar observadores de notificaciones (real-time + polling)
   useRealtimeNotifications();
@@ -37,9 +39,10 @@ export const Layout = () => {
     loadUnreadCount();
   }, [isAuthenticated]);
 
-  // Close notifications popover on route change
+  // Close both panels on route change
   useEffect(() => {
     setIsNotificationsOpen(false);
+    setIsMenuOpen(false);
   }, [location.pathname]);
 
   // Click outside to close notifications
@@ -62,22 +65,23 @@ export const Layout = () => {
     };
   }, [isNotificationsOpen]);
 
-  // ESC key to close notifications
+  // ESC closes any open panel
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsNotificationsOpen(false);
+        setIsMenuOpen(false);
       }
     };
 
-    if (isNotificationsOpen) {
+    if (isNotificationsOpen || isMenuOpen) {
       document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isNotificationsOpen]);
+  }, [isNotificationsOpen, isMenuOpen]);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -113,56 +117,68 @@ export const Layout = () => {
   return (
     <div className={styles.layout}>
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
+
       <nav className={styles.navbar}>
-        <div className={styles.navBrand}>
-          <Link to="/" className={styles.brandLink}>
-            Uniconnect
-          </Link>
+        {/* Left: hamburger + brand */}
+        <div className={styles.navLeft}>
+          <button
+            className={styles.hamburgerBtn}
+            onClick={() => setIsMenuOpen((p) => !p)}
+            aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+          <div className={styles.navBrand}>
+            <Link to="/" className={styles.brandLink}>Uniconnect</Link>
+          </div>
         </div>
-        
-        <div className={styles.navLinks}>
-          <Link to="/events" className={styles.navLink}>
-            <Home size={18} />
-            Inicio
-          </Link>
-          <Link to="/profile" className={styles.navLink}>
-            <UserCircle size={18} />
-            Perfil
-          </Link>
-          <Link to="/students" className={styles.navLink}>
-            <Users size={18} />
-            Comunidad
-          </Link>
-          <Link to="/groups" className={styles.navLink}>
-            <MessageCircle size={18} />
-            Grupos
-          </Link>
-          <Link to="/connections" className={styles.navLink}>
-            <GitBranch size={18} />
-            Vínculos
-          </Link>
-          <Link to="/events" className={styles.navLink}>
-            <Calendar size={18} />
-            Eventos
-          </Link>
-          <Link to="/notifications/preferences" className={styles.navLink}>
-            <SlidersHorizontal size={18} />
-            Preferencias
-          </Link>
+
+        {/* Right: notifications + logout */}
+        <div className={styles.navActions}>
           <NotificationBadge
             onPress={toggleNotifications}
             className={styles.navLink}
             size={18}
           />
-        </div>
-
-        <div className={styles.navActions}>
           <button onClick={handleLogout} className={styles.logoutButton}>
             <LogOut size={18} />
             Cerrar Sesión
           </button>
         </div>
       </nav>
+
+      {/* Slide-in menu panel */}
+      <div
+        ref={menuRef}
+        className={`${styles.menuPanel} ${isMenuOpen ? styles.menuPanelOpen : ''}`}
+      >
+        <Link to="/events" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <Home size={18} /> Inicio
+        </Link>
+        <Link to="/profile" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <UserCircle size={18} /> Perfil
+        </Link>
+        <Link to="/students" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <Users size={18} /> Comunidad
+        </Link>
+        <Link to="/groups" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <MessageCircle size={18} /> Grupos
+        </Link>
+        <Link to="/connections" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <GitBranch size={18} /> Vínculos
+        </Link>
+        <Link to="/events" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <Calendar size={18} /> Eventos
+        </Link>
+        <Link to="/notifications/preferences" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <SlidersHorizontal size={18} /> Preferencias
+        </Link>
+      </div>
+
+      {/* Overlay — closes menu on outside click */}
+      {isMenuOpen && (
+        <div className={styles.menuOverlay} onClick={() => setIsMenuOpen(false)} />
+      )}
 
       {/* Notifications Popover */}
       {isNotificationsOpen && (

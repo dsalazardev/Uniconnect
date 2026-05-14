@@ -27,9 +27,14 @@ export function useDirectMessage() {
       const groupId = response.group.id_group;
       navigate(`/chat/${groupId}`);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'No se pudo abrir el chat privado.';
-      showToast.error('Error', message);
+      const axiosErr = err as { response?: { status?: number } };
+      if (axiosErr.response?.status === 403) {
+        showToast.info('No puedes enviarle un mensaje directo a este usuario porque no son amigos.');
+      } else {
+        const message =
+          err instanceof Error ? err.message : 'No se pudo abrir el chat privado.';
+        showToast.error('Error', message);
+      }
     } finally {
       setLoadingUserId(null);
     }

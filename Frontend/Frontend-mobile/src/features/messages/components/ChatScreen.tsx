@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble } from './MessageBubble';
 import { FilePickerModal } from './FilePickerModal';
+import { PollCreationModal } from './PollCreationModal';
 import { useChat } from '../hooks/useChat';
 import { Message } from '../types';
 import { filesService } from '../services/files.service';
@@ -70,6 +71,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFilePicker, setShowFilePicker] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,6 +113,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     emitTyping,
     loadMoreMessages,
     downloadFile,
+    castVote,
+    createPoll,
   } = useChat({
     groupId,
     userId,
@@ -120,12 +124,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   });
 
   // Con inverted FlatList no necesitamos scroll manual — ya empieza abajo
-  // Solo hacemos scroll al recibir el primer lote de mensajes
   useEffect(() => {
     if (messages.length > 0 && !loading) {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [loading]);
+
+  // Deduplicar mensajes de encuesta: conservar solo la primera aparición de cada poll.id
+  const dedupedMessages = useMemo(() => {
+    const seenPollIds = new Set<number>();
+    return messages.filter((msg) => {
+      if (!msg.poll) return true;
+      if (seenPollIds.has(msg.poll.id)) return false;
+      seenPollIds.add(msg.poll.id);
+      return true;
+    });
+  }, [messages]);
 
   const handleSend = () => {
     if (!inputText.trim()) return;
@@ -193,13 +207,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         isOwnMessage={isOwnMessage}
         isAdmin={isAdmin}
         showSenderInfo={showSenderInfo}
+        currentUserId={userId}
         onEdit={() => {
           // Implementar lógica de edición (abrir modal con input)
           // Por ahora solo lo dejamos preparado
-          
+
         }}
         onDelete={() => deleteMessage(item.id_message)}
         onFilePress={downloadFile}
+        onVotePoll={castVote}
       />
     );
   };
@@ -271,7 +287,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         {/* FlatList ocupa todo el espacio disponible */}
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={dedupedMessages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id_message.toString()}
           contentContainerStyle={styles.messagesList}          style={styles.flatList}
@@ -332,6 +348,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <Ionicons name="attach" size={24} color="#D9B97E" />
           </TouchableOpacity>
 
+          {!isDirectMessage && (
+            <TouchableOpacity
+              style={styles.attachButton}
+              onPress={() => setShowPollModal(true)}
+            >
+              <Ionicons name="bar-chart-outline" size={22} color="#D9B97E" />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
@@ -387,6 +412,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onClose={() => setShowFilePicker(false)}
         onFilesSelected={handleFilesSelected}
         loading={uploadingFiles}
+      />
+
+      {/* Poll Creation Modal */}
+      <PollCreationModal
+        visible={showPollModal}
+        onClose={() => setShowPollModal(false)}
+        onSubmit={createPoll}
       />
     </KeyboardAvoidingView>
   );

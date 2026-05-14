@@ -4,6 +4,7 @@ import type { Message } from '@uniconnect/shared';
 import { BaseMessage } from './BaseMessage';
 import { WithFileAttachment } from './WithFileAttachment';
 import { WithMentions } from './WithMentions';
+import { PollDecorator } from './PollDecorator';
 import styles from './MessageBubble.module.css';
 
 interface MessageBubbleProps {
@@ -11,9 +12,11 @@ interface MessageBubbleProps {
   isOwnMessage: boolean;
   showSenderInfo?: boolean;
   currentUserName?: string;
+  currentUserId?: number;
   onEdit?: () => void;
   onDelete?: () => void;
   onFilePress?: (file: { id_file: number; file_name: string }) => void;
+  onVotePoll?: (pollId: number, optionId: number) => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -21,11 +24,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isOwnMessage,
   showSenderInfo = false,
   currentUserName,
+  currentUserId = 0,
   onEdit,
   onDelete,
   onFilePress,
+  onVotePoll,
 }) => {
   const hasText = !!message.text_content?.trim();
+  const hasPoll = !!message.poll;
 
   const formatTime = (dateString: string) =>
     new Date(dateString).toLocaleTimeString('es-ES', {
@@ -39,9 +45,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     </div>
   ) : null;
 
+  // Poll messages: compose PollDecorator over the base text decorators
+  const pollContent = hasPoll ? (
+    <PollDecorator
+      poll={message.poll!}
+      currentUserId={currentUserId}
+      onVote={onVotePoll}
+    >
+      {baseContent}
+    </PollDecorator>
+  ) : null;
+
   const withFiles = (
     <WithFileAttachment files={message.files ?? []} onFilePress={onFilePress}>
-      {baseContent}
+      {hasPoll ? pollContent : baseContent}
     </WithFileAttachment>
   );
 

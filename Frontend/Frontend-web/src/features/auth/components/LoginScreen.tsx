@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { authStore } from '../store/AuthStore';
 import { observer } from 'mobx-react-lite';
 import { useWebAuth } from '../hooks/useWebAuth';
-import { GraduationCap, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import ucaldasLogo from '../../../../assets/Logo_de_la_Universidad_de_Caldas.svg.png';
 import styles from './LoginScreen.module.css';
 
 export const LoginScreen: React.FC = observer(() => {
@@ -36,7 +37,7 @@ export const LoginScreen: React.FC = observer(() => {
     <div className={styles.container}>
       <div className={styles.contentContainer}>
         <div className={styles.logoContainer}>
-          <GraduationCap size={48} className={styles.logoPlaceholder} />
+          <img src={ucaldasLogo} alt="Universidad de Caldas" className={styles.ucaldasLogo} />
         </div>
 
         <div className={styles.titleContainer}>
