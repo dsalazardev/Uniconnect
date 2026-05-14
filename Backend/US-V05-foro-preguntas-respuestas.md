@@ -117,3 +117,112 @@ En `Backend/src/forum/` implementar el sistema de votos y broadcasting en tiempo
 
 **Estimación:**
 2 horas
+
+### 7. Título: Refactor del foro académico basado en asignaturas y validación por enrollment
+
+**Prompt Sugerido:**
+En `Backend/src/forum/` y los módulos de navegación frontend/mobile ajustar la arquitectura del foro para que funcione por asignatura (`course`) y no por grupos:
+
+1. **Cambio de dominio del foro:** reemplazar la lógica basada en `groupId` por `courseId` en endpoints, servicios y navegación. Todas las preguntas y respuestas deben asociarse a una asignatura.
+2. **Validación de acceso:** actualizar las validaciones de permisos para usar la tabla `enrollment` en lugar de `membership`.
+   - Ver preguntas: cualquier usuario autenticado.
+   - Crear preguntas: solo usuarios con enrollment en el curso.
+   - Responder preguntas: solo usuarios con enrollment en el curso.
+   - Aceptar respuestas: únicamente usuarios con `is_admin = true` en algún grupo asociado al curso (docente/admin).
+3. **Navegación Web:** agregar sección “Foro Académico” en el menú lateral:
+   - Ruta `/courses` para listar cursos matriculados.
+   - Cada curso debe tener botón “Foro” que navegue a `/courses/:id/forum`.
+   - El `ForumScreen` debe cargar las preguntas correspondientes a la asignatura seleccionada.
+4. **Navegación Mobile:** agregar acceso desde menú hamburguesa:
+   - Nuevo tab `/forum` mostrando cursos matriculados.
+   - Navegación a `/forum/:courseId` para abrir el foro de la asignatura.
+5. Ajustar queries, DTOs y servicios para trabajar consistentemente con `courseId` y garantizar aislamiento correcto entre asignaturas.
+
+**Qué cambió y cómo probarlo ahora**
+Arquitectura corregida:
+- El foro ahora es por asignatura (`course`) y no por grupo.
+- La validación de acceso utiliza `enrollment` en lugar de `membership`.
+
+Flujo Web:
+- Menú lateral → “Foro Académico”.
+- Navega a `/courses` con la lista de cursos matriculados.
+- Seleccionar un curso y presionar “Foro”.
+- Navega a `/courses/:id/forum`.
+- Verificar carga correcta de preguntas de la asignatura.
+
+Flujo Mobile:
+- Menú hamburguesa → “Foro Académico”.
+- Navega al nuevo tab `/forum`.
+- Seleccionar curso y abrir `/forum/:courseId`.
+
+Validaciones esperadas:
+| Acción | Quién puede |
+|---|---|
+| Ver preguntas | Todos los autenticados |
+| Crear pregunta | Usuarios con enrollment |
+| Responder | Usuarios con enrollment |
+| Aceptar respuesta | Usuarios admin/docente del curso |
+
+**Commit:**
+`refactor(forum): migrar foro académico de grupos a asignaturas con validación por enrollment`
+
+**Estimación:**
+2 horas
+
+### 8. Título: Rediseño del dashboard del foro académico con filtro por programa y sistema de hilos tipo Twitter
+
+**Prompt Sugerido:**
+Rediseñar el dashboard principal del foro académico en frontend y backend para mejorar la navegación y permitir conversaciones en formato de hilos:
+
+1. **Filtro superior por materias del programa actual:**
+   - En la parte superior del dashboard agregar un selector/filtro de materias.
+   - El filtro debe mostrar únicamente las asignaturas pertenecientes al programa académico actual del usuario autenticado.
+   - Obtener las materias desde los enrollments/courses asociados al programa activo del estudiante.
+
+2. **Carga dinámica del foro por materia:**
+   - Al seleccionar una materia en el filtro, cargar dinámicamente debajo el foro correspondiente a esa asignatura.
+   - Mostrar preguntas ordenadas por actividad reciente.
+   - Mantener actualización reactiva sin recargar toda la pantalla.
+
+3. **Creación rápida de preguntas:**
+   - Agregar un composer/input superior para publicar nuevas preguntas directamente dentro del foro filtrado.
+   - La publicación debe refrescar automáticamente la lista mediante estado local o WebSocket.
+
+4. **Sistema de respuestas en formato hilo tipo Twitter/X:**
+   - Permitir responder una pregunta principal mediante respuestas anidadas.
+   - Cada respuesta puede generar una segunda conversación encadenada (thread).
+   - Visualizar respuestas con indentación o jerarquía visual tipo red social.
+   - Mantener relación `parent_answer_id` o equivalente para soportar hilos.
+
+5. **UI/UX del dashboard:**
+   - El dashboard debe comportarse como un feed académico.
+   - Mostrar autor, fecha, votos y cantidad de respuestas.
+   - Permitir expandir/contraer hilos largos.
+   - Mantener diseño responsive para web y mobile.
+
+6. **Backend del sistema de hilos:**
+   - Ajustar entidades y DTOs para soportar respuestas anidadas.
+   - Modificar `ForumService.getAnswers` para devolver estructura jerárquica.
+   - Validar profundidad máxima opcional para evitar recursividad excesiva.
+
+**Qué cambió y cómo probarlo ahora**
+Nuevo flujo del foro:
+- El dashboard ahora inicia con un filtro de materias del programa actual.
+- Seleccionar una materia despliega automáticamente el foro correspondiente debajo.
+- Se pueden crear preguntas directamente desde el dashboard.
+- Las respuestas funcionan en formato de hilos tipo Twitter/X.
+
+Flujo esperado:
+1. Abrir “Foro Académico”.
+2. Seleccionar una materia desde el filtro superior.
+3. Ver el feed de preguntas de esa asignatura.
+4. Crear una nueva pregunta.
+5. Responder una pregunta.
+6. Responder otra respuesta para formar un hilo.
+7. Ver la jerarquía visual de conversación en tiempo real.
+
+**Commit:**
+`feat(forum): rediseñar dashboard académico con filtro por materias y sistema de hilos`
+
+**Estimación:**
+3 horas

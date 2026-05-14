@@ -1,0 +1,402 @@
+/* ── Page shell ─────────────────────────────────────────────── */
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  min-height: 100vh;
+  background: #1e1e1e;
+}
+
+.pageHeader { margin-bottom: 20px; }
+.pageTitle  { margin: 0 0 4px; font-size: 22px; font-weight: 800; color: #f0f0f0; }
+.pageSubtitle { margin: 0; font-size: 13px; color: #6B7280; }
+
+/* ── Filter chips ───────────────────────────────────────────── */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 0 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 20px;
+}
+
+.filterLoading, .filterEmpty {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: #2a2a2a;
+  color: #9CA3AF;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.chip:hover    { border-color: rgba(217,185,126,0.4); color: #D9B97E; }
+.chipActive    { background: rgba(217,185,126,0.12); border-color: #D9B97E; color: #D9B97E; font-weight: 700; }
+
+/* ── Forum section ──────────────────────────────────────────── */
+.forumSection { }
+
+.forumHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.courseName     { margin: 0 0 2px; font-size: 16px; font-weight: 700; color: #f0f0f0; }
+.questionCount  { font-size: 12px; color: #6B7280; }
+
+.newBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #D9B97E;
+  border: none;
+  border-radius: 20px;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.newBtn:hover { opacity: 0.85; }
+
+.centerMsg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+/* ── Feed ───────────────────────────────────────────────────── */
+.feed { display: flex; flex-direction: column; gap: 0; }
+
+/* ── Thread (question + replies) ────────────────────────────── */
+.thread {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ── Tweet (question card) ──────────────────────────────────── */
+.tweet {
+  display: flex;
+  gap: 12px;
+  padding: 16px 0;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.12s;
+  border-radius: 8px;
+  padding: 14px 10px;
+}
+.tweet:hover { background: rgba(255,255,255,0.025); }
+.tweetExpanded { background: rgba(217,185,126,0.04); border-radius: 8px 8px 0 0; }
+
+.threadLine {
+  position: absolute;
+  left: 26px;
+  top: 58px;
+  bottom: -2px;
+  width: 2px;
+  background: rgba(255,255,255,0.1);
+}
+
+.tweetAvatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  background: rgba(217,185,126,0.2);
+  color: #D9B97E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.tweetBody  { flex: 1; min-width: 0; }
+
+.tweetMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.tweetAuthor { font-size: 14px; font-weight: 700; color: #f0f0f0; }
+.tweetTime   { font-size: 12px; color: #6B7280; }
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+.badgeOpen     { background: rgba(217,185,126,0.15); color: #D9B97E; border: 1px solid rgba(217,185,126,0.3); }
+.badgeResolved { background: rgba(52,211,153,0.12); color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+
+.tweetTitle   { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: #f0f0f0; line-height: 1.4; }
+.tweetContent { margin: 0 0 10px; font-size: 14px; color: #9CA3AF; line-height: 1.5; }
+
+.tweetActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.voteBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #6B7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.12s, background 0.12s;
+}
+.voteBtn:hover { color: #D9B97E; background: rgba(217,185,126,0.08); }
+
+.replyCount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+/* ── Replies ─────────────────────────────────────────────────── */
+.replies {
+  padding: 0 10px 14px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.replyLoading { font-size: 13px; color: #666; padding: 12px 0; }
+
+.reply {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+  position: relative;
+}
+
+.replyLine {
+  position: absolute;
+  left: 16px;
+  top: 48px;
+  bottom: -4px;
+  width: 2px;
+  background: rgba(255,255,255,0.08);
+}
+
+.replyAvatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: #9CA3AF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.replyContent { flex: 1; min-width: 0; }
+
+.acceptedTag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 4px;
+}
+
+.replyMeta  { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.replyAuthor { font-size: 13px; font-weight: 700; color: #e0e0e0; }
+.replyTime   { font-size: 11px; color: #6B7280; }
+.replyText   { margin: 0 0 8px; font-size: 14px; color: #ccc; line-height: 1.5; }
+
+.replyActions { display: flex; align-items: center; gap: 10px; }
+
+.acceptBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 6px;
+  color: #34d399;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.acceptBtn:hover { background: rgba(52,211,153,0.08); }
+
+/* ── Reply input ─────────────────────────────────────────────── */
+.replyInput {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0 4px;
+  align-items: flex-start;
+}
+
+.replyInputBox {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.replyTextarea {
+  width: 100%;
+  background: #252525;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: #f0f0f0;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.replyTextarea:focus { border-color: rgba(217,185,126,0.5); }
+.replyTextarea::placeholder { color: #555; }
+
+.replySendBtn {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #D9B97E;
+  border: none;
+  border-radius: 20px;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.replySendBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.replySendBtn:hover:not(:disabled) { opacity: 0.85; }
+
+/* ── New question modal ─────────────────────────────────────── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+
+.modal {
+  background: #1a1a1a;
+  border: 1px solid rgba(217,185,126,0.2);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modalTitle { margin: 0; font-size: 17px; font-weight: 700; color: #f0f0f0; }
+.modalClose {
+  background: none; border: none; color: #888; cursor: pointer;
+  padding: 4px; border-radius: 6px; display: flex; align-items: center;
+  transition: color 0.12s;
+}
+.modalClose:hover { color: #f0f0f0; }
+
+.modalForm { display: flex; flex-direction: column; gap: 10px; }
+
+.fieldLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fieldInput {
+  background: #252525;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 10px 13px;
+  color: #f0f0f0;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.fieldInput:focus { border-color: rgba(217,185,126,0.5); }
+
+.fieldTextarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+.fieldError { margin: 0; font-size: 13px; color: #f87171; }
+
+.modalActions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 4px; }
+
+.cancelBtn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  color: #9CA3AF;
+  padding: 8px 18px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.cancelBtn:hover { border-color: rgba(255,255,255,0.3); color: #f0f0f0; }
+
+.submitBtn {
+  background: #D9B97E;
+  border: none;
+  border-radius: 10px;
+  color: #1a1a1a;
+  padding: 8px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.submitBtn:disabled { opacity: 0.5; }
+.submitBtn:hover:not(:disabled) { opacity: 0.85; }

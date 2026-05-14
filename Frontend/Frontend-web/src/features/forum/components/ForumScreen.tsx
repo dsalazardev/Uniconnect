@@ -7,20 +7,20 @@ import { QuestionDetail } from './QuestionDetail';
 import styles from './ForumScreen.module.css';
 
 interface ForumScreenProps {
-  groupId: number;
+  courseId: number;
   currentUserId: number;
   isTeacher: boolean;
 }
 
 export const ForumScreen: React.FC<ForumScreenProps> = ({
-  groupId,
+  courseId,
   currentUserId,
   isTeacher,
 }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ForumQuestion | null>(null);
 
-  const { questions, loading, error, createQuestion, createAnswer, castVoteQuestion, sortAnswers } = useForum(groupId);
+  const { questions, loading, error, createQuestion, createAnswer, castVoteQuestion, sortAnswers } = useForum(courseId);
 
   if (loading) {
     return (

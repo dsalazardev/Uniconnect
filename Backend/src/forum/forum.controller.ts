@@ -11,12 +11,7 @@ import {
   HttpStatus,
   ForbiddenException,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ForumService } from './forum.service';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { CreateAnswerDto } from './dto/create-answer.dto';
@@ -34,94 +29,51 @@ export class ForumController {
     private readonly prisma: PrismaService,
   ) {}
 
-  /**
-   * GET /groups/:groupId/forum/questions
-   * Listar preguntas del foro de un grupo, ordenadas por votos desc.
-   */
-  @Get('groups/:groupId/forum/questions')
-  @ApiOperation({ summary: 'Listar preguntas del foro por grupo' })
-  @ApiResponse({ status: 200, description: 'Lista de preguntas ordenadas por votos.' })
-  getQuestions(@Param('groupId', ParseIntPipe) groupId: number) {
-    return this.forumService.getQuestions(groupId);
+  /** GET /courses/:courseId/forum/questions — visible para todos los autenticados */
+  @Get('courses/:courseId/forum/questions')
+  @ApiOperation({ summary: 'Listar preguntas del foro de una asignatura' })
+  @ApiResponse({ status: 200, description: 'Preguntas ordenadas por votos desc.' })
+  getQuestions(@Param('courseId', ParseIntPipe) courseId: number) {
+    return this.forumService.getQuestions(courseId);
   }
 
-  /**
-   * POST /groups/:groupId/forum/questions
-   * Publicar una pregunta. Requiere membresía activa en el grupo.
-   */
-  @Post('groups/:groupId/forum/questions')
-  @ApiOperation({ summary: 'Publicar una pregunta en el foro del grupo' })
+  /** POST /courses/:courseId/forum/questions — requiere matrícula (inscrita o finalizada) */
+  @Post('courses/:courseId/forum/questions')
+  @ApiOperation({ summary: 'Publicar una pregunta (requiere matrícula en la asignatura)' })
   @ApiResponse({ status: 201, description: 'Pregunta creada.' })
   @ApiResponse({ status: 403, description: 'Se requiere matrícula en la asignatura.' })
-  async createQuestion(
-    @Param('groupId', ParseIntPipe) groupId: number,
+  createQuestion(
+    @Param('courseId', ParseIntPipe) courseId: number,
     @GetClaim('sub') userId: number,
     @Body() dto: CreateQuestionDto,
   ) {
-    const membership = await this.prisma.membership.findFirst({
-      where: { id_user: userId, id_group: groupId },
-      select: { id_membership: true },
-    });
-    // La CoR en ForumService valida la matrícula — se pasa null si no existe
-    return this.forumService.createQuestion(
-      groupId,
-      userId,
-      membership?.id_membership ?? null,
-      dto,
-    );
+    return this.forumService.createQuestion(courseId, userId, dto);
   }
 
-  /**
-   * GET /forum/questions/:questionId/answers
-   * Listar respuestas de una pregunta: aceptada primero, luego por votos.
-   */
+  /** GET /forum/questions/:questionId/answers */
   @Get('forum/questions/:questionId/answers')
   @ApiOperation({ summary: 'Listar respuestas de una pregunta' })
-  @ApiResponse({ status: 200, description: 'Respuestas ordenadas: aceptada > votos > fecha.' })
-  @ApiResponse({ status: 404, description: 'Pregunta no encontrada.' })
   getAnswers(@Param('questionId', ParseIntPipe) questionId: number) {
     return this.forumService.getAnswers(questionId);
   }
 
-  /**
-   * POST /forum/questions/:questionId/answers
-   * Responder una pregunta. Requiere membresía en el grupo de la pregunta.
-   */
+  /** POST /forum/questions/:questionId/answers — requiere matrícula */
   @Post('forum/questions/:questionId/answers')
-  @ApiOperation({ summary: 'Publicar una respuesta' })
+  @ApiOperation({ summary: 'Responder una pregunta (requiere matrícula)' })
   @ApiResponse({ status: 201, description: 'Respuesta creada.' })
   @ApiResponse({ status: 403, description: 'Se requiere matrícula en la asignatura.' })
-  async createAnswer(
+  createAnswer(
     @Param('questionId', ParseIntPipe) questionId: number,
     @GetClaim('sub') userId: number,
     @Body() dto: CreateAnswerDto,
   ) {
-    const question = await this.prisma.forum_question.findUnique({
-      where: { id_question: questionId },
-      select: { id_group: true },
-    });
-    const membership = question
-      ? await this.prisma.membership.findFirst({
-          where: { id_user: userId, id_group: question.id_group },
-          select: { id_membership: true },
-        })
-      : null;
-
-    if (!membership) {
-      throw new ForbiddenException('Se requiere matrícula en la asignatura.');
-    }
-    return this.forumService.createAnswer(questionId, membership.id_membership, dto);
+    return this.forumService.createAnswer(questionId, userId, dto);
   }
 
-  /**
-   * POST /forum/questions/:questionId/vote
-   * Votar una pregunta. 409 si el usuario ya votó (@@unique en forum_vote).
-   */
+  /** POST /forum/questions/:questionId/vote */
   @Post('forum/questions/:questionId/vote')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Votar una pregunta del foro' })
-  @ApiResponse({ status: 200, description: 'Pregunta actualizada con nuevo conteo de votos.' })
-  @ApiResponse({ status: 409, description: 'Ya registraste tu voto en esta pregunta.' })
+  @ApiOperation({ summary: 'Votar una pregunta' })
   voteQuestion(
     @Param('questionId', ParseIntPipe) questionId: number,
     @GetClaim('sub') userId: number,
@@ -129,15 +81,10 @@ export class ForumController {
     return this.forumService.castVoteQuestion(questionId, userId);
   }
 
-  /**
-   * POST /forum/answers/:answerId/vote
-   * Votar una respuesta. 409 si el usuario ya votó.
-   */
+  /** POST /forum/answers/:answerId/vote */
   @Post('forum/answers/:answerId/vote')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Votar una respuesta del foro' })
-  @ApiResponse({ status: 200, description: 'Respuesta actualizada con nuevo conteo de votos.' })
-  @ApiResponse({ status: 409, description: 'Ya registraste tu voto en esta respuesta.' })
+  @ApiOperation({ summary: 'Votar una respuesta' })
   voteAnswer(
     @Param('answerId', ParseIntPipe) answerId: number,
     @GetClaim('sub') userId: number,
@@ -145,14 +92,10 @@ export class ForumController {
     return this.forumService.castVoteAnswer(answerId, userId);
   }
 
-  /**
-   * PATCH /forum/answers/:answerId/accept
-   * Marcar respuesta como aceptada. Solo el docente (is_admin) del grupo.
-   */
+  /** PATCH /forum/answers/:answerId/accept — solo docente (is_admin en grupo del curso) */
   @Patch('forum/answers/:answerId/accept')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Aceptar una respuesta (solo docente)' })
-  @ApiResponse({ status: 200, description: 'Respuesta aceptada y pregunta marcada como RESOLVED.' })
+  @ApiOperation({ summary: 'Marcar respuesta como aceptada (solo docente)' })
   @ApiResponse({ status: 403, description: 'Solo el docente puede aceptar respuestas.' })
   async acceptAnswer(
     @Param('answerId', ParseIntPipe) answerId: number,
@@ -160,17 +103,21 @@ export class ForumController {
   ) {
     const answer = await this.prisma.forum_answer.findUnique({
       where: { id_answer: answerId },
-      include: { question: { select: { id_group: true } } },
+      include: { question: { select: { id_course: true } } },
     });
-    const isAdmin = answer
+
+    // Verificar que el usuario es admin en algún grupo del curso (= docente)
+    const isTeacher = answer
       ? await this.prisma.membership.findFirst({
-          where: { id_user: userId, id_group: answer.question.id_group, is_admin: true },
+          where: {
+            id_user: userId,
+            is_admin: true,
+            group: { id_course: answer.question.id_course },
+          },
         })
       : null;
 
-    if (!isAdmin) {
-      throw new ForbiddenException('Solo el docente puede aceptar respuestas.');
-    }
+    if (!isTeacher) throw new ForbiddenException('Solo el docente puede aceptar respuestas.');
     return this.forumService.acceptAnswer(answerId, userId);
   }
 }

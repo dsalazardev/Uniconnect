@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { Home, Users, GitBranch, Calendar, MessageCircle, UserCircle, LogOut, SlidersHorizontal, Menu, X } from 'lucide-react';
+import { Home, Users, GitBranch, Calendar, MessageCircle, UserCircle, LogOut, SlidersHorizontal, Menu, X, HelpCircle } from 'lucide-react';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { notificationsService } from '@/features/notifications/services';
 import { notificationsStore } from '@/features/notifications/store/notifications.store';
@@ -169,6 +169,9 @@ export const Layout = () => {
         </Link>
         <Link to="/events" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
           <Calendar size={18} /> Eventos
+        </Link>
+        <Link to="/forum" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
+          <HelpCircle size={18} /> Foro Académico
         </Link>
         <Link to="/notifications/preferences" className={styles.menuLink} onClick={() => setIsMenuOpen(false)}>
           <SlidersHorizontal size={18} /> Preferencias

@@ -4,7 +4,7 @@ import type { ForumQuestion, ForumAnswer, CreateQuestionDto, CreateAnswerDto } f
 import { forumService } from '../services';
 import { websocketService } from '@/src/features/messages/services/websocket.service';
 
-export const useForum = (groupId: number) => {
+export const useForum = (courseId: number) => {
   const [questions, setQuestions] = useState<ForumQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export const useForum = (groupId: number) => {
   const loadQuestions = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await forumService.getQuestions(groupId);
+      const data = await forumService.getQuestions(courseId);
       setQuestions(sortQuestions(data));
       setError(null);
     } catch (err: any) {
@@ -29,11 +29,10 @@ export const useForum = (groupId: number) => {
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [courseId]);
 
-  // Unirse al room del foro + listeners Observer (sin polling)
   useEffect(() => {
-    websocketService.emit('forum:join', { groupId });
+    websocketService.emit('forum:join', { groupId: courseId });
 
     const handleVoteUpdated = (payload: { entityType: string; entityId: number; voteCount: number }) => {
       if (payload.entityType === 'QUESTION') {
@@ -44,7 +43,6 @@ export const useForum = (groupId: number) => {
         );
       }
     };
-
     const handleAnswerAccepted = (payload: { questionId: number }) => {
       setQuestions((prev) =>
         prev.map((q) => q.id === payload.questionId ? { ...q, status: 'RESOLVED' as const } : q)
@@ -53,20 +51,19 @@ export const useForum = (groupId: number) => {
 
     websocketService.on('forum:vote_updated', handleVoteUpdated);
     websocketService.on('forum:answer_accepted', handleAnswerAccepted);
-
     return () => {
       websocketService.off('forum:vote_updated', handleVoteUpdated);
       websocketService.off('forum:answer_accepted', handleAnswerAccepted);
     };
-  }, [groupId]);
+  }, [courseId]);
 
   useEffect(() => { loadQuestions(); }, [loadQuestions]);
 
   const createQuestion = useCallback(async (dto: CreateQuestionDto): Promise<ForumQuestion> => {
-    const created = await forumService.createQuestion(groupId, dto);
+    const created = await forumService.createQuestion(courseId, dto);
     setQuestions((prev) => sortQuestions([created, ...prev]));
     return created;
-  }, [groupId]);
+  }, [courseId]);
 
   const createAnswer = useCallback(async (questionId: number, dto: CreateAnswerDto): Promise<ForumAnswer> =>
     forumService.createAnswer(questionId, dto), []);

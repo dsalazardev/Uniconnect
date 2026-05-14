@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChatScreen } from '@/src/features/messages/components/ChatScreen';
-import { ForumScreen } from '@/src/features/forum/components/ForumScreen';
 import { websocketService } from '@/src/features/messages/services/websocket.service';
 import { authStore } from '@/src/features/auth';
 import { groupsService } from '@/src/features/groups/services';
@@ -34,7 +33,6 @@ export default function GroupChatScreen() {
   const [error, setError] = useState<string | null>(null);
   // Si viene de una notificación push con autoOpenInfo=true, abrir el modal directamente
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'forum'>('chat');
 
   const userId = authStore.user?.id_user;
   const token = authStore.accessToken || '';
@@ -187,43 +185,15 @@ export default function GroupChatScreen() {
         )}
       </View>
 
-      {/* ── Tabs (solo en grupos, no en DMs) ──────────────────── */}
-      {!isDirectMessage && (
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
-          >
-            <Ionicons name="chatbubbles-outline" size={16} color={activeTab === 'chat' ? '#D9B97E' : '#6B7280'} />
-            <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>Chat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'forum' && styles.tabActive]}
-            onPress={() => setActiveTab('forum')}
-          >
-            <Ionicons name="help-circle-outline" size={16} color={activeTab === 'forum' ? '#D9B97E' : '#6B7280'} />
-            <Text style={[styles.tabText, activeTab === 'forum' && styles.tabTextActive]}>Foro</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {activeTab === 'forum' && !isDirectMessage ? (
-        <ForumScreen
-          groupId={group.id_group}
-          currentUserId={userId!}
-          isTeacher={isAdmin}
-        />
-      ) : (
-        <ChatScreen
-          groupId={group.id_group}
-          userId={userId!}
-          token={token}
-          isAdmin={isAdmin}
-          userFullName={authStore.user?.full_name || 'Usuario'}
-          serverUrl={WEBSOCKET_URL}
-          group={group}
-        />
-      )}
+      <ChatScreen
+        groupId={group.id_group}
+        userId={userId!}
+        token={token}
+        isAdmin={isAdmin}
+        userFullName={authStore.user?.full_name || 'Usuario'}
+        serverUrl={WEBSOCKET_URL}
+        group={group}
+      />
 
       {showGroupOptionsButton && (
         <GroupInfoModal 

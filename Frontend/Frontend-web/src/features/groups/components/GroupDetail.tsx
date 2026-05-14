@@ -16,9 +16,8 @@ import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import { groupsService } from '../services';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical, MessageSquare, HelpCircle } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical } from 'lucide-react';
 import { PollCreationModal } from '@/features/messages/components/PollCreationModal';
-import { ForumScreen } from '@/features/forum/components/ForumScreen';
 import styles from './GroupDetail.module.css';
 
 export const GroupDetail: React.FC = () => {
@@ -36,7 +35,6 @@ export const GroupDetail: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'forum'>('chat');
 
   // Member management state (for MemberList action buttons in the panel)
   const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
@@ -258,36 +256,9 @@ export const GroupDetail: React.FC = () => {
         )}
       </div>
 
-      {/* ── Tabs (solo en grupos donde el usuario es miembro y no es DM) ─── */}
-      {isMember && !isDirectMessage && (
-        <div className={styles.tabBar}>
-          <button
-            className={`${styles.tab} ${activeTab === 'chat' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('chat')}
-          >
-            <MessageSquare size={15} />
-            Chat
-          </button>
-          <button
-            className={`${styles.tab} ${activeTab === 'forum' ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab('forum')}
-          >
-            <HelpCircle size={15} />
-            Foro
-          </button>
-        </div>
-      )}
-
       {/* ── Main content ───────────────────────────────────────────────────── */}
       <div className={styles.content}>
         {isMember ? (
-          activeTab === 'forum' ? (
-            <ForumScreen
-              groupId={groupId}
-              currentUserId={currentUserId}
-              isTeacher={isOwner}
-            />
-          ) : (
           /* Member: full-screen chat */
           <div className={styles.chatSection}>
             <div className={styles.chatContainer}>
@@ -318,7 +289,6 @@ export const GroupDetail: React.FC = () => {
               )}
             </div>
           </div>
-          )
         ) : (
           /* Non-member: show group info directly */
           <div className={styles.nonMemberContent}>

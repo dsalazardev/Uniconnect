@@ -202,6 +202,14 @@ export const Navbar = () => {
               <Text style={styles.menuText}>Eventos Académicos</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => navigateTo("/(tabs)/forum")}
+            >
+              <Ionicons name="help-circle-outline" size={22} color="#D9B97E" />
+              <Text style={styles.menuText}>Foro Académico</Text>
+            </TouchableOpacity>
+
             <View style={styles.divider} />
 
             <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
