@@ -16,4 +16,5 @@ model group {
   group_join_requests group_join_request[]
   memberships         membership[]
   polls               poll[]
+  forum_questions     forum_question[]
 }

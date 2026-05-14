@@ -1,0 +1,47 @@
+enum ForumQuestionStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ForumVoteEntityType {
+  QUESTION
+  ANSWER
+}
+
+model forum_question {
+  id_question Int                  @id @default(autoincrement())
+  id_group    Int
+  id_membership Int?
+  title       String               @db.VarChar(300)
+  body        String               @db.VarChar(2000)
+  status      ForumQuestionStatus  @default(OPEN)
+  vote_count  Int                  @default(0)
+  answer_count Int                 @default(0)
+  created_at  DateTime             @default(now()) @db.Timestamptz(6)
+  group       group                @relation(fields: [id_group], references: [id_group], onDelete: Cascade)
+  membership  membership?          @relation(fields: [id_membership], references: [id_membership])
+  answers     forum_answer[]
+}
+
+model forum_answer {
+  id_answer   Int            @id @default(autoincrement())
+  id_question Int
+  id_membership Int?
+  body        String         @db.VarChar(2000)
+  vote_count  Int            @default(0)
+  is_accepted Boolean        @default(false)
+  created_at  DateTime       @default(now()) @db.Timestamptz(6)
+  question    forum_question @relation(fields: [id_question], references: [id_question], onDelete: Cascade)
+  membership  membership?    @relation(fields: [id_membership], references: [id_membership])
+}
+
+model forum_vote {
+  id_vote     Int                 @id @default(autoincrement())
+  id_user     Int
+  entity_type ForumVoteEntityType
+  entity_id   Int
+  created_at  DateTime            @default(now()) @db.Timestamptz(6)
+  user        user                @relation("ForumVoter", fields: [id_user], references: [id_user])
+
+  @@unique([id_user, entity_type, entity_id])
+}
