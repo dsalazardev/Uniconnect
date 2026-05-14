@@ -7,7 +7,7 @@ import type { ForumQuestion, ForumAnswer, CreateQuestionDto } from '@uniconnect/
 import { api } from '@/constants/api';
 import styles from './ForumDashboard.module.css';
 
-interface Course { id_course: number; name: string; code?: string; }
+interface Course { id_course: number; name: string; code?: string; isEnrolled: boolean; }
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -182,6 +182,7 @@ export const ForumDashboard: React.FC = () => {
   };
 
   const selectedCourse = courses.find((c) => c.id_course === selectedCourseId);
+  const canInteract = selectedCourse?.isEnrolled ?? false;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -226,9 +227,11 @@ export const ForumDashboard: React.FC = () => {
               <h2 className={styles.courseLabel}>{selectedCourse?.name}</h2>
               <span className={styles.questionCount}>{questions.length} preguntas</span>
             </div>
-            <button className={styles.newBtn} onClick={() => setShowNewQ(true)}>
-              <Plus size={15} /> Nueva pregunta
-            </button>
+            {canInteract && (
+              <button className={styles.newBtn} onClick={() => setShowNewQ(true)}>
+                <Plus size={15} /> Nueva pregunta
+              </button>
+            )}
           </div>
 
           {/* Lista de preguntas + hilos */}
@@ -323,6 +326,7 @@ export const ForumDashboard: React.FC = () => {
                           ))}
 
                           {/* ── Input de respuesta ── */}
+                          {canInteract ? (
                           <div className={styles.replyInput}>
                             <div className={styles.replyAvatar}>
                               {authStore.user?.full_name?.[0]?.toUpperCase() ?? 'T'}
@@ -347,6 +351,9 @@ export const ForumDashboard: React.FC = () => {
                               </button>
                             </div>
                           </div>
+                          ) : (
+                          <p className={styles.readOnlyMsg}>Solo lectura — no estás inscrito en esta materia</p>
+                          )}
                         </>
                       )}
                     </div>

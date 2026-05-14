@@ -22,7 +22,7 @@ import { authStore } from '@/src/features/auth';
 import type { ForumQuestion, ForumAnswer } from '@uniconnect/shared';
 import { QuestionCreationModal } from '@/src/features/forum/components/QuestionCreationModal';
 
-interface Course { id_course: number; name: string; code?: string; }
+interface Course { id_course: number; name: string; code?: string; isEnrolled: boolean; }
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -228,6 +228,7 @@ export default function ForumDashboard() {
                 ))}
 
                 {/* Reply input */}
+                {canInteract ? (
                 <View style={styles.replyInputRow}>
                   <View style={[styles.avatar, styles.avatarSmall]}>
                     <Text style={[styles.avatarText, styles.avatarTextSmall]}>
@@ -259,6 +260,9 @@ export default function ForumDashboard() {
                     </TouchableOpacity>
                   </View>
                 </View>
+                ) : (
+                <Text style={styles.readOnlyMsg}>Solo lectura — no estás inscrito en esta materia</Text>
+                )}
               </>
             )}
           </View>
@@ -269,6 +273,7 @@ export default function ForumDashboard() {
 
   // ── Main render ───────────────────────────────────────────────────────────────
   const selectedCourse = courses.find((c) => c.id_course === selectedId);
+  const canInteract = selectedCourse?.isEnrolled ?? false;
 
   return (
     <KeyboardAvoidingView
@@ -281,7 +286,7 @@ export default function ForumDashboard() {
           <Ionicons name="help-circle-outline" size={20} color="#D9B97E" />
           <Text style={styles.pageTitle}>Foro Académico</Text>
         </View>
-        {selectedId && (
+        {canInteract && (
           <TouchableOpacity style={styles.newBtn} onPress={() => setShowModal(true)}>
             <Ionicons name="add" size={16} color="#1a1a1a" />
             <Text style={styles.newBtnText}>Nueva</Text>
@@ -440,4 +445,5 @@ const styles = StyleSheet.create({
   replySendBtn:  { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#D9B97E', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
   replySendBtnDisabled: { opacity: 0.4 },
   replySendText: { fontSize: 13, fontWeight: '700', color: '#1a1a1a' },
+  readOnlyMsg: { fontSize: 12, color: '#555', fontStyle: 'italic', textAlign: 'center', paddingVertical: 10 },
 });
