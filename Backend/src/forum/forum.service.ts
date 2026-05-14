@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MessagesGateway } from '../messages/messages.gateway';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { CreateAnswerDto } from './dto/create-answer.dto';
 import { buildValidacionPreguntaChain } from './domain/chain-of-responsibility/validacion-pregunta.factory';
 
 @Injectable()
 export class ForumService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly gateway: MessagesGateway,
+  ) {}
 
   async getQuestions(groupId: number) {
     const questions = await this.prisma.forum_question.findMany({
@@ -107,10 +111,86 @@ export class ForumService {
     return this.formatAnswer(answer);
   }
 
+  async castVoteQuestion(questionId: number, userId: number) {
+    const question = await this.prisma.forum_question.findUnique({
+      where: { id_question: questionId },
+      select: { id_group: true },
+    });
+    if (!question) throw new NotFoundException('Pregunta no encontrada.');
+
+    try {
+      await this.prisma.forum_vote.create({
+        data: { id_user: userId, entity_type: 'QUESTION', entity_id: questionId },
+      });
+    } catch (e: any) {
+      // P2002 = unique constraint violation
+      if (e?.code === 'P2002') throw new ConflictException('Ya registraste tu voto en esta pregunta.');
+      throw e;
+    }
+
+    const newCount = await this.prisma.forum_vote.count({
+      where: { entity_type: 'QUESTION', entity_id: questionId },
+    });
+
+    const updated = await this.prisma.forum_question.update({
+      where: { id_question: questionId },
+      data: { vote_count: newCount },
+      include: {
+        membership: { include: { user: { select: { id_user: true, full_name: true, picture: true } } } },
+      },
+    });
+
+    // Observer via WebSocket — sin polling
+    this.gateway.sendToSubjectRoom(question.id_group, 'forum:vote_updated', {
+      entityType: 'QUESTION',
+      entityId: questionId,
+      voteCount: newCount,
+    });
+
+    return this.formatQuestion(updated);
+  }
+
+  async castVoteAnswer(answerId: number, userId: number) {
+    const answer = await this.prisma.forum_answer.findUnique({
+      where: { id_answer: answerId },
+      include: { question: { select: { id_group: true } } },
+    });
+    if (!answer) throw new NotFoundException('Respuesta no encontrada.');
+
+    try {
+      await this.prisma.forum_vote.create({
+        data: { id_user: userId, entity_type: 'ANSWER', entity_id: answerId },
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2002') throw new ConflictException('Ya registraste tu voto en esta respuesta.');
+      throw e;
+    }
+
+    const newCount = await this.prisma.forum_vote.count({
+      where: { entity_type: 'ANSWER', entity_id: answerId },
+    });
+
+    const updated = await this.prisma.forum_answer.update({
+      where: { id_answer: answerId },
+      data: { vote_count: newCount },
+      include: {
+        membership: { include: { user: { select: { id_user: true, full_name: true, picture: true } } } },
+      },
+    });
+
+    this.gateway.sendToSubjectRoom(answer.question.id_group, 'forum:vote_updated', {
+      entityType: 'ANSWER',
+      entityId: answerId,
+      voteCount: newCount,
+    });
+
+    return this.formatAnswer(updated);
+  }
+
   async acceptAnswer(answerId: number, requestingUserId: number) {
     const answer = await this.prisma.forum_answer.findUnique({
       where: { id_answer: answerId },
-      include: { question: true },
+      include: { question: { select: { id_question: true, id_group: true } } },
     });
     if (!answer) throw new NotFoundException('Respuesta no encontrada.');
 
@@ -120,15 +200,13 @@ export class ForumService {
       data: { is_accepted: false },
     });
 
-    // Aceptar la nueva respuesta y marcar pregunta como RESOLVED
+    // Aceptar la nueva respuesta y marcar pregunta como RESOLVED en transacción
     const [accepted] = await this.prisma.$transaction([
       this.prisma.forum_answer.update({
         where: { id_answer: answerId },
         data: { is_accepted: true },
         include: {
-          membership: {
-            include: { user: { select: { id_user: true, full_name: true, picture: true } } },
-          },
+          membership: { include: { user: { select: { id_user: true, full_name: true, picture: true } } } },
         },
       }),
       this.prisma.forum_question.update({
@@ -136,6 +214,12 @@ export class ForumService {
         data: { status: 'RESOLVED' },
       }),
     ]);
+
+    // Observer via WebSocket — notifica a todos en el room del foro
+    this.gateway.sendToSubjectRoom(answer.question.id_group, 'forum:answer_accepted', {
+      questionId: answer.id_question,
+      answerId,
+    });
 
     return this.formatAnswer(accepted);
   }

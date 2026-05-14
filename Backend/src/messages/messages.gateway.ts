@@ -710,6 +710,29 @@ export class MessagesGateway
   }
 
   /**
+   * Emitir evento al room del foro de un grupo (subject-{groupId}).
+   * Usado por ForumService para forum:vote_updated y forum:answer_accepted.
+   */
+  sendToSubjectRoom(groupId: number, event: string, data: any) {
+    this.server.to(`subject-${groupId}`).emit(event, data);
+  }
+
+  /**
+   * Unir un socket al room del foro de un grupo.
+   * El cliente emite 'forum:join' con { groupId } al abrir la vista del foro.
+   */
+  @SubscribeMessage('forum:join')
+  handleForumJoin(
+    @MessageBody() data: { groupId: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const room = `subject-${data.groupId}`;
+    void client.join(room);
+    this.logger.log(`Socket ${client.id} joined forum room ${room}`);
+    return { success: true, room };
+  }
+
+  /**
    * Obtener usuarios conectados en un grupo
    */
   getGroupConnectedUsers(id_group: number): string[] {

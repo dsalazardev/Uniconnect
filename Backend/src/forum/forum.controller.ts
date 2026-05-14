@@ -9,7 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
-  ForbiddenException,  // solo para acceptAnswer (verificación is_admin)
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -111,6 +111,38 @@ export class ForumController {
       throw new ForbiddenException('Se requiere matrícula en la asignatura.');
     }
     return this.forumService.createAnswer(questionId, membership.id_membership, dto);
+  }
+
+  /**
+   * POST /forum/questions/:questionId/vote
+   * Votar una pregunta. 409 si el usuario ya votó (@@unique en forum_vote).
+   */
+  @Post('forum/questions/:questionId/vote')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Votar una pregunta del foro' })
+  @ApiResponse({ status: 200, description: 'Pregunta actualizada con nuevo conteo de votos.' })
+  @ApiResponse({ status: 409, description: 'Ya registraste tu voto en esta pregunta.' })
+  voteQuestion(
+    @Param('questionId', ParseIntPipe) questionId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.forumService.castVoteQuestion(questionId, userId);
+  }
+
+  /**
+   * POST /forum/answers/:answerId/vote
+   * Votar una respuesta. 409 si el usuario ya votó.
+   */
+  @Post('forum/answers/:answerId/vote')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Votar una respuesta del foro' })
+  @ApiResponse({ status: 200, description: 'Respuesta actualizada con nuevo conteo de votos.' })
+  @ApiResponse({ status: 409, description: 'Ya registraste tu voto en esta respuesta.' })
+  voteAnswer(
+    @Param('answerId', ParseIntPipe) answerId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.forumService.castVoteAnswer(answerId, userId);
   }
 
   /**
