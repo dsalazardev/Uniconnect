@@ -5,7 +5,7 @@ import { Layout } from './components/Layout';
 import { LoadingSpinner } from './components/elements';
 import { EventDetail } from './features/events/components';
 import { GroupDetail } from './features/groups/components';
-import { EventsPage } from './pages/EventsPage';
+import { EventsDashboard } from './features/events/components/EventsDashboard';
 import { GroupsPage } from './pages/GroupsPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { NotificationPreferencesPage } from './pages/NotificationPreferencesPage';
@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'events',
-        element: <EventsPage />,
+        element: <EventsDashboard />,
       },
       {
         path: 'events/:id',
