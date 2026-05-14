@@ -31,4 +31,5 @@ model user {
   forum_votes                   forum_vote[]                   @relation("ForumVoter")
   forum_questions               forum_question[]               @relation("ForumQuestionAuthor")
   forum_answers                 forum_answer[]                 @relation("ForumAnswerAuthor")
+  event_category_subscriptions  event_category_subscription[]
 }

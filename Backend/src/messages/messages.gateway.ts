@@ -137,6 +137,9 @@ export class MessagesGateway
       client.join(roomName);
       this.sessionManager.joinGroupRoom(data.id_group, client.id);
 
+      // Unirse a la sala personal del usuario para recibir notificaciones directas
+      client.join(`user-${data.id_user}`);
+
       // Establecer presencia inicial a 'online'
       this.sessionManager.setUserPresence(data.id_user, 'online');
 
@@ -715,6 +718,14 @@ export class MessagesGateway
    */
   sendToSubjectRoom(groupId: number, event: string, data: any) {
     this.server.to(`subject-${groupId}`).emit(event, data);
+  }
+
+  /**
+   * Emitir evento directamente a un usuario específico (user-{userId}).
+   * Requiere que el socket haya hecho join a la sala personal en handleAuthenticate.
+   */
+  sendToUser(userId: number, event: string, data: any) {
+    this.server.to(`user-${userId}`).emit(event, data);
   }
 
   /**
