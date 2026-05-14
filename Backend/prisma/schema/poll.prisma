@@ -15,6 +15,7 @@ model poll {
   creator    user        @relation("PollCreator", fields: [created_by], references: [id_user])
   options    poll_option[]
   votes      poll_vote[]
+  message    message?
 }
 
 model poll_option {

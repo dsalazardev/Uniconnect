@@ -42,6 +42,18 @@ export class MessageRepository {
         created_at: true,
       },
     },
+    poll: {
+      include: {
+        options: {
+          include: {
+            votes: { select: { id_user: true } },
+          },
+        },
+        votes: {
+          select: { id_user: true, id_option: true },
+        },
+      },
+    },
   } as const;
 
   // ── Escritura ─────────────────────────────────────────────────────────────
@@ -189,18 +201,25 @@ export class MessageRepository {
     });
   }
 
-  async findRecentByGroup(id_group: number, limit = 50, beforeId?: number) {
-    const messages = await this.prisma.message.findMany({
-      where: {
-        membership: { id_group },
-        ...(beforeId ? { id_message: { lt: beforeId } } : {}),
-      },
+  async findRecentByGroup(id_group: number, limit = 50, beforeId?: number, userId?: number) {
+    const baseWhere = {
+      membership: { id_group },
+      ...(beforeId ? { id_message: { lt: beforeId } } : {}),
+    };
+
+    const rawMessages = await this.prisma.message.findMany({
+      where: baseWhere,
       include: this.membershipInclude,
       orderBy: { send_at: 'desc' },
       take: limit,
     });
 
-    const ordered = messages.reverse(); 
+    const ordered = rawMessages.reverse();
+
+    const messages = ordered.map((msg: any) => {
+      if (!msg.poll) return msg;
+      return { ...msg, poll: this.formatPoll(msg.poll, userId) };
+    });
 
     const oldestId = ordered.length > 0 ? ordered[0].id_message : null;
     const hasMore = oldestId
@@ -209,7 +228,38 @@ export class MessageRepository {
         })) > 0
       : false;
 
-    return { messages: ordered, hasMore };
+    return { messages, hasMore };
+  }
+
+  private formatPoll(poll: any, userId?: number) {
+    const totalVotes = poll.options.reduce(
+      (sum: number, o: any) => sum + (o.votes?.length ?? 0),
+      0,
+    );
+    const userVote =
+      userId != null
+        ? (poll.votes?.find((v: any) => v.id_user === userId)?.id_option ?? null)
+        : null;
+
+    return {
+      id: poll.id_poll,
+      groupId: poll.id_group,
+      createdBy: poll.created_by,
+      question: poll.question,
+      options: poll.options.map((o: any) => {
+        const count: number = o.votes?.length ?? 0;
+        return {
+          id: o.id_option,
+          text: o.text,
+          count,
+          percentage: totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0,
+        };
+      }),
+      closesAt: poll.closes_at.toISOString(),
+      status: poll.status as 'ACTIVE' | 'CLOSED',
+      createdAt: poll.created_at.toISOString(),
+      userVote,
+    };
   }
 
   async findByMembership(id_membership: number) {

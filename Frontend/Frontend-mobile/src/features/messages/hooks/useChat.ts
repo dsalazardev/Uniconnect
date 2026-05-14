@@ -10,6 +10,7 @@ import {
   POLL_WS_EVENTS,
   type Poll,
   type PollOption,
+  type CreatePollDto,
 } from '@uniconnect/shared';
 
 interface UseChatOptions {
@@ -390,6 +391,11 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
+  // Crear encuesta en el grupo
+  const createPoll = useCallback(async (dto: CreatePollDto) => {
+    await pollService.createPoll(groupId, dto);
+  }, [groupId]);
+
   // Registrar o cambiar voto — optimismo completo: userVote + porcentajes al instante
   const castVote = useCallback(async (pollId: number, optionId: number) => {
     let prevPoll: Poll | undefined;
@@ -451,6 +457,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     reloadMessages: loadMessages,
     downloadFile,
     castVote,
+    createPoll,
     pollsState,
   };
 };

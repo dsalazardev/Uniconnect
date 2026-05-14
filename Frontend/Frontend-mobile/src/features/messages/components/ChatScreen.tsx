@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble } from './MessageBubble';
 import { FilePickerModal } from './FilePickerModal';
+import { PollCreationModal } from './PollCreationModal';
 import { useChat } from '../hooks/useChat';
 import { Message } from '../types';
 import { filesService } from '../services/files.service';
@@ -70,6 +71,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFilePicker, setShowFilePicker] = useState(false);
+  const [showPollModal, setShowPollModal] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,6 +114,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     loadMoreMessages,
     downloadFile,
     castVote,
+    createPoll,
   } = useChat({
     groupId,
     userId,
@@ -345,6 +348,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <Ionicons name="attach" size={24} color="#D9B97E" />
           </TouchableOpacity>
 
+          {!isDirectMessage && (
+            <TouchableOpacity
+              style={styles.attachButton}
+              onPress={() => setShowPollModal(true)}
+            >
+              <Ionicons name="bar-chart-outline" size={22} color="#D9B97E" />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
             onPress={handleSend}
@@ -400,6 +412,13 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         onClose={() => setShowFilePicker(false)}
         onFilesSelected={handleFilesSelected}
         loading={uploadingFiles}
+      />
+
+      {/* Poll Creation Modal */}
+      <PollCreationModal
+        visible={showPollModal}
+        onClose={() => setShowPollModal(false)}
+        onSubmit={createPoll}
       />
     </KeyboardAvoidingView>
   );
