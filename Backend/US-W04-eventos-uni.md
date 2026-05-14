@@ -41,7 +41,7 @@ En `Backend/prisma/schema/`, crea `event.prisma` con los siguientes modelos: `ev
 `feat(events): crear modelos Prisma y endpoints REST de eventos y categorías`
 
 **Estimación:**
-1 horas
+1 hora
 
 ---
 
