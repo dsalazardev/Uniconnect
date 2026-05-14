@@ -69,7 +69,9 @@ export class ForumService {
       data: { id_course: courseId, id_user: userId, title: dto.title, body: dto.body },
       include: { author: { select: { id_user: true, full_name: true, picture: true } } },
     });
-    return this.formatQuestion(question);
+    const formatted = this.formatQuestion(question);
+    this.gateway.sendToSubjectRoom(courseId, 'forum:question_created', formatted);
+    return formatted;
   }
 
   async createAnswer(questionId: number, userId: number, dto: CreateAnswerDto) {
@@ -94,7 +96,12 @@ export class ForumService {
       data: { answer_count: { increment: 1 } },
     });
 
-    return this.formatAnswer(answer);
+    const formatted = this.formatAnswer(answer);
+    this.gateway.sendToSubjectRoom(question.id_course, 'forum:answer_created', {
+      questionId,
+      answer: formatted,
+    });
+    return formatted;
   }
 
   async acceptAnswer(answerId: number, userId: number) {
