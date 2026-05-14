@@ -79,18 +79,29 @@ export default function ForumDashboard() {
     } finally { setLoadingQ(false); }
   }, []);
 
+  const selectedIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     expandedIdRef.current = expandedId;
   }, [expandedId]);
 
   useEffect(() => {
-    if (!selectedId) return;
-    websocketService.emit('forum:join', { groupId: selectedId });
-    loadQuestions(selectedId);
-  }, [selectedId, loadQuestions]);
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────────
+  // ── WebSocket: conexión + listeners + reconexión ──────────────────────────────
   useEffect(() => {
+    if (!websocketService.isConnected()) {
+      websocketService.connect();
+    }
+
+    const joinRoom = () => {
+      if (selectedIdRef.current) {
+        websocketService.emit('forum:join', { groupId: selectedIdRef.current });
+      }
+    };
+    websocketService.setOnReconnectCallback(joinRoom);
+
     const onVote = (p: { entityType: string; entityId: number; voteCount: number }) => {
       if (p.entityType === 'QUESTION') {
         setQuestions((prev) =>
@@ -127,12 +138,20 @@ export default function ForumDashboard() {
     websocketService.on('forum:question_created', onQuestionCreated);
     websocketService.on('forum:answer_created', onAnswerCreated);
     return () => {
+      websocketService.setOnReconnectCallback(null);
       websocketService.off('forum:vote_updated', onVote);
       websocketService.off('forum:answer_accepted', onAccepted);
       websocketService.off('forum:question_created', onQuestionCreated);
       websocketService.off('forum:answer_created', onAnswerCreated);
     };
   }, []);
+
+  // ── Unirse al room al cambiar de materia ──────────────────────────────────────
+  useEffect(() => {
+    if (!selectedId) return;
+    websocketService.emit('forum:join', { groupId: selectedId });
+    loadQuestions(selectedId);
+  }, [selectedId, loadQuestions]);
 
   // ── Thread ───────────────────────────────────────────────────────────────────
   const toggleThread = async (qId: number) => {
@@ -193,9 +212,8 @@ export default function ForumDashboard() {
     if (!replyBody.trim() || submittingReply) return;
     setSubmittingReply(true);
     try {
-      const created = await forumService.createAnswer(questionId, { body: replyBody.trim() });
-      setThreadAnswers((prev) => [...prev, created]);
-      setQuestions((prev) => prev.map((q) => q.id === questionId ? { ...q, answerCount: (q.answerCount ?? 0) + 1 } : q));
+      await forumService.createAnswer(questionId, { body: replyBody.trim() });
+      // El WS forum:answer_created añade la respuesta y actualiza el conteo para todos
       setReplyBody('');
     } catch (err: any) {
       Alert.alert('Foro', err?.response?.data?.message || 'Error al responder.');
@@ -204,8 +222,8 @@ export default function ForumDashboard() {
 
   const handleCreateQuestion = async (dto: { title: string; body: string }) => {
     if (!selectedId) return;
-    const created = await forumService.createQuestion(selectedId, dto);
-    setQuestions((prev) => [created, ...prev]);
+    await forumService.createQuestion(selectedId, dto);
+    // El WS forum:question_created añade la pregunta para todos (incluyendo el autor)
   };
 
   // ── Render question item ──────────────────────────────────────────────────────

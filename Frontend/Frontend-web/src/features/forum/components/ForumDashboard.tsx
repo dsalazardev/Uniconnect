@@ -68,18 +68,35 @@ export const ForumDashboard: React.FC = () => {
     }
   }, []);
 
+  // Ref para el courseId activo — permite re-unirse al room en reconexión sin closure stale
+  const selectedCourseIdRef = useRef<number | null>(null);
+
   useEffect(() => {
     expandedIdRef.current = expandedId;
   }, [expandedId]);
 
   useEffect(() => {
-    if (!selectedCourseId) return;
-    websocketService.emit('forum:join', { groupId: selectedCourseId });
-    loadQuestions(selectedCourseId);
-  }, [selectedCourseId, loadQuestions]);
+    selectedCourseIdRef.current = selectedCourseId;
+  }, [selectedCourseId]);
 
-  // ── WebSocket listeners ──────────────────────────────────────────────────────
+  // ── WebSocket: conexión + listeners + reconexión ─────────────────────────────
   useEffect(() => {
+    const serverUrl = (import.meta as any).env?.VITE_WEBSOCKET_URL || 'http://localhost:8007';
+
+    // Garantizar que this.socket exista antes de llamar .on()
+    if (!websocketService.isConnected()) {
+      websocketService.connect(serverUrl);
+    }
+
+    const joinRoom = () => {
+      if (selectedCourseIdRef.current) {
+        websocketService.emit('forum:join', { groupId: selectedCourseIdRef.current });
+      }
+    };
+
+    // Re-unirse al room si el socket se reconecta
+    websocketService.setOnReconnectCallback(joinRoom);
+
     const onVote = (p: { entityType: string; entityId: number; voteCount: number }) => {
       if (p.entityType === 'QUESTION') {
         setQuestions((prev) =>
@@ -117,17 +134,27 @@ export const ForumDashboard: React.FC = () => {
         });
       }
     };
+
     websocketService.on('forum:vote_updated', onVote);
     websocketService.on('forum:answer_accepted', onAccepted);
     websocketService.on('forum:question_created', onQuestionCreated);
     websocketService.on('forum:answer_created', onAnswerCreated);
+
     return () => {
+      websocketService.setOnReconnectCallback(null);
       websocketService.off('forum:vote_updated', onVote);
       websocketService.off('forum:answer_accepted', onAccepted);
       websocketService.off('forum:question_created', onQuestionCreated);
       websocketService.off('forum:answer_created', onAnswerCreated);
     };
   }, []);
+
+  // ── Unirse al room del foro al cambiar de materia ─────────────────────────────
+  useEffect(() => {
+    if (!selectedCourseId) return;
+    websocketService.emit('forum:join', { groupId: selectedCourseId });
+    loadQuestions(selectedCourseId);
+  }, [selectedCourseId, loadQuestions]);
 
   // ── Thread expand ────────────────────────────────────────────────────────────
   const toggleThread = async (qId: number) => {
@@ -194,11 +221,8 @@ export const ForumDashboard: React.FC = () => {
     if (!replyBody.trim() || submittingReply) return;
     setSubmittingReply(true);
     try {
-      const created = await forumService.createAnswer(questionId, { body: replyBody.trim() });
-      setThreadAnswers((prev) => [...prev, created]);
-      setQuestions((prev) =>
-        prev.map((q) => q.id === questionId ? { ...q, answerCount: (q.answerCount ?? 0) + 1 } : q)
-      );
+      await forumService.createAnswer(questionId, { body: replyBody.trim() });
+      // El WS forum:answer_created añade la respuesta y actualiza el conteo para todos
       setReplyBody('');
     } catch { /* keep input */ }
     finally { setSubmittingReply(false); }
@@ -221,8 +245,8 @@ export const ForumDashboard: React.FC = () => {
     if (!selectedCourseId) return;
     setSubmittingQ(true);
     try {
-      const created = await forumService.createQuestion(selectedCourseId, { title: newTitle.trim(), body: newBody.trim() });
-      setQuestions((prev) => [created, ...prev]);
+      await forumService.createQuestion(selectedCourseId, { title: newTitle.trim(), body: newBody.trim() });
+      // El WS forum:question_created añade la pregunta para todos (incluyendo el autor)
       setNewTitle(''); setNewBody(''); setShowNewQ(false);
     } catch (err: any) {
       setQError(err?.response?.data?.message || 'Error al publicar.');
