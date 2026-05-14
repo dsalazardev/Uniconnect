@@ -1,6 +1,7 @@
 model message {
   id_message       Int         @id @default(autoincrement())
   id_membership    Int?
+  id_poll          Int?        @unique
   text_content     String?     @db.VarChar
   send_at          DateTime    @default(now()) @db.Timestamptz(6)
   attachments      String?
@@ -9,4 +10,5 @@ model message {
   rendered_content String?
   files            file[]
   membership       membership? @relation(fields: [id_membership], references: [id_membership])
+  poll             poll?       @relation(fields: [id_poll], references: [id_poll])
 }

@@ -19,7 +19,6 @@ export const PollMessageCard: React.FC<PollMessageCardProps> = ({
   onVote,
 }) => {
   const isClosed = poll.status === 'CLOSED';
-  const hasVoted = poll.userVote !== null && poll.userVote !== undefined;
   const totalVotes = poll.options.reduce((sum, o) => sum + o.count, 0);
 
   const [remaining, setRemaining] = useState(() => getRemaining(poll.closesAt));
@@ -58,7 +57,6 @@ export const PollMessageCard: React.FC<PollMessageCardProps> = ({
         {poll.options.map((option) => {
           const isVoted = poll.userVote === option.id;
           const pct = totalVotes > 0 ? option.percentage : 0;
-          const showResults = hasVoted || isClosed;
 
           return (
             <TouchableOpacity
@@ -73,19 +71,15 @@ export const PollMessageCard: React.FC<PollMessageCardProps> = ({
               activeOpacity={isClosed ? 1 : 0.7}
             >
               {/* Progress fill */}
-              {showResults && (
-                <View
-                  style={[styles.progressFill, { width: `${pct}%` as any }]}
-                />
-              )}
+              <View
+                style={[styles.progressFill, { width: `${pct}%` as any }]}
+              />
 
               <View style={styles.optionRow}>
                 <Text style={styles.optionText}>{option.text}</Text>
-                {showResults && (
-                  <Text style={[styles.optionPct, isVoted && styles.optionPctVoted]}>
-                    {pct.toFixed(0)}%
-                  </Text>
-                )}
+                <Text style={[styles.optionPct, isVoted && styles.optionPctVoted]}>
+                  {pct.toFixed(0)}%
+                </Text>
                 {isVoted && <Text style={styles.checkMark}> ✓</Text>}
               </View>
             </TouchableOpacity>

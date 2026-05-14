@@ -16,10 +16,7 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
   children,
 }) => {
   const isClosed = poll.status === 'CLOSED';
-  const hasVoted = poll.userVote !== null && poll.userVote !== undefined;
   const totalVotes = poll.options.reduce((sum, o) => sum + o.count, 0);
-  // Show results when voted OR closed; allow changing vote while poll is ACTIVE
-  const showResults = hasVoted || isClosed;
 
   const handleVote = (option: PollOption) => {
     if (isClosed || !onVote) return;
@@ -68,12 +65,10 @@ export const PollDecorator: React.FC<PollDecoratorProps> = ({
               {/* Progress fill behind the row */}
               <div
                 className={styles.progressFill}
-                style={{ width: showResults ? `${pct}%` : '0%' }}
+                style={{ width: `${pct}%` }}
               />
               <span className={styles.optionText}>{option.text}</span>
-              {showResults && (
-                <span className={styles.optionPct}>{pct.toFixed(0)}%</span>
-              )}
+              <span className={styles.optionPct}>{pct.toFixed(0)}%</span>
               {isVoted && <span className={styles.checkMark}>✓</span>}
             </button>
           );

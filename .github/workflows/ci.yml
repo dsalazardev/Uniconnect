@@ -32,7 +32,11 @@ jobs:
   quality:
     name: Quality (${{ matrix.package }})
     needs: changes
-    if: ${{ needs.changes.outputs[matrix.package] == 'true' }}
+    if: >-
+      (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
+      (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
+      (matrix.package == 'mobile'  && needs.changes.outputs.mobile  == 'true') ||
+      (matrix.package == 'shared'  && needs.changes.outputs.shared  == 'true')
     strategy:
       fail-fast: false
       matrix:

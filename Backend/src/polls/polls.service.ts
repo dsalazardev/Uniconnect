@@ -61,6 +61,21 @@ export class PollsService {
       },
     });
 
+    // Crear mensaje vinculado para que la encuesta persista en el historial del chat
+    const membership = await this.prisma.membership.findFirst({
+      where: { id_user: userId, id_group: groupId },
+      select: { id_membership: true },
+    });
+
+    await this.prisma.message.create({
+      data: {
+        id_membership: membership?.id_membership ?? null,
+        id_poll: poll.id_poll,
+        text_content: null,
+        send_at: poll.created_at,
+      },
+    });
+
     return this.formatPoll(poll);
   }
 
