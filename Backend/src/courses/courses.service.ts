@@ -29,31 +29,29 @@ export class CoursesService {
   async getCoursesByStudent(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id_user: userId },
-      select: { 
+      select: {
         id_program: true,
         enrollments: {
-          select: {
-            id_course: true,
-          },
-        },
-      },          
-    });
-
-    const enrolledCourseIds = user?.enrollments
-      .map(e => e.id_course)
-      .filter((id): id is number => id !== null) ?? [];
-
-    return this.prisma.course.findMany({
-      where: {
-        id_program: user?.id_program ?? null,
-        id_course: {
-          notIn: enrolledCourseIds, 
+          select: { id_course: true },
         },
       },
-      orderBy: {
-        name: 'asc',
-      },
     });
+
+    const enrolledSet = new Set(
+      user?.enrollments
+        .map((e) => e.id_course)
+        .filter((id): id is number => id !== null) ?? [],
+    );
+
+    const courses = await this.prisma.course.findMany({
+      where: { id_program: user?.id_program ?? null },
+      orderBy: { name: 'asc' },
+    });
+
+    return courses.map((c) => ({
+      ...c,
+      isEnrolled: enrolledSet.has(c.id_course),
+    }));
   }
 
   async getOwnCourses(userId: number) {
