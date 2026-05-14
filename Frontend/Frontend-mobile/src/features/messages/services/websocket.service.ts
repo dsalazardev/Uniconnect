@@ -342,6 +342,10 @@ class WebSocketService {
     }
   }
 
+  emit(event: string, data?: any) {
+    this.socket?.emit(event, data);
+  }
+
   /**
    * Desconectar del WebSocket
    */

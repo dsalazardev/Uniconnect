@@ -15,12 +15,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ForumQuestion, ForumAnswer } from '@uniconnect/shared';
 import { forumService } from '../services';
+import { websocketService } from '@/src/features/messages/services/websocket.service';
 
 interface QuestionDetailProps {
   question: ForumQuestion;
   currentUserId: number;
   isTeacher: boolean;
-  socket?: any;
   sortAnswers: (answers: ForumAnswer[]) => ForumAnswer[];
   onBack: () => void;
   onCreateAnswer: (questionId: number, dto: { body: string }) => Promise<ForumAnswer>;
@@ -30,7 +30,6 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({
   question,
   currentUserId,
   isTeacher,
-  socket,
   sortAnswers,
   onBack,
   onCreateAnswer,
@@ -53,8 +52,6 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({
 
   // WebSocket: Observer — sin polling
   useEffect(() => {
-    if (!socket) return;
-
     const handleVoteUpdated = (payload: { entityType: string; entityId: number; voteCount: number }) => {
       if (payload.entityType === 'ANSWER') {
         setAnswers((prev) =>
@@ -62,7 +59,6 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({
         );
       }
     };
-
     const handleAnswerAccepted = (payload: { questionId: number; answerId: number }) => {
       if (payload.questionId !== question.id) return;
       setAnswers((prev) =>
@@ -70,13 +66,13 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({
       );
     };
 
-    socket.on('forum:vote_updated', handleVoteUpdated);
-    socket.on('forum:answer_accepted', handleAnswerAccepted);
+    websocketService.on('forum:vote_updated', handleVoteUpdated);
+    websocketService.on('forum:answer_accepted', handleAnswerAccepted);
     return () => {
-      socket.off('forum:vote_updated', handleVoteUpdated);
-      socket.off('forum:answer_accepted', handleAnswerAccepted);
+      websocketService.off('forum:vote_updated', handleVoteUpdated);
+      websocketService.off('forum:answer_accepted', handleAnswerAccepted);
     };
-  }, [socket, question.id, sortAnswers]);
+  }, [question.id, sortAnswers]);
 
   useEffect(() => { loadAnswers(); }, [loadAnswers]);
 

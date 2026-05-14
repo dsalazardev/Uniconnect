@@ -1,6 +1,6 @@
 export const FORUM_ENDPOINTS = {
-  GET_QUESTIONS:   (subjectId: number) => `/subjects/${subjectId}/forum/questions`,
-  CREATE_QUESTION: (subjectId: number) => `/subjects/${subjectId}/forum/questions`,
+  GET_QUESTIONS:   (groupId: number) => `/groups/${groupId}/forum/questions`,
+  CREATE_QUESTION: (groupId: number) => `/groups/${groupId}/forum/questions`,
   GET_ANSWERS:     (questionId: number) => `/forum/questions/${questionId}/answers`,
   CREATE_ANSWER:   (questionId: number) => `/forum/questions/${questionId}/answers`,
   VOTE_QUESTION:   (questionId: number) => `/forum/questions/${questionId}/vote`,

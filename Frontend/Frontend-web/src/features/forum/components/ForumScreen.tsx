@@ -1,35 +1,26 @@
 import React, { useState } from 'react';
 import { MessageSquare, ChevronUp, Plus, AlertCircle } from 'lucide-react';
-import type { ForumQuestion, ForumService } from '@uniconnect/shared';
+import type { ForumQuestion } from '@uniconnect/shared';
 import { useForum } from '../hooks/useForum';
 import { QuestionCreationModal } from './QuestionCreationModal';
 import { QuestionDetail } from './QuestionDetail';
 import styles from './ForumScreen.module.css';
 
 interface ForumScreenProps {
-  subjectId: number;
+  groupId: number;
   currentUserId: number;
   isTeacher: boolean;
-  forumService: ForumService;
-  socket?: any;
 }
 
 export const ForumScreen: React.FC<ForumScreenProps> = ({
-  subjectId,
+  groupId,
   currentUserId,
   isTeacher,
-  forumService,
-  socket,
 }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ForumQuestion | null>(null);
 
-  const { questions, loading, error, createQuestion, createAnswer, castVoteQuestion, sortAnswers } = useForum({
-    subjectId,
-    currentUserId,
-    forumService,
-    socket,
-  });
+  const { questions, loading, error, createQuestion, createAnswer, castVoteQuestion, sortAnswers } = useForum(groupId);
 
   if (loading) {
     return (
@@ -55,8 +46,6 @@ export const ForumScreen: React.FC<ForumScreenProps> = ({
         question={selectedQuestion}
         currentUserId={currentUserId}
         isTeacher={isTeacher}
-        forumService={forumService}
-        socket={socket}
         sortAnswers={sortAnswers}
         onBack={() => setSelectedQuestion(null)}
         onCreateAnswer={createAnswer}

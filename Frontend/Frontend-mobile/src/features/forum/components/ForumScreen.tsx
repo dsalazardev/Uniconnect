@@ -14,25 +14,20 @@ import { QuestionCreationModal } from './QuestionCreationModal';
 import { QuestionDetail } from './QuestionDetail';
 
 interface ForumScreenProps {
-  subjectId: number;
+  groupId: number;
   currentUserId: number;
   isTeacher: boolean;
-  socket?: any;
 }
 
 export const ForumScreen: React.FC<ForumScreenProps> = ({
-  subjectId,
+  groupId,
   currentUserId,
   isTeacher,
-  socket,
 }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ForumQuestion | null>(null);
 
-  const { questions, loading, error, createQuestion, createAnswer, castVoteQuestion, sortAnswers } = useForum({
-    subjectId,
-    socket,
-  });
+  const { questions, loading, error, createQuestion, createAnswer, castVoteQuestion, sortAnswers } = useForum(groupId);
 
   if (loading) {
     return (
@@ -58,7 +53,6 @@ export const ForumScreen: React.FC<ForumScreenProps> = ({
         question={selectedQuestion}
         currentUserId={currentUserId}
         isTeacher={isTeacher}
-        socket={socket}
         sortAnswers={sortAnswers}
         onBack={() => setSelectedQuestion(null)}
         onCreateAnswer={createAnswer}
