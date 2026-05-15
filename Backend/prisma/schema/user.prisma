@@ -28,6 +28,8 @@ model user {
   user_push_token               user_push_token[]
   polls_created                 poll[]                         @relation("PollCreator")
   poll_votes                    poll_vote[]                    @relation("PollVoter")
+  study_sessions_created        study_session[]                @relation("SessionCreator")
+  study_session_cancellations   study_session_instance[]       @relation("SessionCanceller")
   forum_votes                   forum_vote[]                   @relation("ForumVoter")
   forum_questions               forum_question[]               @relation("ForumQuestionAuthor")
   forum_answers                 forum_answer[]                 @relation("ForumAnswerAuthor")

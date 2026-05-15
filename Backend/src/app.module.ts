@@ -21,6 +21,7 @@ import { FilesModule } from './files/files.module';
 import { EventsModule } from './events/events.module';
 import { PollsModule } from './polls/polls.module';
 import { ForumModule } from './forum/forum.module';
+import { StudySessionsModule } from './study-sessions/study-sessions.module';
 import { LoggerMiddleware } from './core/logger/logger.middleware';
 
 @Module({
@@ -55,6 +56,7 @@ import { LoggerMiddleware } from './core/logger/logger.middleware';
     EventsModule,
     PollsModule,
     ForumModule,
+    StudySessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, RolesService, PermissionsService],
