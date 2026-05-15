@@ -97,7 +97,7 @@ El endpoint existente `GET /messages/group/:id_group/recent` filtra por `id_grou
 `feat(mensajes-privados): habilitar endpoint de historial paginado para conversaciones privadas`
 
 **Estimación:**
-4 horas
+2 horas
 
 ---
 
@@ -115,6 +115,6 @@ Existen dos cadenas de validación con tokens distintos: `VALIDACION_CHAIN_REST_
 `feat(mensajes-privados): integrar cadena de validación US-CH01 y decoradores Sprint 3 en flujo WebSocket privado`
 
 **Estimación:**
-4 horas
+2 horas
 
 ---
