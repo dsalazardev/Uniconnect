@@ -56,9 +56,16 @@ export const GroupDetail: React.FC = () => {
   // DM detection
   const isDirectMessage = groupInfo?.is_direct_message ?? false;
   const otherUser = isDirectMessage
-    ? (groupInfo?.memberships || []).find((m) => m.id_user !== currentUserId)
+    ? (groupInfo?.memberships || []).find(
+        (m) => (m.id_user ?? m.user?.id_user) !== currentUserId
+      )
     : undefined;
-  const otherUserName = otherUser?.user?.full_name || 'Chat Privado';
+  const otherUserId = otherUser?.id_user ?? otherUser?.user?.id_user;
+  // Prioriza full_name, cae al primer fragmento del email si el nombre no está cargado
+  const otherUserName =
+    otherUser?.user?.full_name ||
+    otherUser?.user?.email?.split('@')[0] ||
+    'Usuario';
 
   // Chat hook: only initialize when user is a member
   const chat = useChat({
@@ -66,7 +73,7 @@ export const GroupDetail: React.FC = () => {
     userId: currentUserId,
     token,
     userFullName: currentUser?.full_name || 'Usuario',
-    recipientUserId: otherUser?.id_user,
+    recipientUserId: otherUserId,
   });
 
   // Issue 3 fix: reset panel when navigating between group/chat routes

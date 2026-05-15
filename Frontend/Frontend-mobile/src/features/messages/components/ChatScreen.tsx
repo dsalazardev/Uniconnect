@@ -83,10 +83,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   // Datos del destinatario en chats privados
   const otherMember = isDirectMessage
-    ? group?.memberships?.find((m) => m.id_user !== userId)
+    ? group?.memberships?.find((m) => (m.id_user ?? m.user?.id_user) !== userId)
     : undefined;
 
-  const getOtherUserName = (): string => otherMember?.user?.full_name ?? group?.name ?? 'Chat';
+  const getOtherUserName = (): string =>
+    otherMember?.user?.full_name ||
+    otherMember?.user?.email?.split('@')[0] ||
+    group?.name ||
+    'Usuario';
 
   // Nombre a mostrar en el header (se usará desde el componente padre)
   const displayName = isDirectMessage ? getOtherUserName() : group?.name ?? 'Chat';
