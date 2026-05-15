@@ -47,6 +47,8 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   const oldestMessageIdRef = useRef<number | null>(null);
   // ID temporal del último mensaje optimista enviado (para rollback en error)
   const lastOptimisticIdRef = useRef<number | null>(null);
+  // Timestamp del mensaje más reciente recibido (para sincronizar mensajes perdidos al reconectar)
+  const lastMessageTimestampRef = useRef<number | null>(null);
 
   // Cargar mensajes iniciales
   const loadMessages = useCallback(async () => {
@@ -58,9 +60,12 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       // inverted FlatList: el índice 0 debe ser el más nuevo → invertir el array
       setMessages(data ? [...data].reverse() : []);
       setHasMore(more);
-      // Cursor: id del mensaje más antiguo = el último del array original (antes de invertir)
       if (data && data.length > 0) {
+        // Cursor hacia atrás: id del mensaje más antiguo (último antes de invertir)
         oldestMessageIdRef.current = data[0].id_message;
+        // Timestamp del más reciente (último del array ordenado ASC = index final)
+        const newest = data[data.length - 1];
+        lastMessageTimestampRef.current = new Date(newest.send_at).getTime();
       }
       setError(null);
     } catch (err: any) {
@@ -70,6 +75,36 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       setLoading(false);
     }
   }, [groupId]);
+
+  // Sincronizar mensajes perdidos durante una desconexión (usa since= para traer solo los nuevos)
+  const loadMissedMessages = useCallback(async () => {
+    if (!lastMessageTimestampRef.current) return;
+    try {
+      const { messages: missed } = await messagesService.getRecentMessages(
+        groupId,
+        50,
+        undefined,
+        lastMessageTimestampRef.current,
+      );
+      if (!missed || missed.length === 0) return;
+
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id_message));
+        const newOnes = missed.filter((m) => !existingIds.has(m.id_message));
+        if (newOnes.length === 0) return prev;
+        const newest = missed[missed.length - 1];
+        const ts = new Date(newest.send_at).getTime();
+        if (ts > (lastMessageTimestampRef.current ?? 0)) {
+          lastMessageTimestampRef.current = ts;
+        }
+        // Los mensajes llegan ASC del backend; el más reciente va al inicio (FlatList inverted)
+        return [...newOnes.reverse(), ...prev];
+      });
+    } catch (err: any) {
+      console.error('[useChat] Error al sincronizar mensajes perdidos:', err.message);
+    }
+  }, [groupId]);
+
   // Conectar al WebSocket
   useEffect(() => {
     // Usar serverUrl proporccionado o la configuración centralizada
@@ -117,6 +152,12 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       };
 
       const textContent = (message.text_content || '').trim();
+
+      // Actualizar timestamp del mensaje más reciente
+      const msgTs = new Date(message.send_at).getTime();
+      if (!lastMessageTimestampRef.current || msgTs > lastMessageTimestampRef.current) {
+        lastMessageTimestampRef.current = msgTs;
+      }
 
       // Mensajes con archivos (texto vacío) nunca son optimistas — siempre agregar directamente
       if (hasFiles && !textContent) {
@@ -284,6 +325,11 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     };
     websocketService.on('message:send:error', handleSendError);
 
+    // Registrar callback de reconexión para sincronizar mensajes perdidos
+    websocketService.setOnReconnectCallback(() => {
+      loadMissedMessages();
+    });
+
     // Cargar mensajes iniciales
     loadMessages();
 
@@ -299,8 +345,9 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off(POLL_WS_EVENTS.CLOSED, handlePollClosed);
       websocketService.off('poll:created', handlePollCreated);
       websocketService.off('message:send:error', handleSendError);
+      websocketService.setOnReconnectCallback(null);
     };
-  }, [groupId, userId, serverUrl, loadMessages]);
+  }, [groupId, userId, serverUrl, loadMessages, loadMissedMessages]);
 
   // Enviar mensaje (ya no necesita id_membership, el backend lo toma de la sesión)
   const sendMessage = useCallback((text: string, attachments: string = '') => {
