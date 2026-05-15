@@ -223,6 +223,25 @@ export const CreateGroupModal = ({
                       </ScrollView>
                     </View>
                   )}
+
+                  {selectedCourseId != null && (
+                    <View style={[
+                      styles.courseLimitBadge,
+                      selectedCourseAtLimit && styles.courseLimitBadgeAtLimit,
+                    ]}>
+                      <Ionicons
+                        name="albums-outline"
+                        size={13}
+                        color={selectedCourseAtLimit ? "#F59E0B" : "#D9B97E"}
+                      />
+                      <Text style={[
+                        styles.courseLimitBadgeText,
+                        selectedCourseAtLimit && styles.courseLimitBadgeTextAtLimit,
+                      ]}>
+                        {groupsPerCourse[selectedCourseId] ?? 0} de 3 grupos en esta materia
+                      </Text>
+                    </View>
+                  )}
                 </>
               )}
             </View>
@@ -421,6 +440,31 @@ const styles = StyleSheet.create({
     color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
+  },
+  courseLimitBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: "rgba(217, 185, 126, 0.1)",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(217, 185, 126, 0.25)",
+    alignSelf: "flex-start",
+  },
+  courseLimitBadgeAtLimit: {
+    backgroundColor: "rgba(245, 158, 11, 0.12)",
+    borderColor: "rgba(245, 158, 11, 0.35)",
+  },
+  courseLimitBadgeText: {
+    fontSize: 12,
+    color: "#D9B97E",
+    fontWeight: "500",
+  },
+  courseLimitBadgeTextAtLimit: {
+    color: "#F59E0B",
   },
   errorBanner: {
     flexDirection: "row",
