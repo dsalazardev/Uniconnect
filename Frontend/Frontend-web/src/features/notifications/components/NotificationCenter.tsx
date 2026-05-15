@@ -47,6 +47,16 @@ export const NotificationCenter = observer(function NotificationCenter() {
     notificationsStore.setUnreadCount(unreadCount);
   }, [unreadCount]);
 
+  // CA5: auto-marcar como leídas 2s después de abrir el panel.
+  // Deps vacíos son intencionales: mount = panel abierto, unmount = panel cerrado (cleanup cancela el timer).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    const hasUnread = notifications.some((n) => !n.is_read);
+    if (!hasUnread) return;
+    const timer = setTimeout(markAllAsRead, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const availableTypes = React.useMemo(
     () => [...new Set(notifications.map((n) => n.notification_type))],
     [notifications],
