@@ -196,10 +196,12 @@ export class MessagesGateway
         return { error: 'Usuario no autenticado. Llama a authenticate primero.' };
       }
 
-      // Extraer menciones del texto para que ValidarMencionesHandler pueda contarlas
-      const mentionNames = extractMentions(data.text_content ?? '');
-      const mentions = mentionNames.map((name, i) => ({
-        userId: 0,         // Se resolverá post-creación; aquí solo se valida la cantidad
+      // Extraer menciones SIN deduplicar para que el handler detecte repeticiones
+      const rawText = data.text_content ?? '';
+      const rawMatches = rawText.match(/@([\w.\-]+)/g) ?? [];
+      const rawMentionNames = rawMatches.map((m) => m.slice(1));
+      const mentions = rawMentionNames.map((name, i) => ({
+        userId: 0,         // Placeholder; userId real se resuelve post-creación
         displayName: name,
         position: i,
       }));
