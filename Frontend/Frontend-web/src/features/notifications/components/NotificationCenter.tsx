@@ -27,6 +27,9 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   admin_transfer_requested: 'Transferencia de admin',
   admin_transfer_accepted: 'Transferencia aceptada',
   admin_transfer_declined: 'Transferencia rechazada',
+  group_created: 'Grupo creado',
+  group_deleted: 'Grupo eliminado',
+  event_published: 'Evento publicado',
 };
 
 export const NotificationCenter = observer(function NotificationCenter() {

@@ -19,7 +19,10 @@ export type NotificationType =
   | 'mention'
   | 'admin_transfer_requested'
   | 'admin_transfer_accepted'
-  | 'admin_transfer_declined';
+  | 'admin_transfer_declined'
+  | 'group_created'
+  | 'group_deleted'
+  | 'event_published';
   
 
 export type Notification = {
