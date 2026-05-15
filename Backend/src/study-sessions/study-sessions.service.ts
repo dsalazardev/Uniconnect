@@ -5,7 +5,9 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { StudyGroupSubject } from '../groups/domain/observer/study-group-subject';
 import { CreateStudySessionDto } from './dto/create-study-session.dto';
+import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
 export interface StudySessionInstanceResponse {
   id_instance: number;
@@ -20,7 +22,10 @@ export interface StudySessionInstanceResponse {
 
 @Injectable()
 export class StudySessionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly studyGroupSubject: StudyGroupSubject,
+  ) {}
 
   async createSession(
     groupId: number,
@@ -177,5 +182,52 @@ export class StudySessionsService {
     });
 
     return { cancelled: true };
+  }
+
+  async updateAttendance(
+    groupId: number,
+    instanceId: number,
+    userId: number,
+    dto: UpdateAttendanceDto,
+  ): Promise<{ id_attendance: number; status: string; updated_at: string }> {
+    const instance = await this.prisma.study_session_instance.findUnique({
+      where: { id_instance: instanceId },
+      include: { session: true },
+    });
+
+    if (!instance) {
+      throw new NotFoundException('Sesión no encontrada.');
+    }
+    if (instance.session.id_group !== groupId) {
+      throw new NotFoundException('La sesión no pertenece a este grupo.');
+    }
+    if (instance.status === 'CANCELLED') {
+      throw new BadRequestException('No se puede registrar asistencia en una sesión cancelada.');
+    }
+
+    const attendance = await this.prisma.session_attendance.upsert({
+      where: { id_instance_id_user: { id_instance: instanceId, id_user: userId } },
+      update: { status: dto.status, updated_at: new Date() },
+      create: { id_instance: instanceId, id_user: userId, status: dto.status },
+    });
+
+    // CA7: notificar al organizador via Observer
+    this.studyGroupSubject.notify({
+      type: 'ATTENDANCE_UPDATED',
+      targetUserId: instance.session.created_by,
+      payload: {
+        instanceId,
+        userId,
+        status: dto.status,
+        sessionTitle: instance.session.title,
+      },
+      timestamp: new Date(),
+    });
+
+    return {
+      id_attendance: attendance.id_attendance,
+      status: attendance.status,
+      updated_at: attendance.updated_at.toISOString(),
+    };
   }
 }

@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Delete,
+  Patch,
   Body,
   Param,
   ParseIntPipe,
@@ -18,6 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { StudySessionsService } from './study-sessions.service';
 import { CreateStudySessionDto } from './dto/create-study-session.dto';
+import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetClaim } from '../auth/decorators/get-token-claim.decorator';
 
@@ -74,5 +76,25 @@ export class StudySessionsController {
     @GetClaim('sub') userId: number,
   ) {
     return this.studySessionsService.cancelInstance(groupId, instanceId, userId);
+  }
+
+  /**
+   * PATCH /groups/:groupId/study-sessions/:instanceId/attendance
+   * Confirma, declina o marca como pendiente la asistencia del usuario.
+   * Notifica al organizador de la sesión via Observer (CA7).
+   */
+  @Patch('groups/:groupId/study-sessions/:instanceId/attendance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar asistencia a una sesión (CA7)' })
+  @ApiResponse({ status: 200, description: 'Asistencia actualizada. Organizador notificado via Observer.' })
+  @ApiResponse({ status: 400, description: 'Sesión cancelada o datos inválidos.' })
+  @ApiResponse({ status: 404, description: 'Instancia no encontrada.' })
+  updateAttendance(
+    @Param('groupId', ParseIntPipe) groupId: number,
+    @Param('instanceId', ParseIntPipe) instanceId: number,
+    @GetClaim('sub') userId: number,
+    @Body() dto: UpdateAttendanceDto,
+  ) {
+    return this.studySessionsService.updateAttendance(groupId, instanceId, userId, dto);
   }
 }

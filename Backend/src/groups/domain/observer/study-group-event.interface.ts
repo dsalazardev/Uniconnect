@@ -9,7 +9,8 @@ export type StudyGroupEventType =
   | 'ADMIN_TRANSFER_REQUESTED'
   | 'ADMIN_TRANSFER_ACCEPTED'
   | 'ADMIN_TRANSFER_DECLINED'
-  | 'STATE_TRANSITION';
+  | 'STATE_TRANSITION'
+  | 'ATTENDANCE_UPDATED';
 
 /**
  * Study group event structure for Observer pattern.

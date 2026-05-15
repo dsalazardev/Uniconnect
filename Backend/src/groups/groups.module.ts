@@ -26,7 +26,7 @@ import { PersistenceNotificationObserver } from './infrastructure/observers/pers
     WebSocketNotificationObserver,
     PersistenceNotificationObserver,
   ],
-  exports: [GroupsService, GroupBusinessValidator, GroupRepository],
+  exports: [GroupsService, GroupBusinessValidator, GroupRepository, StudyGroupSubject],
 })
 export class GroupsModule implements OnModuleInit {
   constructor(

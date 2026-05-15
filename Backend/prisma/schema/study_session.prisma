@@ -34,4 +34,23 @@ model study_session_instance {
   cancelled_by   Int?
   session        study_session         @relation(fields: [id_session], references: [id_session], onDelete: Cascade)
   canceller      user?                 @relation("SessionCanceller", fields: [cancelled_by], references: [id_user])
+  attendances    session_attendance[]
+}
+
+enum AttendanceStatus {
+  CONFIRMED
+  DECLINED
+  PENDING
+}
+
+model session_attendance {
+  id_attendance Int              @id @default(autoincrement())
+  id_instance   Int
+  id_user       Int
+  status        AttendanceStatus @default(PENDING)
+  updated_at    DateTime         @default(now()) @db.Timestamptz(6)
+  instance      study_session_instance @relation(fields: [id_instance], references: [id_instance], onDelete: Cascade)
+  user          user             @relation("AttendanceUser", fields: [id_user], references: [id_user])
+
+  @@unique([id_instance, id_user])
 }
