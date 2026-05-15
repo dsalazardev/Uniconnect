@@ -10,14 +10,13 @@ import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { GroupAdminPanel } from './GroupAdminPanel';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
-import { PrivateChatHeader } from '@/features/messages/components/PrivateChatHeader';
 import { useChat } from '@/features/messages/hooks/useChat.tsx';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import { groupsService } from '../services';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical, User } from 'lucide-react';
 import { PollCreationModal } from '@/features/messages/components/PollCreationModal';
 import styles from './GroupDetail.module.css';
 
@@ -53,19 +52,38 @@ export const GroupDetail: React.FC = () => {
   const isMember = groupInfo?.isMember ?? false;
   const isOwner = groupInfo?.isOwner ?? false;
 
-  // DM detection
+  // DM detection — la info del destinatario viene del navigation state (pasada al hacer clic
+  // en "Mensaje privado") para mostrarla de inmediato, sin esperar al refetch de groupInfo
+  const navState = location.state as {
+    recipientId?: number;
+    recipientName?: string | null;
+    recipientPicture?: string | null;
+  } | null;
+
   const isDirectMessage = groupInfo?.is_direct_message ?? false;
-  const otherUser = isDirectMessage
+
+  const otherMembership = isDirectMessage
     ? (groupInfo?.memberships || []).find(
         (m) => (m.id_user ?? m.user?.id_user) !== currentUserId
       )
     : undefined;
-  const otherUserId = otherUser?.id_user ?? otherUser?.user?.id_user;
-  // Prioriza full_name, cae al primer fragmento del email si el nombre no está cargado
-  const otherUserName =
-    otherUser?.user?.full_name ||
-    otherUser?.user?.email?.split('@')[0] ||
+
+  // Prioridad: navigation state > memberships > fallback al email
+  const recipientName =
+    navState?.recipientName ||
+    otherMembership?.user?.full_name ||
+    otherMembership?.user?.email?.split('@')[0] ||
     'Usuario';
+
+  const recipientPicture =
+    navState?.recipientPicture !== undefined
+      ? navState.recipientPicture
+      : (otherMembership?.user?.picture ?? null);
+
+  const recipientId =
+    navState?.recipientId ||
+    otherMembership?.id_user ||
+    otherMembership?.user?.id_user;
 
   // Chat hook: only initialize when user is a member
   const chat = useChat({
@@ -73,7 +91,7 @@ export const GroupDetail: React.FC = () => {
     userId: currentUserId,
     token,
     userFullName: currentUser?.full_name || 'Usuario',
-    recipientUserId: otherUserId,
+    recipientUserId: recipientId,
   });
 
   // Issue 3 fix: reset panel when navigating between group/chat routes
@@ -241,7 +259,7 @@ export const GroupDetail: React.FC = () => {
     );
   }
 
-  const displayName = isDirectMessage ? otherUserName : groupInfo.name;
+  const displayName = isDirectMessage ? recipientName : groupInfo.name;
 
   // ── Main render ───────────────────────────────────────────────────────────
   return (
@@ -252,7 +270,31 @@ export const GroupDetail: React.FC = () => {
         <button onClick={handleGoBack} className={styles.backButton}>
           <ArrowLeft size={18} /> Volver
         </button>
-        <h1 className={styles.headerTitle}>{displayName}</h1>
+
+        {isDirectMessage ? (
+          /* DM header: avatar + nombre + estado de presencia */
+          <div className={styles.dmHeaderCenter}>
+            <div className={styles.dmAvatarWrapper}>
+              {recipientPicture ? (
+                <img src={recipientPicture} alt={recipientName} className={styles.dmAvatar} />
+              ) : (
+                <div className={styles.dmAvatarPlaceholder}>
+                  <User size={18} />
+                </div>
+              )}
+              <span className={`${styles.dmPresenceDot} ${chat.isRecipientOnline ? styles.dmPresenceOnline : styles.dmPresenceOffline}`} />
+            </div>
+            <div className={styles.dmHeaderInfo}>
+              <span className={styles.dmHeaderName}>{recipientName}</span>
+              <span className={`${styles.dmHeaderStatus} ${chat.isRecipientOnline ? styles.dmStatusOnline : styles.dmStatusOffline}`}>
+                {chat.isRecipientOnline ? 'En línea' : 'Desconectado'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <h1 className={styles.headerTitle}>{displayName}</h1>
+        )}
+
         {/* Three-dots: only for group members (not DMs) */}
         {isMember && !isDirectMessage && (
           <button
@@ -270,13 +312,6 @@ export const GroupDetail: React.FC = () => {
         {isMember ? (
           /* Member: full-screen chat */
           <div className={styles.chatSection}>
-            {isDirectMessage && (
-              <PrivateChatHeader
-                recipientName={otherUserName}
-                recipientPicture={otherUser?.user?.picture}
-                isOnline={chat.isRecipientOnline}
-              />
-            )}
             <div className={styles.chatContainer}>
               <MessageList
                 messages={chat.messages}
@@ -340,7 +375,7 @@ export const GroupDetail: React.FC = () => {
                   ownerId={groupInfo.owner?.id_user}
                   currentUserId={currentUserId}
                   loadingUserId={dm.loadingUserId}
-                  onDirectMessage={dm.openDirectMessage}
+                  onDirectMessage={(userId, memberInfo) => dm.openDirectMessage(userId, memberInfo)}
                 />
               </div>
             )}
@@ -428,9 +463,9 @@ export const GroupDetail: React.FC = () => {
                   ownerId={groupInfo.owner?.id_user}
                   currentUserId={currentUserId}
                   loadingUserId={dm.loadingUserId}
-                  onDirectMessage={(userId) => {
+                  onDirectMessage={(userId, memberInfo) => {
                     setShowInfoPanel(false);
-                    dm.openDirectMessage(userId);
+                    dm.openDirectMessage(userId, memberInfo);
                   }}
                   onTransfer={isOwner ? handleMemberTransfer : undefined}
                   onRemove={isOwner ? handleMemberRemove : undefined}

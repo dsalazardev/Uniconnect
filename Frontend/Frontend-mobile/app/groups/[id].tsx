@@ -33,6 +33,7 @@ export default function GroupChatScreen() {
   const [error, setError] = useState<string | null>(null);
   // Si viene de una notificación push con autoOpenInfo=true, abrir el modal directamente
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [recipientOnline, setRecipientOnline] = useState(false);
 
   const userId = authStore.user?.id_user;
   const token = authStore.accessToken || '';
@@ -145,7 +146,9 @@ export default function GroupChatScreen() {
   };
 
   const displayName = isDirectMessage ? getOtherUserName() : group.name;
-  const displaySubtitle = isDirectMessage ? 'Chat privado' : 'Grupo de estudio';
+  const displaySubtitle = isDirectMessage
+    ? (recipientOnline ? 'En línea' : 'Desconectado')
+    : 'Grupo de estudio';
   // HOTFIX: El botón de opciones debe aparecer en TODOS los grupos (no solo para admins)
   // La restricción de admin se aplica DENTRO del modal, no en la visibilidad del botón
   const showGroupOptionsButton = !isDirectMessage;
@@ -162,7 +165,13 @@ export default function GroupChatScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
+          <Text
+            style={[
+              styles.headerSubtitle,
+              isDirectMessage && { color: recipientOnline ? '#4caf50' : '#888' },
+            ]}
+            numberOfLines={1}
+          >
             {displaySubtitle}
           </Text>
         </View>
@@ -193,6 +202,7 @@ export default function GroupChatScreen() {
         userFullName={authStore.user?.full_name || 'Usuario'}
         serverUrl={WEBSOCKET_URL}
         group={group}
+        onPresenceChange={isDirectMessage ? setRecipientOnline : undefined}
       />
 
       {showGroupOptionsButton && (

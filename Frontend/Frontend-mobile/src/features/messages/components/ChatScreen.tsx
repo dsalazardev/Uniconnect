@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble } from './MessageBubble';
 import { FilePickerModal } from './FilePickerModal';
 import { PollCreationModal } from './PollCreationModal';
-import { PrivateChatHeader } from './PrivateChatHeader';
 import { useChat } from '../hooks/useChat';
 import { Message } from '../types';
 import { filesService } from '../services/files.service';
@@ -31,6 +30,7 @@ interface ChatScreenProps {
   isAdmin: boolean;
   userFullName: string;
   serverUrl?: string;
+  onPresenceChange?: (isOnline: boolean) => void;
   group?: {
     id_group: number;
     name: string;
@@ -66,6 +66,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   isAdmin,
   userFullName,
   serverUrl,
+  onPresenceChange,
   group,
 }) => {
   const [inputText, setInputText] = useState('');
@@ -130,6 +131,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [loading]);
+
+  // Notificar al padre cuando cambia la presencia del destinatario (para el header de navegación)
+  useEffect(() => {
+    if (isDirectMessage) onPresenceChange?.(isRecipientOnline);
+  }, [isRecipientOnline, isDirectMessage]);
 
   // Deduplicar mensajes de encuesta: conservar solo la primera aparición de cada poll.id
   const dedupedMessages = useMemo(() => {
@@ -285,14 +291,6 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <Ionicons name="cloud-offline" size={16} color="#fff" />
             <Text style={styles.connectionText}>Reconectando...</Text>
           </View>
-        )}
-
-        {isDirectMessage && (
-          <PrivateChatHeader
-            recipientName={getOtherUserName()}
-            recipientPicture={otherMember?.user?.picture}
-            isOnline={isRecipientOnline}
-          />
         )}
 
         {/* FlatList ocupa todo el espacio disponible */}
