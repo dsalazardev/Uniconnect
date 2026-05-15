@@ -43,7 +43,12 @@ export const SessionCreateForm: React.FC<SessionCreateFormProps> = ({ onSubmit, 
     try {
       await onSubmit(dto);
     } catch (err: any) {
-      setError(err.message || 'Error al crear la sesión.');
+      // Axios wraps the response — extract the NestJS validation message
+      const apiMessage = err?.response?.data?.message;
+      const readable = Array.isArray(apiMessage)
+        ? apiMessage.join(' · ')
+        : (apiMessage ?? err.message ?? 'Error al crear la sesión.');
+      setError(readable);
     } finally {
       setSubmitting(false);
     }
@@ -81,6 +86,7 @@ export const SessionCreateForm: React.FC<SessionCreateFormProps> = ({ onSubmit, 
           className={styles.input}
           type="datetime-local"
           value={startDatetime}
+          min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
           onChange={(e) => setStartDatetime(e.target.value)}
         />
       </div>

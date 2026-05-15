@@ -9,6 +9,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateStudySessionDto {
@@ -29,6 +30,7 @@ export class CreateStudySessionDto {
   startDatetime: string;
 
   @ApiProperty({ example: 90, description: 'Duración en minutos' })
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   durationMinutes: number;
