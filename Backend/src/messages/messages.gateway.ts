@@ -121,6 +121,28 @@ export class MessagesGateway
         );
       }
 
+      // Bug 4 fix: salir del room anterior para evitar recibir presencia de grupos ajenos
+      const previousGroupId = client.data.id_group as number | undefined;
+      const previousPrivateRoom = client.data.privateRoom as string | undefined;
+      if (previousGroupId && previousGroupId !== data.id_group) {
+        const prevRoom = `group-${previousGroupId}`;
+        client.leave(prevRoom);
+        this.server.to(prevRoom).emit('user:presence', {
+          id_user: data.id_user,
+          status: 'offline',
+          last_seen: new Date(),
+        });
+        this.logger.log(`User ${data.id_user} left previous room: ${prevRoom}`);
+      }
+      if (previousPrivateRoom) {
+        client.leave(previousPrivateRoom);
+        this.server.to(previousPrivateRoom).emit('user:presence', {
+          id_user: data.id_user,
+          status: 'offline',
+          last_seen: new Date(),
+        });
+      }
+
       const socketData: SocketData = {
         id_user: data.id_user,
         id_membership: membershipId,
@@ -152,10 +174,12 @@ export class MessagesGateway
         where: { id_group: data.id_group, is_direct_message: true },
         include: { memberships: { select: { id_user: true } } },
       });
+      let privateRoom: string | undefined;
       if (dmGroup && dmGroup.memberships.length === 2) {
         const [u1, u2] = dmGroup.memberships.map((m) => m.id_user!).sort((a, b) => a - b);
-        const privateRoom = `private-${u1}-${u2}`;
+        privateRoom = `private-${u1}-${u2}`;
         client.join(privateRoom);
+        client.data.privateRoom = privateRoom;
         this.logger.log(`User ${data.id_user} joined private room: ${privateRoom}`);
       }
 
@@ -173,12 +197,27 @@ export class MessagesGateway
         message: 'Usuario conectado',
       });
 
-      // Emitir evento de presencia online
+      // Emitir evento de presencia online al room
       this.server.to(roomName).emit('user:presence', {
         id_user: data.id_user,
         status: 'online',
         last_seen: new Date(),
       });
+
+      // Bug 2 fix: emitir a este nuevo socket la presencia de quienes ya están en el room
+      // (de lo contrario B no ve que A ya estaba online al unirse después)
+      const roomSockets = await this.server.in(roomName).fetchSockets();
+      for (const existingSocket of roomSockets) {
+        if (existingSocket.id === client.id) continue;
+        const existingUserId = existingSocket.data?.id_user as number | undefined;
+        if (existingUserId && this.sessionManager.isUserOnline(existingUserId)) {
+          client.emit('user:presence', {
+            id_user: existingUserId,
+            status: 'online',
+            last_seen: new Date(),
+          });
+        }
+      }
 
       return { success: true, message: 'Authenticated', id_membership: membershipId };
     } catch (error) {
@@ -663,22 +702,22 @@ export class MessagesGateway
         return { error: 'Usuario no autenticado' };
       }
 
-      // Throttling: verificar si han pasado 5 segundos desde la última emisión
-      const now = Date.now();
-      const lastEmit = this.presenceThrottle.get(id_user);
-      
-      if (lastEmit && now - lastEmit < this.PRESENCE_THROTTLE_MS) {
-        this.logger.debug(
-          `Presence update throttled for user ${id_user} (${now - lastEmit}ms since last)`,
-        );
-        return { success: true, throttled: true };
+      // Bug 3 fix: 'offline' siempre pasa sin throttle para que al salir del chat
+      // el otro usuario lo vea en tiempo real sin esperar los 5 segundos
+      if (data.status !== 'offline') {
+        const now = Date.now();
+        const lastEmit = this.presenceThrottle.get(id_user);
+        if (lastEmit && now - lastEmit < this.PRESENCE_THROTTLE_MS) {
+          this.logger.debug(
+            `Presence update throttled for user ${id_user} (${now - lastEmit}ms since last)`,
+          );
+          return { success: true, throttled: true };
+        }
+        this.presenceThrottle.set(id_user, now);
       }
 
       // Actualizar presencia en ChatSessionManager
       this.sessionManager.setUserPresence(id_user, data.status);
-
-      // Actualizar timestamp de throttling
-      this.presenceThrottle.set(id_user, now);
 
       // Emitir evento a todos los usuarios en el room del grupo
       const roomName = `group-${id_group}`;

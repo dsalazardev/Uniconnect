@@ -403,6 +403,9 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl, recip
 
     // Cleanup
     return () => {
+      // Bug 3 fix: notificar al servidor que el usuario salió del chat para que
+      // el otro participante vea "Desconectado" sin esperar al cierre del socket
+      websocketService.emit('user:presence', { status: 'offline' });
       websocketService.setOnReconnectCallback(null);
       websocketService.off('user:connected', handleUserConnected);
       websocketService.off('user:presence', handleUserPresence);
