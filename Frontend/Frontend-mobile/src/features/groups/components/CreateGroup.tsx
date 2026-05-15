@@ -108,9 +108,6 @@ export const CreateGroupModal = ({
     setSelectedCourseId(courseId);
     setShowCourseDropdown(false);
     setInlineError(null);
-    if ((groupsPerCourse[courseId] ?? 0) >= 3) {
-      setInlineError('Ya perteneces a 3 grupos para esta materia. No puedes crear otro.');
-    }
   };
 
   const selectedCourse = courses?.find((c: Course) => c.id_course === selectedCourseId);
@@ -131,6 +128,16 @@ export const CreateGroupModal = ({
               <Ionicons name="close" size={28} color="#333" />
             </TouchableOpacity>
           </View>
+
+          {/* Aviso de límite por materia */}
+          {selectedCourseAtLimit && (
+            <View style={styles.limitWarningBanner}>
+              <Ionicons name="warning-outline" size={16} color="#F59E0B" />
+              <Text style={styles.limitWarningText}>
+                Ya perteneces a 3 grupos en esta materia. No puedes crear otro.
+              </Text>
+            </View>
+          )}
 
           {/* Body */}
           <ScrollView
@@ -224,24 +231,6 @@ export const CreateGroupModal = ({
                     </View>
                   )}
 
-                  {selectedCourseId != null && (
-                    <View style={[
-                      styles.courseLimitBadge,
-                      selectedCourseAtLimit && styles.courseLimitBadgeAtLimit,
-                    ]}>
-                      <Ionicons
-                        name="albums-outline"
-                        size={13}
-                        color={selectedCourseAtLimit ? "#F59E0B" : "#D9B97E"}
-                      />
-                      <Text style={[
-                        styles.courseLimitBadgeText,
-                        selectedCourseAtLimit && styles.courseLimitBadgeTextAtLimit,
-                      ]}>
-                        {groupsPerCourse[selectedCourseId] ?? 0} de 3 grupos en esta materia
-                      </Text>
-                    </View>
-                  )}
                 </>
               )}
             </View>
@@ -441,30 +430,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  courseLimitBadge: {
+  limitWarningBanner: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+    marginHorizontal: 20,
     marginTop: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(217, 185, 126, 0.1)",
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "rgba(217, 185, 126, 0.25)",
-    alignSelf: "flex-start",
-  },
-  courseLimitBadgeAtLimit: {
-    backgroundColor: "rgba(245, 158, 11, 0.12)",
     borderColor: "rgba(245, 158, 11, 0.35)",
   },
-  courseLimitBadgeText: {
-    fontSize: 12,
-    color: "#D9B97E",
-    fontWeight: "500",
-  },
-  courseLimitBadgeTextAtLimit: {
+  limitWarningText: {
+    flex: 1,
+    fontSize: 13,
     color: "#F59E0B",
+    fontWeight: "500",
+    textAlign: "center",
   },
   errorBanner: {
     flexDirection: "row",

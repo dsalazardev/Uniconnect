@@ -8,6 +8,7 @@ interface CreateGroupModalProps {
   onSave: (groupData: { name: string; description: string; id_course: number }) => Promise<void>;
   isCreating?: boolean;
   courses?: Array<{ id_course: number; name: string }>;
+  groupsPerCourse?: Record<number, number>;
 }
 
 export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
@@ -16,11 +17,15 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   onSave,
   isCreating = false,
   courses = [],
+  groupsPerCourse = {},
 }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedCourseAtLimit =
+    selectedCourseId != null && (groupsPerCourse[selectedCourseId] ?? 0) >= 3;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +78,12 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         </div>
 
         <form onSubmit={handleSave} className={styles.form}>
-          {error && <div className={styles.errorBanner}>{error}</div>}
+          {selectedCourseAtLimit && (
+            <div className={styles.limitWarningBanner}>
+              Ya perteneces a 3 grupos en esta materia. No puedes crear otro.
+            </div>
+          )}
+          {error && !selectedCourseAtLimit && <div className={styles.errorBanner}>{error}</div>}
 
           <div className={styles.inputGroup}>
             <label className={styles.label}>Nombre del grupo *</label>
@@ -104,7 +114,11 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             <select
               className={styles.input}
               value={selectedCourseId || ''}
-              onChange={(e) => setSelectedCourseId(Number(e.target.value))}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                setSelectedCourseId(id || null);
+                setError(null);
+              }}
               disabled={isCreating}
             >
               <option value="">Selecciona un curso</option>
@@ -114,6 +128,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                 </option>
               ))}
             </select>
+
           </div>
 
           <div className={styles.actions}>
@@ -128,7 +143,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             <button
               type="submit"
               className={`${styles.button} ${styles.submitButton}`}
-              disabled={isCreating}
+              disabled={isCreating || selectedCourseAtLimit}
             >
               {isCreating ? 'Creando...' : 'Crear Grupo'}
             </button>
