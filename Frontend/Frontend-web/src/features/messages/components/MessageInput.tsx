@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, Paperclip, BarChart2 } from 'lucide-react';
 import { filesService } from '../services/files.service';
+import { showToast } from '@/lib/toast';
 import styles from './MessageInput.module.css';
 
 interface MessageInputProps {
@@ -76,7 +77,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       await filesService.uploadFiles(groupId, Array.from(files));
     } catch (err) {
       console.error('[MessageInput] Error uploading files:', err);
-      alert('Error al subir el archivo. Inténtalo de nuevo.');
+      showToast.error('Error', 'No se pudo subir el archivo. Inténtalo de nuevo.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
