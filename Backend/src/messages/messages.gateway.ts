@@ -10,11 +10,16 @@ import {
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from './messages.service';
 import { SendMessageDto, MessageEventDto, MessageReadDto, UserPresenceDto, GroupActivityDto } from './dto/websocket-message.dto';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { SocketData } from './types/SocketData';
 import { ChatSessionManager } from './managers/chat-session.manager';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContentModeration } from './decorators/content-moderation.decorator';
+import { VALIDACION_CHAIN_TOKEN } from './application/messages.service';
+import type { IValidadorMensajeHandler } from './domain/chain-of-responsibility/interfaces';
+import { BaseMessage } from './domain/decorator/base-message';
+import { FileMessageDecorator } from './domain/decorator/file-message.decorator';
+import { MentionMessageDecorator } from './domain/decorator/mention-message.decorator';
 
 @WebSocketGateway({
   cors: {
@@ -36,6 +41,8 @@ export class MessagesGateway
   constructor(
     private messagesService: MessagesService,
     private prisma: PrismaService,
+    @Inject(VALIDACION_CHAIN_TOKEN)
+    private readonly validacionChain: IValidadorMensajeHandler,
   ) {}
 
   afterInit(server: Server) {
@@ -221,6 +228,7 @@ export class MessagesGateway
       // Crear DTO con el id_membership correcto de la sesión
       const createMessageDto = {
         id_membership: id_membership,
+        sender_id: id_user,
         text_content: data.text_content,
         attachments: data.attachments || null,
         files: data.files || [],
@@ -851,14 +859,60 @@ export class MessagesGateway
         position: i,
       }));
 
+      const resolvedMentions = data.mentions?.length ? data.mentions : mentions;
+      const resolvedFiles = data.files || [];
+
+      // ── Cadena de validación (US-CH01) ────────────────────────────────────
+      // Se ejecuta ANTES de persistir para rechazar sin tocar la BD
+      const dtoValidacion = {
+        text_content: data.text_content,
+        sender_id,
+        recipient_id: data.recipient_id,
+        mentions: resolvedMentions,
+        files: resolvedFiles.map((f: any) => ({
+          url: f.url,
+          name: f.file_name,
+          mimeType: f.mime_type,
+          size: f.size,
+        })),
+      };
+
+      const resultado = this.validacionChain.manejar(dtoValidacion);
+      if (!resultado.valido) {
+        client.emit('message:send:error', {
+          error: resultado.mensaje ?? resultado.codigoError,
+          codigoError: resultado.codigoError,
+        });
+        return { error: resultado.mensaje, codigoError: resultado.codigoError };
+      }
+
+      // ── Decoradores Sprint 3 ───────────────────────────────────────────────
+      // Generan rendered_content para enriquecer el evento emitido al cliente
+      let msgObj: any = new BaseMessage(data.text_content || '', sender_id, new Date());
+      if (resolvedFiles.length > 0) {
+        msgObj = new FileMessageDecorator(
+          msgObj,
+          resolvedFiles.map((f: any) => ({
+            url: f.url,
+            name: f.file_name,
+            mimeType: f.mime_type,
+            size: f.size,
+          })),
+        );
+      }
+      if (resolvedMentions.length > 0) {
+        msgObj = new MentionMessageDecorator(msgObj, resolvedMentions);
+      }
+      const rendered_content = msgObj.render();
+
       const createMessageDto = {
         id_membership,
         sender_id,
         recipient_id: data.recipient_id,
         text_content: data.text_content,
         attachments: null,
-        files: data.files || [],
-        mentions: data.mentions?.length ? data.mentions : mentions,
+        files: resolvedFiles,
+        mentions: resolvedMentions,
       };
 
       const message = await this.messagesService.create(createMessageDto);
@@ -884,6 +938,7 @@ export class MessagesGateway
         id_message: message.id_message,
         id_membership: message.id_membership!,
         text_content: message.text_content || '',
+        rendered_content,
         send_at: message.send_at ?? new Date(),
         attachments: message.attachments || null,
         files: filesArray,

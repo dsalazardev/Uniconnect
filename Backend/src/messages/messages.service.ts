@@ -15,8 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { IValidadorMensajeHandler } from './domain/chain-of-responsibility/interfaces';
 import { MessageDto } from './dto/message.dto';
 import { FileAttachmentDto } from './dto/file-attachment.dto';
-
-export const VALIDACION_CHAIN_REST_TOKEN = 'VALIDACION_CHAIN_REST';
+import { VALIDACION_CHAIN_TOKEN } from './application/messages.service';
 
 /** Regex para capturar @nombre (letras, números, guiones, puntos) */
 const MENTION_REGEX = /@([\w.\-]+)/g;
@@ -27,7 +26,7 @@ export class MessagesService {
     private messageRepository: MessageRepository,
     private eventEmitter: EventEmitter2,
     private prisma: PrismaService,
-    @Inject(VALIDACION_CHAIN_REST_TOKEN)
+    @Inject(VALIDACION_CHAIN_TOKEN)
     private readonly validacionChain: IValidadorMensajeHandler,
   ) {}
 
@@ -36,6 +35,8 @@ export class MessagesService {
     const dtoParaValidar: MessageDto = {
       text_content: createMessageDto.text_content,
       id_membership: createMessageDto.id_membership,
+      sender_id: createMessageDto.sender_id,
+      recipient_id: createMessageDto.recipient_id,
       mentions: createMessageDto.mentions ?? [],
       files: (createMessageDto.files ?? []).map(
         (f) =>
