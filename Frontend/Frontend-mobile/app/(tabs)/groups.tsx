@@ -134,7 +134,7 @@ export default function GroupsScreen() {
 
   // Calcular cuántos grupos tiene por materia (para mostrar el límite)
   const groupsPerCourse = myGroups.reduce((acc: any, group: Group) => {
-    const courseId = group.course?.id_course;
+    const courseId = group.id_course;
     if (courseId) {
       acc[courseId] = (acc[courseId] || 0) + 1;
     }
