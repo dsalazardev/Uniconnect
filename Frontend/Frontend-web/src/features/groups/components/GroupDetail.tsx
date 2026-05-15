@@ -270,6 +270,9 @@ export const GroupDetail: React.FC = () => {
                 onDelete={handleDeleteMessage}
                 onFilePress={(file) => chat.downloadFile(file)}
                 onVotePoll={chat.castVote}
+                onLoadMore={chat.loadMoreMessages}
+                hasMore={chat.hasMore}
+                isLoadingMore={chat.isLoadingMore}
               />
               <MessageInput
                 onSend={handleSendOrEdit}

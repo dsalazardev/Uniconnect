@@ -248,3 +248,21 @@
   opacity: 0.7;
   flex-shrink: 0;
 }
+
+/* Infinite scroll */
+.sentinel {
+  height: 1px;
+  flex-shrink: 0;
+}
+
+.topLoader {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+
+.topLoaderSpinner {
+  color: #D9B97E;
+  animation: spin 1s linear infinite;
+}
