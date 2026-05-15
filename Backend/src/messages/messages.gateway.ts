@@ -306,7 +306,11 @@ export class MessagesGateway
         (typeof response === 'object' && response !== null
           ? (response as any).codigoError
           : null) ?? 'ERROR_DESCONOCIDO';
-      return { error: error?.message || 'Error al enviar mensaje', codigoError };
+      const errorMessage = error?.message || 'Error al enviar mensaje';
+      // Emitir evento de error directamente al socket emisor para que el cliente
+      // pueda revertir el mensaje optimista y mostrar el código de error específico
+      client.emit('message:send:error', { error: errorMessage, codigoError });
+      return { error: errorMessage, codigoError };
     }
   }
 

@@ -13,6 +13,17 @@ import {
   type CreatePollDto,
 } from '@uniconnect/shared';
 
+const ERROR_CODE_MESSAGES: Record<string, string> = {
+  MSG_TAMANO_EXCEDIDO: 'El mensaje es demasiado largo.',
+  MSG_CONTENIDO_VACIO: 'El mensaje no puede estar vacío.',
+  MSG_CONTENIDO_INAPROPIADO: 'El mensaje contiene contenido inapropiado.',
+  MSG_MENCIONES_EXCEDIDAS: 'No puedes mencionar a más de 10 personas.',
+  MSG_MENCIONES_INVALIDAS: 'Una o más menciones no son válidas.',
+  MSG_PERMISOS_INSUFICIENTES: 'No tienes permiso para enviar mensajes en este grupo.',
+  MSG_ADJUNTO_TAMANO_EXCEDIDO: 'El archivo supera el límite de 10 MB.',
+  MSG_ADJUNTO_TIPO_NO_PERMITIDO: 'Tipo de archivo no permitido.',
+};
+
 interface UseChatOptions {
   groupId: number;
   userId: number;
@@ -34,6 +45,8 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   // Cursor: id_message del mensaje más antiguo cargado
   const oldestMessageIdRef = useRef<number | null>(null);
+  // ID temporal del último mensaje optimista enviado (para rollback en error)
+  const lastOptimisticIdRef = useRef<number | null>(null);
 
   // Cargar mensajes iniciales
   const loadMessages = useCallback(async () => {
@@ -253,6 +266,24 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     websocketService.on(POLL_WS_EVENTS.CLOSED, handlePollClosed);
     websocketService.on('poll:created', handlePollCreated);
 
+    // Escuchar errores de validación al enviar mensaje
+    const handleSendError = (data: { error: string; codigoError: string }) => {
+      // Revertir el mensaje optimista si existe
+      if (lastOptimisticIdRef.current !== null) {
+        setMessages((prev) =>
+          prev.filter((msg) => msg.id_message !== lastOptimisticIdRef.current)
+        );
+        lastOptimisticIdRef.current = null;
+      }
+      // Limpiar el texto del pendingRef (puede haber quedado sin confirmar)
+      pendingMessagesRef.current.clear();
+
+      const userMessage =
+        ERROR_CODE_MESSAGES[data.codigoError] ?? data.error ?? 'Error al enviar el mensaje.';
+      Alert.alert('No se pudo enviar', userMessage);
+    };
+    websocketService.on('message:send:error', handleSendError);
+
     // Cargar mensajes iniciales
     loadMessages();
 
@@ -267,6 +298,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
       websocketService.off(POLL_WS_EVENTS.CLOSED, handlePollClosed);
       websocketService.off('poll:created', handlePollCreated);
+      websocketService.off('message:send:error', handleSendError);
     };
   }, [groupId, userId, serverUrl, loadMessages]);
 
@@ -305,7 +337,10 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Agregar mensaje optimista al inicio (índice 0 = más nuevo con inverted)
     setMessages((prev) => [optimisticMessage, ...prev]);
-    
+
+    // Guardar ID temporal para poder revertirlo si el servidor rechaza el mensaje
+    lastOptimisticIdRef.current = optimisticMessage.id_message;
+
     // Marcar este mensaje como pendiente
     pendingMessagesRef.current.add(text.trim());
 

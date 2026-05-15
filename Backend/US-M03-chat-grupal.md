@@ -106,3 +106,71 @@ Implementa lo siguiente:
 
 **Estimación:**
 2 horas
+
+---
+
+## FRONTEND WEB
+
+### 5. Título: Mostrar codigoError específico y reemplazar alert() en el chat web
+
+**Prompt Sugerido:**
+En `Frontend/Frontend-web/src/features/messages/`, el envío de mensajes vía WebSocket no maneja la respuesta de error del gateway, y los errores de archivos usan `alert()` del navegador en lugar del sistema de Toast. Después de los cambios del backend (tarea 1), el gateway retorna `{ error: string, codigoError: string }` cuando un mensaje viola una regla.
+
+Implementa lo siguiente:
+
+1. En `Frontend/Frontend-web/src/features/messages/hooks/useChat.tsx`, en la función `sendMessage()`, captura la respuesta/acknowledgement del evento `message:send` de WebSocket. Si la respuesta contiene `error` o `codigoError`, muestra el mensaje correspondiente al usuario usando `showToast.error()` (de `src/lib/toast.ts`).
+2. En el mismo hook o en un archivo de constantes dedicado (`src/features/messages/constants/errorCodes.ts`), crea un mapa de códigos de error a mensajes en español:
+   - `MSG_TAMANO_EXCEDIDO` → "El mensaje es demasiado largo."
+   - `MSG_CONTENIDO_VACIO` → "El mensaje no puede estar vacío."
+   - `MSG_CONTENIDO_INAPROPIADO` → "El mensaje contiene contenido inapropiado."
+   - `MSG_MENCIONES_EXCEDIDAS` → "No puedes mencionar a más de 10 personas."
+   - `MSG_MENCIONES_INVALIDAS` → "Una o más menciones no son válidas."
+   - `MSG_PERMISOS_INSUFICIENTES` → "No tienes permiso para enviar mensajes en este grupo."
+   - `MSG_ADJUNTO_TAMANO_EXCEDIDO` → "El archivo supera el límite de 10 MB."
+   - `MSG_ADJUNTO_TIPO_NO_PERMITIDO` → "Tipo de archivo no permitido."
+   - Cualquier otro código → Mostrar el mensaje genérico del backend.
+3. En `Frontend/Frontend-web/src/features/messages/components/MessageInput.tsx`, línea 79 aproximadamente, reemplaza el `alert('Error al subir el archivo...')` por `showToast.error('Error', 'No se pudo subir el archivo. Inténtalo de nuevo.')`.
+4. No modificar `websocket.service.ts`, el gateway de backend, ni ningún otro componente ajeno al chat web.
+
+**Commit:**
+`feat(chat-web): mostrar codigoError específico y reemplazar alert() por Toast en errores del chat`
+
+**Estimación:**
+2 horas
+
+---
+
+### 6. Título: Sincronizar mensajes perdidos al reconectar WebSocket en el chat web
+
+**Prompt Sugerido:**
+En `Frontend/Frontend-web/src/features/messages/hooks/useChat.tsx`, el callback de reconexión ya está registrado (`setOnReconnectCallback(() => loadMessages())`), pero `loadMessages()` descarga los últimos 50 mensajes desde el inicio sin filtrar por timestamp. Esto no sincroniza eficientemente los mensajes perdidos durante la desconexión. Además, el endpoint del shared (`Frontend/shared/src/api/endpoints/messages.ts`) no incluye el parámetro `since` que el backend ya soporta.
+
+Implementa lo siguiente:
+
+1. En `Frontend/shared/src/api/endpoints/messages.ts`, en la función que construye la URL de `GET_RECENT_MESSAGES`, agrega soporte para el parámetro opcional `since`:
+   ```typescript
+   GET_RECENT_MESSAGES: (groupId: number, limit = 50, beforeId?: number, since?: number) => {
+     const base = `/messages/group/${groupId}/recent?limit=${limit}`;
+     if (since) return `${base}&since=${since}`;
+     return beforeId ? `${base}&beforeId=${beforeId}` : base;
+   }
+   ```
+2. En `useChat.tsx`, agrega un `ref` llamado `lastMessageTimestampRef` que guarde el `send_at` (como Unix timestamp en ms) del mensaje más reciente recibido. Actualízalo al cargar el historial inicial y cada vez que llegue un `message:new` por WebSocket.
+3. Reemplaza el callback de reconexión existente para que use el timestamp guardado:
+   ```typescript
+   websocketService.setOnReconnectCallback(() => {
+     if (lastMessageTimestampRef.current) {
+       loadMissedMessages(lastMessageTimestampRef.current);
+     } else {
+       loadMessages();
+     }
+   });
+   ```
+4. Crea la función `loadMissedMessages(since: number)` que llame al servicio con el parámetro `since`, y agregue los mensajes recibidos al estado filtrando duplicados por `id_message`.
+5. No modificar `websocket.service.ts` ni ningún componente de UI del chat web.
+
+**Commit:**
+`feat(chat-web): sincronizar mensajes perdidos durante desconexión usando parámetro since`
+
+**Estimación:**
+2 horas
