@@ -18,7 +18,7 @@ En `Frontend-web/src/features/groups/components/MemberList.tsx` el botón "Mensa
 `feat(chat-privado): integrar botón de mensaje privado con hook useDirectMessage en GroupDetail`
 
 **Estimación:**
-3 horas
+2 horas
 
 ---
 
@@ -38,7 +38,7 @@ En `Frontend-web/src/features/messages/components/MessageList.tsx` actualmente s
 `feat(chat): implementar scroll infinito hacia atrás para historial paginado en MessageList`
 
 **Estimación:**
-4 horas
+1 horas
 
 ---
 
@@ -55,7 +55,7 @@ El backend ya emite el evento `user:presence` desde `messages.gateway.ts` y el `
 `feat(chat-privado): agregar indicador de presencia en línea en el header del chat privado`
 
 **Estimación:**
-3 horas
+1 hora
 
 ---
 
@@ -79,7 +79,7 @@ En `Backend/src/messages/messages.gateway.ts` solo existe el handler `@Subscribe
 `feat(mensajes-privados): agregar handler WebSocket private:send y extender CreateMessageDto`
 
 **Estimación:**
-5 horas
+1.5 horas
 
 ---
 

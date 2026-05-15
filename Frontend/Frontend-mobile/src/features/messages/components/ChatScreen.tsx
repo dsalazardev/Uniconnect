@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MessageBubble } from './MessageBubble';
 import { FilePickerModal } from './FilePickerModal';
 import { PollCreationModal } from './PollCreationModal';
+import { PrivateChatHeader } from './PrivateChatHeader';
 import { useChat } from '../hooks/useChat';
 import { Message } from '../types';
 import { filesService } from '../services/files.service';
@@ -80,18 +81,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   // Determinar si es un chat privado
   const isDirectMessage = group?.is_direct_message ?? false;
 
-  // Obtener el nombre del otro usuario en chats privados
-  const getOtherUserName = (): string => {
-    if (!isDirectMessage || !group?.memberships) {
-      return group?.name ?? 'Chat';
-    }
+  // Datos del destinatario en chats privados
+  const otherMember = isDirectMessage
+    ? group?.memberships?.find((m) => m.id_user !== userId)
+    : undefined;
 
-    const otherMember = group.memberships.find(
-      (m) => m.id_user !== userId
-    );
-
-    return otherMember?.user?.full_name ?? 'Usuario';
-  };
+  const getOtherUserName = (): string => otherMember?.user?.full_name ?? group?.name ?? 'Chat';
 
   // Nombre a mostrar en el header (se usará desde el componente padre)
   const displayName = isDirectMessage ? getOtherUserName() : group?.name ?? 'Chat';
@@ -104,6 +99,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     loading,
     error,
     isConnected,
+    isRecipientOnline,
     typingUsers,
     hasMore,
     isLoadingMore,
@@ -121,6 +117,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     token,
     userFullName,
     serverUrl,
+    recipientUserId: otherMember?.id_user,
   });
 
   // Con inverted FlatList no necesitamos scroll manual — ya empieza abajo
@@ -284,6 +281,14 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             <Ionicons name="cloud-offline" size={16} color="#fff" />
             <Text style={styles.connectionText}>Reconectando...</Text>
           </View>
+        )}
+
+        {isDirectMessage && (
+          <PrivateChatHeader
+            recipientName={getOtherUserName()}
+            recipientPicture={otherMember?.user?.picture}
+            isOnline={isRecipientOnline}
+          />
         )}
 
         {/* FlatList ocupa todo el espacio disponible */}

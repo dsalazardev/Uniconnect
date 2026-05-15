@@ -10,6 +10,7 @@ import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { GroupAdminPanel } from './GroupAdminPanel';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
+import { PrivateChatHeader } from '@/features/messages/components/PrivateChatHeader';
 import { useChat } from '@/features/messages/hooks/useChat.tsx';
 import { ConfirmModal } from '@/components/ConfirmModal';
 import { LoadingSpinner } from '@/components/elements';
@@ -65,6 +66,7 @@ export const GroupDetail: React.FC = () => {
     userId: currentUserId,
     token,
     userFullName: currentUser?.full_name || 'Usuario',
+    recipientUserId: otherUser?.id_user,
   });
 
   // Issue 3 fix: reset panel when navigating between group/chat routes
@@ -261,6 +263,13 @@ export const GroupDetail: React.FC = () => {
         {isMember ? (
           /* Member: full-screen chat */
           <div className={styles.chatSection}>
+            {isDirectMessage && (
+              <PrivateChatHeader
+                recipientName={otherUserName}
+                recipientPicture={otherUser?.user?.picture}
+                isOnline={chat.isRecipientOnline}
+              />
+            )}
             <div className={styles.chatContainer}>
               <MessageList
                 messages={chat.messages}
