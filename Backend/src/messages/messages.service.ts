@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
   Inject,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -180,10 +181,23 @@ export class MessagesService {
   }
 
   /**
-   * Obtener mensajes recientes de un grupo (últimos N mensajes)
-   * Soporta paginación por cursor: beforeId = id_message del más antiguo ya cargado
+   * Obtener mensajes recientes de un grupo o conversación privada (paginación por cursor).
+   * Valida que userId sea miembro del grupo antes de devolver datos —
+   * esto protege tanto grupos normales como chats privados (is_direct_message: true).
    */
   async findRecentByGroup(id_group: number, limit: number = 50, beforeId?: number, userId?: number, since?: number) {
+    if (!userId) {
+      throw new UnauthorizedException('Se requiere autenticación para acceder al historial.');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { id_group, id_user: userId },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('No tienes acceso a este grupo o conversación privada.');
+    }
+
     return this.messageRepository.findRecentByGroup(id_group, limit, beforeId, userId, since);
   }
 
