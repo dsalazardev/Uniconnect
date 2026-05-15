@@ -153,7 +153,7 @@ export class MessagesGateway
         include: { memberships: { select: { id_user: true } } },
       });
       if (dmGroup && dmGroup.memberships.length === 2) {
-        const [u1, u2] = dmGroup.memberships.map((m) => m.id_user).sort((a, b) => a - b);
+        const [u1, u2] = dmGroup.memberships.map((m) => m.id_user!).sort((a, b) => a - b);
         const privateRoom = `private-${u1}-${u2}`;
         client.join(privateRoom);
         this.logger.log(`User ${data.id_user} joined private room: ${privateRoom}`);
