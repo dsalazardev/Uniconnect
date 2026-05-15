@@ -301,7 +301,12 @@ export class MessagesGateway
       return { success: true, message: messageEvent };
     } catch (error) {
       this.logger.error('Error sending message:', error);
-      return { error: 'Error al enviar mensaje' };
+      const response = error?.getResponse?.();
+      const codigoError =
+        (typeof response === 'object' && response !== null
+          ? (response as any).codigoError
+          : null) ?? 'ERROR_DESCONOCIDO';
+      return { error: error?.message || 'Error al enviar mensaje', codigoError };
     }
   }
 

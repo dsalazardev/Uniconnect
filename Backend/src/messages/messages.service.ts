@@ -48,7 +48,10 @@ export class MessagesService {
 
     const resultado = this.validacionChain.manejar(dtoParaValidar);
     if (!resultado.valido) {
-      throw new BadRequestException(resultado.mensaje ?? resultado.codigoError);
+      throw new BadRequestException({
+        message: resultado.mensaje ?? resultado.codigoError,
+        codigoError: resultado.codigoError,
+      });
     }
 
     const message = await this.messageRepository.createWithFiles(
