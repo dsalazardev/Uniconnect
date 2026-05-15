@@ -13,5 +13,11 @@ export class CreateMessageDto {
     size: number;
     id_group: number;
   }>;
+
+  mentions?: Array<{
+    userId: number;
+    displayName: string;
+    position: number;
+  }>;
 }
 

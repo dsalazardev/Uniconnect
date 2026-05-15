@@ -35,6 +35,7 @@ export class MessagesService {
     const dtoParaValidar: MessageDto = {
       text_content: createMessageDto.text_content,
       id_membership: createMessageDto.id_membership,
+      mentions: createMessageDto.mentions ?? [],
       files: (createMessageDto.files ?? []).map(
         (f) =>
           ({
