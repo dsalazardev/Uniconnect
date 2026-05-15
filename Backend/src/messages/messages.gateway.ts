@@ -196,12 +196,21 @@ export class MessagesGateway
         return { error: 'Usuario no autenticado. Llama a authenticate primero.' };
       }
 
+      // Extraer menciones del texto para que ValidarMencionesHandler pueda contarlas
+      const mentionNames = extractMentions(data.text_content ?? '');
+      const mentions = mentionNames.map((name, i) => ({
+        userId: 0,         // Se resolverá post-creación; aquí solo se valida la cantidad
+        displayName: name,
+        position: i,
+      }));
+
       // Crear DTO con el id_membership correcto de la sesión
       const createMessageDto = {
         id_membership: id_membership,
         text_content: data.text_content,
         attachments: data.attachments || null,
         files: data.files || [],
+        mentions,
       };
 
       // Guardar mensaje en BD

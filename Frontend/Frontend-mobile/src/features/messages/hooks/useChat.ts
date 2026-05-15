@@ -352,6 +352,10 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   // Enviar mensaje (ya no necesita id_membership, el backend lo toma de la sesión)
   const sendMessage = useCallback((text: string, attachments: string = '') => {
     if (!text.trim()) return;
+    if (text.trim().length > 500) {
+      Alert.alert('No se pudo enviar', ERROR_CODE_MESSAGES.MSG_TAMANO_EXCEDIDO);
+      return;
+    }
 
     const messageData: MessageSendData = {
       text_content: text.trim(),
