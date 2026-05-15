@@ -13,8 +13,8 @@ export class GroupBusinessValidator {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Valida que el usuario no haya creado más de 3 grupos para una misma asignatura.
-   * El límite es de 3 grupos por usuario por materia (no global).
+   * Valida que el usuario no pertenezca a más de 3 grupos para una misma asignatura,
+   * sin importar si es propietario o miembro.
    */
   async validateMaxGroupsPerCourse(
     userId: number,
@@ -23,8 +23,12 @@ export class GroupBusinessValidator {
     const groupCount = await this.prisma.group.count({
       where: {
         id_course: courseId,
-        owner_id: userId,
         is_direct_message: false,
+        memberships: {
+          some: {
+            id_user: userId,
+          },
+        },
       },
     });
 
