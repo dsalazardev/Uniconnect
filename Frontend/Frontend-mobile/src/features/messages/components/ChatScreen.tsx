@@ -144,10 +144,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleSend = () => {
     if (!inputText.trim()) return;
 
-    sendMessage(inputText);
-    setInputText('');
-    setIsTyping(false);
-    emitTyping(false, userFullName);
+    const sent = sendMessage(inputText);
+    if (sent !== false) {
+      setInputText('');
+      setIsTyping(false);
+      emitTyping(false, userFullName);
+    }
   };
 
   const handleEmojiSelect = (emoji: string) => {

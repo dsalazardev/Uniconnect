@@ -5,7 +5,7 @@ import { showToast } from '@/lib/toast';
 import styles from './MessageInput.module.css';
 
 interface MessageInputProps {
-  onSend: (text: string) => void;
+  onSend: (text: string) => boolean | void;
   onTyping?: () => void;
   disabled?: boolean;
   placeholder?: string;
@@ -41,8 +41,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() && !disabled) {
-      onSend(text.trim());
-      setText('');
+      const sent = onSend(text.trim());
+      if (sent !== false) setText('');
     }
   };
 

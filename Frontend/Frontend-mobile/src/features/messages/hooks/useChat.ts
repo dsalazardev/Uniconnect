@@ -351,11 +351,26 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
   }, [groupId, userId, serverUrl, loadMessages, loadMissedMessages]);
 
   // Enviar mensaje (ya no necesita id_membership, el backend lo toma de la sesión)
-  const sendMessage = useCallback((text: string, attachments: string = '') => {
-    if (!text.trim()) return;
+  // Retorna false si la validación falla (para que el input no se limpie)
+  const sendMessage = useCallback((text: string, attachments: string = ''): boolean => {
+    if (!text.trim()) return false;
     if (text.trim().length > 500) {
       Alert.alert('No se pudo enviar', ERROR_CODE_MESSAGES.MSG_TAMANO_EXCEDIDO);
-      return;
+      return false;
+    }
+
+    // Validación de menciones en el cliente
+    const rawMentions = (text.match(/@([\w.\-]+)/g) ?? []).map((m) => m.slice(1).toLowerCase());
+    if (rawMentions.length > 0) {
+      const unicos = new Set(rawMentions);
+      if (unicos.size < rawMentions.length) {
+        Alert.alert('No se pudo enviar', ERROR_CODE_MESSAGES.MSG_MENCIONES_DUPLICADAS);
+        return false;
+      }
+      if (unicos.size > 3) {
+        Alert.alert('No se pudo enviar', ERROR_CODE_MESSAGES.MSG_MENCIONES_EXCEDIDAS);
+        return false;
+      }
     }
 
     const messageData: MessageSendData = {
@@ -398,6 +413,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Enviar al servidor
     websocketService.sendMessage(messageData);
+    return true;
   }, [userId, userFullName, groupId]);
 
   // Editar mensaje
