@@ -48,7 +48,7 @@ export default function SessionDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attendance, setAttendance] = useState<AttendanceStatus | null>(null);
-  const [updating, setUpdating] = useState(false);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -69,17 +69,15 @@ export default function SessionDetailScreen() {
     load();
   }, [groupId, instId]);
 
-  const handleAttendance = async (status: AttendanceStatus) => {
-    if (updating) return;
-    setUpdating(true);
-    try {
-      await studySessionsMobileService.updateAttendance(groupId, instId, status);
-      setAttendance(status);
-    } catch (err: any) {
-      console.error('Error updating attendance:', err.message);
-    } finally {
-      setUpdating(false);
-    }
+  const handleAttendance = (status: AttendanceStatus) => {
+    const previous = attendance;
+    setAttendanceError(null);
+    // Optimistic update — refleja el cambio de inmediato
+    setAttendance(status);
+    studySessionsMobileService.updateAttendance(groupId, instId, status).catch(() => {
+      setAttendance(previous);
+      setAttendanceError('Error al guardar. Intenta de nuevo.');
+    });
   };
 
   if (loading) {
@@ -180,41 +178,36 @@ export default function SessionDetailScreen() {
           <View style={styles.rsvpSection}>
             <Text style={styles.rsvpTitle}>Tu asistencia</Text>
 
-            {updating ? (
-              <View style={styles.updatingRow}>
-                <ActivityIndicator size="small" color="#D9B97E" />
-                <Text style={styles.updatingText}>Guardando...</Text>
-              </View>
-            ) : (
-              <View style={styles.rsvpButtons}>
-                {ATTENDANCE_OPTIONS.map((opt) => {
-                  const isActive = attendance === opt.status;
-                  return (
-                    <TouchableOpacity
-                      key={opt.status}
-                      style={[styles.rsvpButton, isActive && styles.rsvpButtonActive]}
-                      onPress={() => handleAttendance(opt.status)}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons
-                        name={opt.icon as any}
-                        size={20}
-                        color={isActive ? '#D9B97E' : opt.color}
-                      />
-                      <Text style={[styles.rsvpLabel, isActive && styles.rsvpLabelActive]}>
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+            <View style={styles.rsvpButtons}>
+              {ATTENDANCE_OPTIONS.map((opt) => {
+                const isActive = attendance === opt.status;
+                return (
+                  <TouchableOpacity
+                    key={opt.status}
+                    style={[styles.rsvpButton, isActive && styles.rsvpButtonActive]}
+                    onPress={() => handleAttendance(opt.status)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name={opt.icon as any}
+                      size={20}
+                      color={isActive ? '#D9B97E' : opt.color}
+                    />
+                    <Text style={[styles.rsvpLabel, isActive && styles.rsvpLabelActive]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-            {attendance && (
+            {attendance && !attendanceError && (
               <Text style={styles.attendanceSaved}>
-                ✓ Respuesta guardada:{' '}
-                {ATTENDANCE_OPTIONS.find((o) => o.status === attendance)?.label}
+                ✓ {ATTENDANCE_OPTIONS.find((o) => o.status === attendance)?.label}
               </Text>
+            )}
+            {attendanceError && (
+              <Text style={styles.attendanceError}>{attendanceError}</Text>
             )}
           </View>
         )}
@@ -282,7 +275,6 @@ const styles = StyleSheet.create({
   },
   rsvpLabel: { fontSize: 12, fontWeight: '600', color: '#9CA3AF' },
   rsvpLabelActive: { color: '#D9B97E' },
-  updatingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
-  updatingText: { fontSize: 13, color: '#9CA3AF' },
   attendanceSaved: { fontSize: 12, color: '#34D399', textAlign: 'center' },
+  attendanceError: { fontSize: 12, color: '#EF4444', textAlign: 'center' },
 });

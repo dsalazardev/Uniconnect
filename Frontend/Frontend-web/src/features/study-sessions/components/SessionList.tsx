@@ -50,11 +50,11 @@ function AttendanceBadge({ status }: { status: AttendanceStatus }) {
 interface RSVPModalProps {
   session: StudySessionInstance;
   onClose: () => void;
-  onSelect: (status: AttendanceStatus) => Promise<void>;
-  loading: boolean;
+  onSelect: (status: AttendanceStatus) => void;
+  error: string | null;
 }
 
-function RSVPModal({ session, onClose, onSelect, loading }: RSVPModalProps) {
+function RSVPModal({ session, onClose, onSelect, error }: RSVPModalProps) {
   const OPTIONS: { status: AttendanceStatus; label: string; color: string }[] = [
     { status: 'CONFIRMED', label: '✓ Asistiré', color: '#34D399' },
     { status: 'DECLINED', label: '✗ No asistiré', color: '#EF4444' },
@@ -100,7 +100,6 @@ function RSVPModal({ session, onClose, onSelect, loading }: RSVPModalProps) {
             return (
               <button
                 key={opt.status}
-                disabled={loading}
                 onClick={() => onSelect(opt.status)}
                 style={{
                   padding: '10px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14,
@@ -115,6 +114,9 @@ function RSVPModal({ session, onClose, onSelect, loading }: RSVPModalProps) {
             );
           })}
         </div>
+        {error && (
+          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#EF4444' }}>{error}</p>
+        )}
 
         <button
           onClick={onClose}
@@ -141,7 +143,7 @@ export const SessionList: React.FC<SessionListProps> = ({
   const [confirmId, setConfirmId] = React.useState<number | null>(null);
   const [cancelling, setCancelling] = React.useState(false);
   const [rsvpSession, setRsvpSession] = React.useState<StudySessionInstance | null>(null);
-  const [rsvpLoading, setRsvpLoading] = React.useState(false);
+  const [rsvpError, setRsvpError] = React.useState<string | null>(null);
 
   const handleConfirmCancel = async () => {
     if (confirmId === null) return;
@@ -154,15 +156,16 @@ export const SessionList: React.FC<SessionListProps> = ({
     }
   };
 
-  const handleRsvpSelect = async (status: AttendanceStatus) => {
+  const handleRsvpSelect = (status: AttendanceStatus) => {
     if (!rsvpSession) return;
-    setRsvpLoading(true);
-    try {
-      await onUpdateAttendance(rsvpSession.id_instance, status);
-      setRsvpSession((prev) => prev ? { ...prev, my_attendance: status } : null);
-    } finally {
-      setRsvpLoading(false);
-    }
+    setRsvpError(null);
+    // Actualizar el modal de inmediato (el hook ya hace el optimistic update en la lista)
+    setRsvpSession((prev) => prev ? { ...prev, my_attendance: status } : null);
+    onUpdateAttendance(rsvpSession.id_instance, status).catch(() => {
+      setRsvpError('Error al guardar. Intenta de nuevo.');
+      // El hook revertirá el estado de la lista; revertimos también el modal
+      setRsvpSession((prev) => prev ? { ...prev, my_attendance: rsvpSession.my_attendance } : null);
+    });
   };
 
   if (sessions.length === 0) {
@@ -234,9 +237,9 @@ export const SessionList: React.FC<SessionListProps> = ({
       {rsvpSession && (
         <RSVPModal
           session={rsvpSession}
-          onClose={() => setRsvpSession(null)}
+          onClose={() => { setRsvpSession(null); setRsvpError(null); }}
           onSelect={handleRsvpSelect}
-          loading={rsvpLoading}
+          error={rsvpError}
         />
       )}
     </>

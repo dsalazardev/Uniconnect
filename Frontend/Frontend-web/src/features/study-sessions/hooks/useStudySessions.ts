@@ -79,14 +79,21 @@ export const useStudySessions = (groupId: number) => {
 
   const updateAttendance = useCallback(
     async (instanceId: number, status: AttendanceStatus) => {
-      await studySessionsService.updateAttendance(groupId, instanceId, status);
+      // Optimistic update — UI cambia de inmediato
       setSessions((prev) =>
         prev.map((s) =>
           s.id_instance === instanceId ? { ...s, my_attendance: status } : s,
         ),
       );
+      try {
+        await studySessionsService.updateAttendance(groupId, instanceId, status);
+      } catch (err) {
+        // Revertir si falla
+        await loadSessions();
+        throw err;
+      }
     },
-    [groupId],
+    [groupId, loadSessions],
   );
 
   return { sessions, loading, error, createSession, cancelInstance, updateAttendance, reload: loadSessions };
