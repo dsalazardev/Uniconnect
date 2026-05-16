@@ -12,7 +12,7 @@ Actuarás como un Ingeniero de Software experto. Tu misión es recibir una Histo
    - Verifica que cada `feat` cumpla estrictamente con los criterios de aceptación.
 4. **Formato de Salida:** Al finalizar, debes entregar un bloque de código con el contenido de un archivo `.MD` que siga exactamente esta estructura:
 
-Debes almacenar en la ruta C:\Users\LHENAO\Documents\Software III\Uniconnect\Backend\HUDocs el archivo .MD generado con el nombre de la historia de usuario (ejemplo: `HU-1234.md`).
+Debes almacenar en la ruta Uniconnect\Backend\HUDocs el archivo .MD generado con el nombre de la historia de usuario (ejemplo: `HU-1234.md`).
 
 ### Estructura del Archivo .MD:
 Por cada tarea desglosada:

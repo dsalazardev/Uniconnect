@@ -2,7 +2,7 @@ import { MessageDto } from '../../../dto/message.dto';
 import { ResultadoValidacion } from '../interfaces/resultado-validacion.interface';
 import { ValidadorMensajeAbstracto } from '../validador-mensaje.abstract';
 
-export const MAX_MENCIONES_POR_MENSAJE = 10;
+export const MAX_MENCIONES_POR_MENSAJE = 1;
 
 export class ValidarMencionesHandler extends ValidadorMensajeAbstracto {
   constructor(private readonly maxMenciones: number = MAX_MENCIONES_POR_MENSAJE) {
