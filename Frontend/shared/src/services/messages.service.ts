@@ -25,18 +25,20 @@ export class MessagesService {
    * @param groupId - Group ID
    * @param limit - Number of messages to fetch (default: 50)
    * @param beforeId - Cursor: id_message of the oldest message already loaded (for pagination)
+   * @param since - Unix timestamp (ms): fetch messages sent after this date (for reconnection sync)
    */
   async getRecentMessages(
     groupId: number,
     limit: number = 50,
-    beforeId?: number
+    beforeId?: number,
+    since?: number
   ): Promise<{ messages: Message[]; hasMore: boolean }> {
     try {
-      const endpoint = MESSAGES_ENDPOINTS.GET_RECENT_MESSAGES(groupId, limit, beforeId);
+      const endpoint = MESSAGES_ENDPOINTS.GET_RECENT_MESSAGES(groupId, limit, beforeId, since);
       const response = await this.api.get(endpoint);
       return response.data;
     } catch (error: unknown) {
-      const endpoint = MESSAGES_ENDPOINTS.GET_RECENT_MESSAGES(groupId, limit, beforeId);
+      const endpoint = MESSAGES_ENDPOINTS.GET_RECENT_MESSAGES(groupId, limit, beforeId, since);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[MessagesService] ❌ GET ${endpoint} - Error:`, errorMessage);
       throw error;

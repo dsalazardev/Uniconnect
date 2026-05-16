@@ -35,6 +35,7 @@ export class MessagesService {
     const dtoParaValidar: MessageDto = {
       text_content: createMessageDto.text_content,
       id_membership: createMessageDto.id_membership,
+      mentions: createMessageDto.mentions ?? [],
       files: (createMessageDto.files ?? []).map(
         (f) =>
           ({
@@ -48,7 +49,10 @@ export class MessagesService {
 
     const resultado = this.validacionChain.manejar(dtoParaValidar);
     if (!resultado.valido) {
-      throw new BadRequestException(resultado.mensaje ?? resultado.codigoError);
+      throw new BadRequestException({
+        message: resultado.mensaje ?? resultado.codigoError,
+        codigoError: resultado.codigoError,
+      });
     }
 
     const message = await this.messageRepository.createWithFiles(
@@ -179,8 +183,8 @@ export class MessagesService {
    * Obtener mensajes recientes de un grupo (últimos N mensajes)
    * Soporta paginación por cursor: beforeId = id_message del más antiguo ya cargado
    */
-  async findRecentByGroup(id_group: number, limit: number = 50, beforeId?: number, userId?: number) {
-    return this.messageRepository.findRecentByGroup(id_group, limit, beforeId, userId);
+  async findRecentByGroup(id_group: number, limit: number = 50, beforeId?: number, userId?: number, since?: number) {
+    return this.messageRepository.findRecentByGroup(id_group, limit, beforeId, userId, since);
   }
 
   /**

@@ -56,6 +56,7 @@ export class FilesService {
 
       const response = await api.post('/files/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
       });
       return response.data;
     } catch (error) {

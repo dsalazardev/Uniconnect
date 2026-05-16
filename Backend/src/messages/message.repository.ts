@@ -201,7 +201,38 @@ export class MessageRepository {
     });
   }
 
-  async findRecentByGroup(id_group: number, limit = 50, beforeId?: number, userId?: number) {
+  async findRecentByGroup(id_group: number, limit = 50, beforeId?: number, userId?: number, since?: number) {
+    // Modo sincronización post-reconexión: mensajes posteriores a un timestamp
+    if (since) {
+      const sinceDate = new Date(since);
+      const rawMessages = await this.prisma.message.findMany({
+        where: {
+          membership: { id_group },
+          send_at: { gt: sinceDate },
+        },
+        include: this.membershipInclude,
+        orderBy: { send_at: 'asc' },
+        take: limit,
+      });
+
+      const messages = rawMessages.map((msg: any) => {
+        if (!msg.poll) return msg;
+        return { ...msg, poll: this.formatPoll(msg.poll, userId) };
+      });
+
+      const newestSendAt = rawMessages.length > 0
+        ? rawMessages[rawMessages.length - 1].send_at
+        : null;
+      const hasMore = newestSendAt
+        ? (await this.prisma.message.count({
+            where: { membership: { id_group }, send_at: { gt: newestSendAt } },
+          })) > 0
+        : false;
+
+      return { messages, hasMore };
+    }
+
+    // Modo normal: paginación hacia atrás con cursor beforeId
     const baseWhere = {
       membership: { id_group },
       ...(beforeId ? { id_message: { lt: beforeId } } : {}),

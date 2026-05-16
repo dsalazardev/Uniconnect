@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, Paperclip, BarChart2 } from 'lucide-react';
 import { filesService } from '../services/files.service';
+import { showToast } from '@/lib/toast';
 import styles from './MessageInput.module.css';
 
 interface MessageInputProps {
-  onSend: (text: string) => void;
+  onSend: (text: string) => boolean | void;
   onTyping?: () => void;
   disabled?: boolean;
   placeholder?: string;
@@ -40,8 +41,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim() && !disabled) {
-      onSend(text.trim());
-      setText('');
+      const sent = onSend(text.trim());
+      if (sent !== false) setText('');
     }
   };
 
@@ -67,16 +68,28 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setText('');
   };
 
+  const ALLOWED_MIME_TYPES = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf', 'text/plain',
+  ];
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !groupId) return;
+
+    const invalid = Array.from(files).find((f) => !ALLOWED_MIME_TYPES.includes(f.type));
+    if (invalid) {
+      showToast.error('Tipo de archivo no permitido', `"${invalid.name}" no es un tipo soportado. Usa imágenes, PDF o TXT.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     setIsUploading(true);
     try {
       await filesService.uploadFiles(groupId, Array.from(files));
     } catch (err) {
       console.error('[MessageInput] Error uploading files:', err);
-      alert('Error al subir el archivo. Inténtalo de nuevo.');
+      showToast.error('Error', 'No se pudo subir el archivo. Inténtalo de nuevo.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

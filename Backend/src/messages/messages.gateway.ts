@@ -196,12 +196,23 @@ export class MessagesGateway
         return { error: 'Usuario no autenticado. Llama a authenticate primero.' };
       }
 
+      // Extraer menciones SIN deduplicar para que el handler detecte repeticiones
+      const rawText = data.text_content ?? '';
+      const rawMatches = rawText.match(/@([\w.\-]+)/g) ?? [];
+      const rawMentionNames = rawMatches.map((m) => m.slice(1));
+      const mentions = rawMentionNames.map((name, i) => ({
+        userId: 0,         // Placeholder; userId real se resuelve post-creación
+        displayName: name,
+        position: i,
+      }));
+
       // Crear DTO con el id_membership correcto de la sesión
       const createMessageDto = {
         id_membership: id_membership,
         text_content: data.text_content,
         attachments: data.attachments || null,
         files: data.files || [],
+        mentions,
       };
 
       // Guardar mensaje en BD
@@ -301,7 +312,16 @@ export class MessagesGateway
       return { success: true, message: messageEvent };
     } catch (error) {
       this.logger.error('Error sending message:', error);
-      return { error: 'Error al enviar mensaje' };
+      const response = error?.getResponse?.();
+      const codigoError =
+        (typeof response === 'object' && response !== null
+          ? (response as any).codigoError
+          : null) ?? 'ERROR_DESCONOCIDO';
+      const errorMessage = error?.message || 'Error al enviar mensaje';
+      // Emitir evento de error directamente al socket emisor para que el cliente
+      // pueda revertir el mensaje optimista y mostrar el código de error específico
+      client.emit('message:send:error', { error: errorMessage, codigoError });
+      return { error: errorMessage, codigoError };
     }
   }
 
