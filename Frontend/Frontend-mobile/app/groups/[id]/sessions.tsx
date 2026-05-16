@@ -74,20 +74,29 @@ export default function SessionsScreen() {
     }, [loadSessions]),
   );
 
-  // Recarga en tiempo real cuando alguien actualiza asistencia en este grupo
+  // Actualización silenciosa del contador cuando alguien cambia asistencia
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await studySessionsMobileService.getSessionsByGroup(groupId);
+      setSessions(data);
+    } catch {
+      // fallo silencioso
+    }
+  }, [groupId]);
+
   useEffect(() => {
     const handler = (payload: { tipo_evento: string; entidad_relacionada_id?: number }) => {
       if (payload.tipo_evento === 'attendance_updated') {
         setSessions((prev) => {
           const belongs = prev.some((s) => s.id_instance === payload.entidad_relacionada_id);
-          if (belongs) loadSessions();
+          if (belongs) silentRefresh();
           return prev;
         });
       }
     };
     websocketService.on('notification:new', handler);
     return () => websocketService.off('notification:new', handler);
-  }, [loadSessions]);
+  }, [silentRefresh]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

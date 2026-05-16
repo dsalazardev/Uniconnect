@@ -21,6 +21,16 @@ export const useStudySessions = (groupId: number) => {
     }
   }, [groupId]);
 
+  // Actualiza datos en segundo plano sin spinner — para eventos en tiempo real
+  const silentRefresh = useCallback(async () => {
+    try {
+      const data = await studySessionsService.getSessionsByGroup(groupId);
+      setSessions(data);
+    } catch {
+      // fallo silencioso: no afectar la UI del usuario
+    }
+  }, [groupId]);
+
   useEffect(() => {
     loadSessions();
   }, [loadSessions]);
@@ -33,17 +43,17 @@ export const useStudySessions = (groupId: number) => {
         return;
       }
       if (payload.tipo_evento === 'attendance_updated') {
-        // entidad_relacionada_id es el instanceId — recargamos si pertenece a este grupo
+        // Actualización silenciosa: solo actualiza el contador sin spinner
         setSessions((prev) => {
           const belongs = prev.some((s) => s.id_instance === payload.entidad_relacionada_id);
-          if (belongs) loadSessions();
+          if (belongs) silentRefresh();
           return prev;
         });
       }
     };
     websocketService.on('notification:new', handler);
     return () => websocketService.off('notification:new', handler);
-  }, [groupId, loadSessions]);
+  }, [groupId, loadSessions, silentRefresh]);
 
   const createSession = useCallback(
     async (dto: CreateStudySessionDto) => {
