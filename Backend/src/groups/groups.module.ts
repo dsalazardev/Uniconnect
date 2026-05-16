@@ -3,6 +3,7 @@ import { GroupsService } from './groups.service';
 import { GroupsController } from './groups.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MessagesModule } from '../messages/messages.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { GroupBusinessValidator } from './validators/group-business.validator';
 import { GroupOwnershipGuard } from './guards/group-ownership.guard';
 import { AdminOnlyGuard } from './guards/admin-only.guard';
@@ -11,9 +12,10 @@ import { GroupActivityListener } from './listeners/group-activity.listener';
 import { StudyGroupSubject } from './domain/observer/study-group-subject';
 import { WebSocketNotificationObserver } from './infrastructure/observers/websocket-notification.observer';
 import { PersistenceNotificationObserver } from './infrastructure/observers/persistence-notification.observer';
+import { AttendanceNotificationObserver } from './infrastructure/observers/attendance-notification.observer';
 
 @Module({
-  imports: [PrismaModule, MessagesModule],
+  imports: [PrismaModule, MessagesModule, NotificationsModule],
   controllers: [GroupsController],
   providers: [
     GroupsService,
@@ -25,6 +27,7 @@ import { PersistenceNotificationObserver } from './infrastructure/observers/pers
     StudyGroupSubject,
     WebSocketNotificationObserver,
     PersistenceNotificationObserver,
+    AttendanceNotificationObserver,
   ],
   exports: [GroupsService, GroupBusinessValidator, GroupRepository, StudyGroupSubject],
 })
@@ -33,16 +36,14 @@ export class GroupsModule implements OnModuleInit {
     private readonly subject: StudyGroupSubject,
     private readonly webSocketObserver: WebSocketNotificationObserver,
     private readonly persistenceObserver: PersistenceNotificationObserver,
+    private readonly attendanceObserver: AttendanceNotificationObserver,
   ) {}
 
-  /**
-   * Initialize module by attaching observers to the subject.
-   * Called automatically by NestJS when the module is initialized.
-   */
   onModuleInit() {
-    // Solo el observer de WebSocket está adjunto al Subject.
-    // La persistencia en DB, email y push la gestiona el patrón Strategy
-    // a través de NotificationEventListener → NotificationsService.
+    // WebSocket: notificaciones en tiempo real para eventos de grupo
     this.subject.attach(this.webSocketObserver);
+    // CA7: notifica al organizador (WS + DB + push) cuando un participante
+    // actualiza su asistencia en una sesión de estudio
+    this.subject.attach(this.attendanceObserver);
   }
 }
