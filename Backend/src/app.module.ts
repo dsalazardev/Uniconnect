@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -21,14 +22,16 @@ import { FilesModule } from './files/files.module';
 import { EventsModule } from './events/events.module';
 import { PollsModule } from './polls/polls.module';
 import { ForumModule } from './forum/forum.module';
+import { StudySessionsModule } from './study-sessions/study-sessions.module';
 import { LoggerMiddleware } from './core/logger/logger.middleware';
 
 @Module({
    imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env', 
+      envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot({
       // Configuración global de eventos
       wildcard: false,
@@ -55,6 +58,7 @@ import { LoggerMiddleware } from './core/logger/logger.middleware';
     EventsModule,
     PollsModule,
     ForumModule,
+    StudySessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService, RolesService, PermissionsService],

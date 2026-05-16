@@ -185,7 +185,16 @@ export default function GroupChatScreen() {
         </TouchableOpacity>
 
         {showGroupOptionsButton && (
-          <TouchableOpacity 
+          <TouchableOpacity
+            style={styles.headerAction}
+            onPress={() => router.push(`/groups/${group.id_group}/sessions` as any)}
+          >
+            <Ionicons name="calendar-outline" size={22} color="#D9B97E" />
+          </TouchableOpacity>
+        )}
+
+        {showGroupOptionsButton && (
+          <TouchableOpacity
             style={styles.headerAction}
             onPress={() => setShowGroupInfo(true)}
           >

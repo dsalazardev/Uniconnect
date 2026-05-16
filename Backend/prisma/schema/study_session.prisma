@@ -1,0 +1,56 @@
+enum RecurrenceType {
+  NONE
+  WEEKLY
+}
+
+enum SessionInstanceStatus {
+  ACTIVE
+  CANCELLED
+}
+
+model study_session {
+  id_session            Int                      @id @default(autoincrement())
+  id_group              Int
+  created_by            Int
+  title                 String                   @db.VarChar
+  description           String?                  @db.VarChar
+  start_datetime        DateTime                 @db.Timestamptz(6)
+  duration_minutes      Int
+  recurrence_type       RecurrenceType           @default(NONE)
+  recurrence_end_date   DateTime?                @db.Timestamptz(6)
+  created_at            DateTime                 @default(now()) @db.Timestamptz(6)
+  group                 group                    @relation(fields: [id_group], references: [id_group], onDelete: Cascade)
+  creator               user                     @relation("SessionCreator", fields: [created_by], references: [id_user])
+  instances             study_session_instance[]
+}
+
+model study_session_instance {
+  id_instance    Int                   @id @default(autoincrement())
+  id_session     Int
+  scheduled_date DateTime              @db.Timestamptz(6)
+  status         SessionInstanceStatus @default(ACTIVE)
+  reminder_sent  Boolean               @default(false)
+  cancelled_at   DateTime?             @db.Timestamptz(6)
+  cancelled_by   Int?
+  session        study_session         @relation(fields: [id_session], references: [id_session], onDelete: Cascade)
+  canceller      user?                 @relation("SessionCanceller", fields: [cancelled_by], references: [id_user])
+  attendances    session_attendance[]
+}
+
+enum AttendanceStatus {
+  CONFIRMED
+  DECLINED
+  PENDING
+}
+
+model session_attendance {
+  id_attendance Int              @id @default(autoincrement())
+  id_instance   Int
+  id_user       Int
+  status        AttendanceStatus @default(PENDING)
+  updated_at    DateTime         @default(now()) @db.Timestamptz(6)
+  instance      study_session_instance @relation(fields: [id_instance], references: [id_instance], onDelete: Cascade)
+  user          user             @relation("AttendanceUser", fields: [id_user], references: [id_user])
+
+  @@unique([id_instance, id_user])
+}

@@ -8,6 +8,9 @@ import { TransferOwnershipModal } from './TransferOwnershipModal';
 import { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
 import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { GroupAdminPanel } from './GroupAdminPanel';
+import { SessionList } from '@/features/study-sessions/components/SessionList';
+import { SessionCreateForm } from '@/features/study-sessions/components/SessionCreateForm';
+import { useStudySessions } from '@/features/study-sessions/hooks/useStudySessions';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
 import { useChat } from '@/features/messages/hooks/useChat.tsx';
@@ -39,6 +42,7 @@ export const GroupDetail: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
+  const [showSessionForm, setShowSessionForm] = useState(false);
 
   // Member management state (for MemberList action buttons in the panel)
   const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
@@ -55,6 +59,8 @@ export const GroupDetail: React.FC = () => {
 
   const isMember = groupInfo?.isMember ?? false;
   const isOwner = groupInfo?.isOwner ?? false;
+
+  const studySessions = useStudySessions(groupId);
 
   // DM detection — la info del destinatario viene del navigation state (pasada al hacer clic
   // en "Mensaje privado") para mostrarla de inmediato, sin esperar al refetch de groupInfo
@@ -494,6 +500,48 @@ export const GroupDetail: React.FC = () => {
                     focusRequestId={focusRequestId}
                     onInvite={() => { setShowInfoPanel(false); handleOpenInvite(); }}
                   />
+                </div>
+              )}
+
+              {/* Study sessions — visible for all members */}
+              {isMember && !groupInfo.is_direct_message && (
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>Sesiones de estudio</h3>
+                  {studySessions.loading ? (
+                    <p style={{ fontSize: 13, color: '#6B7280', margin: 0 }}>Cargando...</p>
+                  ) : (
+                    <SessionList
+                      sessions={studySessions.sessions}
+                      currentUserId={currentUserId}
+                      isOwner={isOwner}
+                      onCancel={studySessions.cancelInstance}
+                      onUpdateAttendance={studySessions.updateAttendance}
+                    />
+                  )}
+                  {isMember && !showSessionForm && (
+                    <button
+                      onClick={() => setShowSessionForm(true)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        background: 'none',
+                        border: '1px dashed rgba(217,185,126,0.4)',
+                        borderRadius: 6, color: '#D9B97E', fontSize: 13,
+                        fontWeight: 600, padding: '8px 12px', cursor: 'pointer',
+                        width: '100%', justifyContent: 'center', marginTop: 8,
+                      }}
+                    >
+                      + Programar sesión
+                    </button>
+                  )}
+                  {showSessionForm && (
+                    <SessionCreateForm
+                      onSubmit={async (dto) => {
+                        await studySessions.createSession(dto);
+                        setShowSessionForm(false);
+                      }}
+                      onCancel={() => setShowSessionForm(false)}
+                    />
+                  )}
                 </div>
               )}
 
