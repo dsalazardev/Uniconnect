@@ -10,9 +10,11 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { studySessionsMobileService } from '@/src/features/study-sessions/services/study-sessions.service';
+import { websocketService } from '@/src/features/messages/services/websocket.service';
 import { authStore } from '@/src/features/auth';
 import type { StudySessionInstance } from '@uniconnect/shared';
 
@@ -63,6 +65,28 @@ export default function SessionsScreen() {
   useEffect(() => {
     setLoading(true);
     loadSessions().finally(() => setLoading(false));
+  }, [loadSessions]);
+
+  // Recarga al volver a la pantalla (ej: tras confirmar asistencia en el detalle)
+  useFocusEffect(
+    useCallback(() => {
+      loadSessions();
+    }, [loadSessions]),
+  );
+
+  // Recarga en tiempo real cuando alguien actualiza asistencia en este grupo
+  useEffect(() => {
+    const handler = (payload: { tipo_evento: string; entidad_relacionada_id?: number }) => {
+      if (payload.tipo_evento === 'attendance_updated') {
+        setSessions((prev) => {
+          const belongs = prev.some((s) => s.id_instance === payload.entidad_relacionada_id);
+          if (belongs) loadSessions();
+          return prev;
+        });
+      }
+    };
+    websocketService.on('notification:new', handler);
+    return () => websocketService.off('notification:new', handler);
   }, [loadSessions]);
 
   const handleRefresh = async () => {

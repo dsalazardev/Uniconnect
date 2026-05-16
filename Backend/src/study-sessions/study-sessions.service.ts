@@ -242,7 +242,7 @@ export class StudySessionsService {
       create: { id_instance: instanceId, id_user: userId, status: dto.status },
     });
 
-    // CA7: notificar al organizador via Observer
+    // CA7: notificar al organizador via Observer y WebSocket en tiempo real
     this.studyGroupSubject.notify({
       type: 'ATTENDANCE_UPDATED',
       targetUserId: instance.session.created_by,
@@ -254,6 +254,15 @@ export class StudySessionsService {
       },
       timestamp: new Date(),
     });
+
+    if (instance.session.created_by !== userId) {
+      await this.notificationsService.enviarNotificacion({
+        id_user: instance.session.created_by,
+        mensaje: `Alguien actualizó su asistencia en "${instance.session.title}"`,
+        tipo_evento: 'attendance_updated',
+        entidad_relacionada_id: instanceId,
+      });
+    }
 
     return {
       id_attendance: attendance.id_attendance,

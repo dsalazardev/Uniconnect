@@ -25,14 +25,20 @@ export const useStudySessions = (groupId: number) => {
     loadSessions();
   }, [loadSessions]);
 
-  // Recarga en tiempo real cuando otro miembro crea una sesión en este grupo
+  // Recarga en tiempo real cuando se crea una sesión o alguien actualiza su asistencia
   useEffect(() => {
     const handler = (payload: { tipo_evento: string; entidad_relacionada_id?: number }) => {
-      if (
-        payload.tipo_evento === 'study_session_created' &&
-        payload.entidad_relacionada_id === groupId
-      ) {
+      if (payload.tipo_evento === 'study_session_created' && payload.entidad_relacionada_id === groupId) {
         loadSessions();
+        return;
+      }
+      if (payload.tipo_evento === 'attendance_updated') {
+        // entidad_relacionada_id es el instanceId — recargamos si pertenece a este grupo
+        setSessions((prev) => {
+          const belongs = prev.some((s) => s.id_instance === payload.entidad_relacionada_id);
+          if (belongs) loadSessions();
+          return prev;
+        });
       }
     };
     websocketService.on('notification:new', handler);
