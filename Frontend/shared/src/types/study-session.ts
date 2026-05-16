@@ -8,6 +8,8 @@ export interface StudySessionInstance {
   is_recurring: boolean;
   status: 'ACTIVE' | 'CANCELLED';
   created_by: number;
+  attendance_count: number;
+  my_attendance: 'CONFIRMED' | 'DECLINED' | 'PENDING' | null;
 }
 
 export interface CreateStudySessionDto {

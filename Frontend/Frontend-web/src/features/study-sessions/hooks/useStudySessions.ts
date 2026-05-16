@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { studySessionsService } from '../services/study-sessions.service';
+import { studySessionsService, type AttendanceStatus } from '../services/study-sessions.service';
+import { websocketService } from '@/features/messages/services/websocket.service';
 import type { StudySessionInstance, CreateStudySessionDto } from '@uniconnect/shared';
 
 export const useStudySessions = (groupId: number) => {
@@ -24,6 +25,20 @@ export const useStudySessions = (groupId: number) => {
     loadSessions();
   }, [loadSessions]);
 
+  // Recarga en tiempo real cuando otro miembro crea una sesión en este grupo
+  useEffect(() => {
+    const handler = (payload: { tipo_evento: string; entidad_relacionada_id?: number }) => {
+      if (
+        payload.tipo_evento === 'study_session_created' &&
+        payload.entidad_relacionada_id === groupId
+      ) {
+        loadSessions();
+      }
+    };
+    websocketService.on('notification:new', handler);
+    return () => websocketService.off('notification:new', handler);
+  }, [groupId, loadSessions]);
+
   const createSession = useCallback(
     async (dto: CreateStudySessionDto) => {
       const newInstances = await studySessionsService.createSession(groupId, dto);
@@ -40,7 +55,6 @@ export const useStudySessions = (groupId: number) => {
 
   const cancelInstance = useCallback(
     async (instanceId: number) => {
-      // Optimistic update
       setSessions((prev) =>
         prev.map((s) =>
           s.id_instance === instanceId ? { ...s, status: 'CANCELLED' as const } : s,
@@ -48,10 +62,8 @@ export const useStudySessions = (groupId: number) => {
       );
       try {
         await studySessionsService.cancelInstance(groupId, instanceId);
-        // Remove cancelled instance from list after successful API call
         setSessions((prev) => prev.filter((s) => s.id_instance !== instanceId));
       } catch (err) {
-        // Revert on failure
         await loadSessions();
         throw err;
       }
@@ -59,5 +71,17 @@ export const useStudySessions = (groupId: number) => {
     [groupId, loadSessions],
   );
 
-  return { sessions, loading, error, createSession, cancelInstance, reload: loadSessions };
+  const updateAttendance = useCallback(
+    async (instanceId: number, status: AttendanceStatus) => {
+      await studySessionsService.updateAttendance(groupId, instanceId, status);
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id_instance === instanceId ? { ...s, my_attendance: status } : s,
+        ),
+      );
+    },
+    [groupId],
+  );
+
+  return { sessions, loading, error, createSession, cancelInstance, updateAttendance, reload: loadSessions };
 };

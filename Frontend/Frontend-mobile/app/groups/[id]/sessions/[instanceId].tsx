@@ -15,6 +15,7 @@ import {
   studySessionsMobileService,
   type AttendanceStatus,
 } from '@/src/features/study-sessions/services/study-sessions.service';
+import { authStore } from '@/src/features/auth';
 import type { StudySessionInstance } from '@uniconnect/shared';
 
 function formatDateTime(iso: string): string {
@@ -29,9 +30,9 @@ function formatDateTime(iso: string): string {
 }
 
 const ATTENDANCE_OPTIONS: { status: AttendanceStatus; label: string; icon: string; color: string }[] = [
-  { status: 'CONFIRMED', label: 'Confirmar',  icon: 'checkmark-circle-outline', color: '#34D399' },
-  { status: 'DECLINED',  label: 'Declinar',   icon: 'close-circle-outline',     color: '#EF4444' },
-  { status: 'PENDING',   label: 'Pendiente',  icon: 'time-outline',              color: '#9CA3AF' },
+  { status: 'CONFIRMED', label: 'Asistiré',   icon: 'checkmark-circle-outline', color: '#34D399' },
+  { status: 'DECLINED',  label: 'No asistiré', icon: 'close-circle-outline',    color: '#EF4444' },
+  { status: 'PENDING',   label: 'Tal vez',     icon: 'time-outline',             color: '#9CA3AF' },
 ];
 
 export default function SessionDetailScreen() {
@@ -41,6 +42,7 @@ export default function SessionDetailScreen() {
 
   const groupId = parseInt(id as string);
   const instId = parseInt(instanceId as string);
+  const currentUserId = authStore.user?.id_user ?? 0;
 
   const [session, setSession] = useState<StudySessionInstance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,9 @@ export default function SessionDetailScreen() {
         const all = await studySessionsMobileService.getSessionsByGroup(groupId);
         const found = all.find((s) => s.id_instance === instId) ?? null;
         setSession(found);
+        if (found?.my_attendance) {
+          setAttendance(found.my_attendance);
+        }
         setError(found ? null : 'Sesión no encontrada.');
       } catch (err: any) {
         setError(err.message || 'Error al cargar la sesión.');
@@ -71,7 +76,6 @@ export default function SessionDetailScreen() {
       await studySessionsMobileService.updateAttendance(groupId, instId, status);
       setAttendance(status);
     } catch (err: any) {
-      // Show error without crashing
       console.error('Error updating attendance:', err.message);
     } finally {
       setUpdating(false);
@@ -113,6 +117,8 @@ export default function SessionDetailScreen() {
     );
   }
 
+  const isCreator = session.created_by === currentUserId;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" />
@@ -151,49 +157,67 @@ export default function SessionDetailScreen() {
               <Text style={styles.detailText}>Sesión recurrente (semanal)</Text>
             </View>
           )}
-        </View>
 
-        {/* RSVP */}
-        <View style={styles.rsvpSection}>
-          <Text style={styles.rsvpTitle}>Tu asistencia</Text>
-
-          {updating ? (
-            <View style={styles.updatingRow}>
-              <ActivityIndicator size="small" color="#D9B97E" />
-              <Text style={styles.updatingText}>Guardando...</Text>
-            </View>
-          ) : (
-            <View style={styles.rsvpButtons}>
-              {ATTENDANCE_OPTIONS.map((opt) => {
-                const isActive = attendance === opt.status;
-                return (
-                  <TouchableOpacity
-                    key={opt.status}
-                    style={[styles.rsvpButton, isActive && styles.rsvpButtonActive]}
-                    onPress={() => handleAttendance(opt.status)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name={opt.icon as any}
-                      size={20}
-                      color={isActive ? '#D9B97E' : opt.color}
-                    />
-                    <Text style={[styles.rsvpLabel, isActive && styles.rsvpLabelActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+          {session.attendance_count > 0 && (
+            <View style={styles.detailRow}>
+              <Ionicons name="people-outline" size={16} color="#D9B97E" />
+              <Text style={styles.detailText}>
+                {session.attendance_count} {session.attendance_count === 1 ? 'persona confirmada' : 'personas confirmadas'}
+              </Text>
             </View>
           )}
-
-          {attendance && (
-            <Text style={styles.attendanceSaved}>
-              ✓ Respuesta guardada:{' '}
-              {ATTENDANCE_OPTIONS.find((o) => o.status === attendance)?.label}
-            </Text>
-          )}
         </View>
+
+        {/* Sección de asistencia */}
+        {isCreator ? (
+          <View style={styles.rsvpSection}>
+            <View style={styles.organizerRow}>
+              <Ionicons name="star-outline" size={18} color="#D9B97E" />
+              <Text style={styles.organizerText}>Eres el organizador de esta sesión</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.rsvpSection}>
+            <Text style={styles.rsvpTitle}>Tu asistencia</Text>
+
+            {updating ? (
+              <View style={styles.updatingRow}>
+                <ActivityIndicator size="small" color="#D9B97E" />
+                <Text style={styles.updatingText}>Guardando...</Text>
+              </View>
+            ) : (
+              <View style={styles.rsvpButtons}>
+                {ATTENDANCE_OPTIONS.map((opt) => {
+                  const isActive = attendance === opt.status;
+                  return (
+                    <TouchableOpacity
+                      key={opt.status}
+                      style={[styles.rsvpButton, isActive && styles.rsvpButtonActive]}
+                      onPress={() => handleAttendance(opt.status)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons
+                        name={opt.icon as any}
+                        size={20}
+                        color={isActive ? '#D9B97E' : opt.color}
+                      />
+                      <Text style={[styles.rsvpLabel, isActive && styles.rsvpLabelActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {attendance && (
+              <Text style={styles.attendanceSaved}>
+                ✓ Respuesta guardada:{' '}
+                {ATTENDANCE_OPTIONS.find((o) => o.status === attendance)?.label}
+              </Text>
+            )}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -228,7 +252,6 @@ const styles = StyleSheet.create({
   description: { fontSize: 14, color: '#9CA3AF', lineHeight: 20 },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   detailText: { fontSize: 14, color: '#e0e0e0', flex: 1 },
-  // RSVP
   rsvpSection: {
     backgroundColor: '#2a2a2a',
     borderRadius: 12,
@@ -238,6 +261,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rsvpTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  organizerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  organizerText: { fontSize: 14, color: '#D9B97E', fontWeight: '600', flex: 1 },
   rsvpButtons: { flexDirection: 'row', gap: 10 },
   rsvpButton: {
     flex: 1,

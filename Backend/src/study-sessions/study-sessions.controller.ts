@@ -56,8 +56,9 @@ export class StudySessionsController {
   @ApiResponse({ status: 200, description: 'Lista de instancias con indicador de recurrencia.' })
   getSessionsByGroup(
     @Param('groupId', ParseIntPipe) groupId: number,
+    @GetClaim('sub') userId: number,
   ) {
-    return this.studySessionsService.getSessionsByGroup(groupId);
+    return this.studySessionsService.getSessionsByGroup(groupId, userId);
   }
 
   /**

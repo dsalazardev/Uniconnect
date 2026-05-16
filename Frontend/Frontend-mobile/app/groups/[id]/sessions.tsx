@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { studySessionsMobileService } from '@/src/features/study-sessions/services/study-sessions.service';
+import { authStore } from '@/src/features/auth';
 import type { StudySessionInstance } from '@uniconnect/shared';
 
 function formatDateTime(iso: string): string {
@@ -25,11 +26,24 @@ function formatDateTime(iso: string): string {
   });
 }
 
+const ATTENDANCE_COLORS = {
+  CONFIRMED: '#34D399',
+  DECLINED: '#EF4444',
+  PENDING: '#9CA3AF',
+} as const;
+
+const ATTENDANCE_LABELS = {
+  CONFIRMED: 'Confirmado',
+  DECLINED: 'Declinado',
+  PENDING: 'Pendiente',
+} as const;
+
 export default function SessionsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const groupId = parseInt(id as string);
+  const currentUserId = authStore.user?.id_user ?? 0;
 
   const [sessions, setSessions] = useState<StudySessionInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,35 +71,67 @@ export default function SessionsScreen() {
     setRefreshing(false);
   };
 
-  const renderItem = ({ item }: { item: StudySessionInstance }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.8}
-      onPress={() =>
-        router.push({
-          pathname: '/groups/[id]/sessions/[instanceId]',
-          params: { id: String(groupId), instanceId: String(item.id_instance) },
-        } as any)
-      }
-    >
-      <View style={styles.cardHeader}>
-        <Ionicons name="calendar-outline" size={18} color="#D9B97E" />
-        <Text style={styles.cardDate}>{formatDateTime(item.scheduled_date)}</Text>
-        {item.is_recurring && (
-          <View style={styles.badge}>
-            <Ionicons name="repeat" size={10} color="#D9B97E" />
-            <Text style={styles.badgeText}>Recurrente</Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      <View style={styles.cardMeta}>
-        <Ionicons name="time-outline" size={14} color="#6B7280" />
-        <Text style={styles.cardMetaText}>{item.duration_minutes} min</Text>
-        <Ionicons name="chevron-forward" size={14} color="#6B7280" style={{ marginLeft: 'auto' }} />
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: StudySessionInstance }) => {
+    const isCreator = item.created_by === currentUserId;
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() =>
+          router.push({
+            pathname: '/groups/[id]/sessions/[instanceId]',
+            params: { id: String(groupId), instanceId: String(item.id_instance) },
+          } as any)
+        }
+      >
+        <View style={styles.cardHeader}>
+          <Ionicons name="calendar-outline" size={18} color="#D9B97E" />
+          <Text style={styles.cardDate}>{formatDateTime(item.scheduled_date)}</Text>
+          {item.is_recurring && (
+            <View style={styles.badge}>
+              <Ionicons name="repeat" size={10} color="#D9B97E" />
+              <Text style={styles.badgeText}>Recurrente</Text>
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.cardTitle}>{item.title}</Text>
+
+        <View style={styles.cardMeta}>
+          <Ionicons name="time-outline" size={14} color="#6B7280" />
+          <Text style={styles.cardMetaText}>{item.duration_minutes} min</Text>
+
+          {item.attendance_count > 0 && (
+            <>
+              <Ionicons name="people-outline" size={14} color="#6B7280" style={{ marginLeft: 8 }} />
+              <Text style={styles.cardMetaText}>{item.attendance_count} confirmado{item.attendance_count !== 1 ? 's' : ''}</Text>
+            </>
+          )}
+
+          <Ionicons name="chevron-forward" size={14} color="#6B7280" style={{ marginLeft: 'auto' }} />
+        </View>
+
+        <View style={styles.statusRow}>
+          {isCreator ? (
+            <View style={[styles.statusBadge, { borderColor: 'rgba(217,185,126,0.4)', backgroundColor: 'rgba(217,185,126,0.08)' }]}>
+              <Ionicons name="star-outline" size={11} color="#D9B97E" />
+              <Text style={[styles.statusText, { color: '#D9B97E' }]}>Organizador</Text>
+            </View>
+          ) : item.my_attendance ? (
+            <View style={[styles.statusBadge, { borderColor: ATTENDANCE_COLORS[item.my_attendance] + '55', backgroundColor: ATTENDANCE_COLORS[item.my_attendance] + '14' }]}>
+              <Text style={[styles.statusText, { color: ATTENDANCE_COLORS[item.my_attendance] }]}>
+                {ATTENDANCE_LABELS[item.my_attendance]}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.statusBadge, { borderColor: 'rgba(255,255,255,0.12)' }]}>
+              <Text style={[styles.statusText, { color: '#6B7280' }]}>Toca para responder</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -173,6 +219,17 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cardMetaText: { fontSize: 13, color: '#6B7280' },
+  statusRow: { flexDirection: 'row' },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  statusText: { fontSize: 11, fontWeight: '600' },
   errorText: { fontSize: 14, color: '#EF4444', textAlign: 'center' },
   retryButton: {
     borderWidth: 1,

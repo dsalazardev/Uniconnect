@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StudyGroupSubject } from '../groups/domain/observer/study-group-subject';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateStudySessionDto } from './dto/create-study-session.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
@@ -18,6 +19,8 @@ export interface StudySessionInstanceResponse {
   duration_minutes: number;
   is_recurring: boolean;
   created_by: number;
+  attendance_count: number;
+  my_attendance: 'CONFIRMED' | 'DECLINED' | 'PENDING' | null;
 }
 
 @Injectable()
@@ -25,6 +28,7 @@ export class StudySessionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly studyGroupSubject: StudyGroupSubject,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createSession(
@@ -104,6 +108,21 @@ export class StudySessionsService {
       orderBy: { scheduled_date: 'asc' },
     });
 
+    // Notificar a todos los miembros del grupo (excepto el creador) via Observer
+    const members = await this.prisma.membership.findMany({
+      where: { id_group: groupId, id_user: { not: userId } },
+    });
+    await Promise.all(
+      members.map((m) =>
+        this.notificationsService.enviarNotificacion({
+          id_user: m.id_user!,
+          mensaje: `Nueva sesión de estudio programada: "${session.title}"`,
+          tipo_evento: 'study_session_created',
+          entidad_relacionada_id: groupId,
+        }),
+      ),
+    );
+
     return instances.map((inst) => ({
       id_instance: inst.id_instance,
       id_session: inst.id_session,
@@ -113,31 +132,43 @@ export class StudySessionsService {
       duration_minutes: session.duration_minutes,
       is_recurring: session.recurrence_type !== 'NONE',
       created_by: session.created_by,
+      attendance_count: 0,
+      my_attendance: null,
     }));
   }
 
   async getSessionsByGroup(
     groupId: number,
+    userId: number,
   ): Promise<StudySessionInstanceResponse[]> {
     const instances = await this.prisma.study_session_instance.findMany({
       where: {
         status: 'ACTIVE',
         session: { id_group: groupId },
       },
-      include: { session: true },
+      include: {
+        session: true,
+        attendances: { select: { id_user: true, status: true } },
+      },
       orderBy: { scheduled_date: 'asc' },
     });
 
-    return instances.map((inst) => ({
-      id_instance: inst.id_instance,
-      id_session: inst.id_session,
-      title: inst.session.title,
-      description: inst.session.description,
-      scheduled_date: inst.scheduled_date.toISOString(),
-      duration_minutes: inst.session.duration_minutes,
-      is_recurring: inst.session.recurrence_type !== 'NONE',
-      created_by: inst.session.created_by,
-    }));
+    return instances.map((inst) => {
+      const myRecord = inst.attendances.find((a) => a.id_user === userId);
+      const confirmedCount = inst.attendances.filter((a) => a.status === 'CONFIRMED').length;
+      return {
+        id_instance: inst.id_instance,
+        id_session: inst.id_session,
+        title: inst.session.title,
+        description: inst.session.description,
+        scheduled_date: inst.scheduled_date.toISOString(),
+        duration_minutes: inst.session.duration_minutes,
+        is_recurring: inst.session.recurrence_type !== 'NONE',
+        created_by: inst.session.created_by,
+        attendance_count: confirmedCount,
+        my_attendance: (myRecord?.status ?? null) as 'CONFIRMED' | 'DECLINED' | 'PENDING' | null,
+      };
+    });
   }
 
   async cancelInstance(

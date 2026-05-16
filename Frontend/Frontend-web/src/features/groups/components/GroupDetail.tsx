@@ -512,8 +512,10 @@ export const GroupDetail: React.FC = () => {
                   ) : (
                     <SessionList
                       sessions={studySessions.sessions}
+                      currentUserId={currentUserId}
                       isOwner={isOwner}
                       onCancel={studySessions.cancelInstance}
+                      onUpdateAttendance={studySessions.updateAttendance}
                     />
                   )}
                   {isMember && !showSessionForm && (

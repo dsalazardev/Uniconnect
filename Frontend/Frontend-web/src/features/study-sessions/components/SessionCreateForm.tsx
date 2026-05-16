@@ -86,7 +86,11 @@ export const SessionCreateForm: React.FC<SessionCreateFormProps> = ({ onSubmit, 
           className={styles.input}
           type="datetime-local"
           value={startDatetime}
-          min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+          min={(() => {
+            const d = new Date(Date.now() + 60 * 60 * 1000);
+            const p = (n: number) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+          })()}
           onChange={(e) => setStartDatetime(e.target.value)}
         />
       </div>
