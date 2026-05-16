@@ -5,6 +5,13 @@ import { EmailInstitucionalStrategy } from './email-institucional.strategy';
 import { PushMovilStrategy } from './push-movil.strategy';
 import { ResumenDiarioStrategy } from './resumen-diario.strategy';
 import { NotificacionDTO } from './interfaces';
+import {
+  createPrismaMock,
+  createChatGatewayMock,
+  createSessionManagerMock,
+} from '../../test/dobles-de-prueba';
+
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 const notificacion: NotificacionDTO = {
   id_user: 1,
@@ -17,35 +24,16 @@ const notificacion: NotificacionDTO = {
 
 describe('InAppWebSocketStrategy', () => {
   let strategy: InAppWebSocketStrategy;
-  let prismaMock: any;
-  let chatGatewayMock: any;
-  let sessionManagerMock: any;
+  let prismaMock: ReturnType<typeof createPrismaMock>;
+  let chatGatewayMock: ReturnType<typeof createChatGatewayMock>;
+  let sessionManagerMock: ReturnType<typeof createSessionManagerMock>;
 
   beforeEach(async () => {
-    prismaMock = {
-      notification: { create: jest.fn().mockResolvedValue({}) },
-    };
-    chatGatewayMock = {
-      server: { to: jest.fn().mockReturnValue({ emit: jest.fn() }) },
-    };
-    sessionManagerMock = { getUserSockets: jest.fn().mockReturnValue(['socket-1']) };
+    prismaMock = createPrismaMock();
+    chatGatewayMock = createChatGatewayMock();
+    sessionManagerMock = createSessionManagerMock(['socket-1']);
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        InAppWebSocketStrategy,
-        { provide: 'PrismaService', useValue: prismaMock },
-        { provide: 'ChatGateway', useValue: chatGatewayMock },
-        { provide: 'ChatSessionManager', useValue: sessionManagerMock },
-      ],
-    })
-      .overrideProvider(InAppWebSocketStrategy)
-      .useFactory({
-        factory: () =>
-          new InAppWebSocketStrategy(prismaMock, chatGatewayMock, sessionManagerMock),
-      })
-      .compile();
-
-    strategy = module.get(InAppWebSocketStrategy);
+    strategy = new InAppWebSocketStrategy(prismaMock, chatGatewayMock, sessionManagerMock);
   });
 
   it('debe tener canal "in_app_websocket"', () => {
@@ -91,12 +79,12 @@ jest.mock('nodemailer', () => ({
 
 describe('EmailInstitucionalStrategy', () => {
   let strategy: EmailInstitucionalStrategy;
-  let prismaMock: any;
+  let prismaMock: ReturnType<typeof createPrismaMock>;
 
   beforeEach(() => {
-    prismaMock = {
+    prismaMock = createPrismaMock({
       $queryRaw: jest.fn().mockResolvedValue([{ email: 'test@example.com' }]),
-    };
+    });
     strategy = new EmailInstitucionalStrategy(prismaMock);
   });
 
@@ -122,12 +110,10 @@ describe('EmailInstitucionalStrategy', () => {
 
 describe('PushMovilStrategy', () => {
   let strategy: PushMovilStrategy;
-  let prismaMock: any;
+  let prismaMock: ReturnType<typeof createPrismaMock>;
 
   beforeEach(() => {
-    prismaMock = {
-      $queryRaw: jest.fn(),
-    };
+    prismaMock = createPrismaMock();
     strategy = new PushMovilStrategy(prismaMock);
   });
 
@@ -136,7 +122,7 @@ describe('PushMovilStrategy', () => {
   });
 
   it('retorna exitoso=true si el usuario no tiene tokens registrados', async () => {
-    prismaMock.$queryRaw.mockResolvedValue([]);
+    prismaMock.user_push_token.findMany.mockResolvedValue([]);
 
     const resultado = await strategy.enviar(notificacion);
 
@@ -144,7 +130,7 @@ describe('PushMovilStrategy', () => {
   });
 
   it('llama a Expo API cuando hay tokens registrados', async () => {
-    prismaMock.$queryRaw.mockResolvedValue([{ token: 'ExpoToken[abc]' }]);
+    prismaMock.user_push_token.findMany.mockResolvedValue([{ token: 'ExpoToken[abc]' }]);
     global.fetch = jest.fn().mockResolvedValue({ ok: true });
 
     const resultado = await strategy.enviar(notificacion);
@@ -157,7 +143,7 @@ describe('PushMovilStrategy', () => {
   });
 
   it('devuelve exitoso=false cuando Expo API falla', async () => {
-    prismaMock.$queryRaw.mockResolvedValue([{ token: 'ExpoToken[abc]' }]);
+    prismaMock.user_push_token.findMany.mockResolvedValue([{ token: 'ExpoToken[abc]' }]);
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500 });
 
     const resultado = await strategy.enviar(notificacion);
@@ -171,13 +157,10 @@ describe('PushMovilStrategy', () => {
 
 describe('ResumenDiarioStrategy', () => {
   let strategy: ResumenDiarioStrategy;
-  let prismaMock: any;
+  let prismaMock: ReturnType<typeof createPrismaMock>;
 
   beforeEach(() => {
-    prismaMock = {
-      $executeRawUnsafe: jest.fn().mockResolvedValue(undefined),
-      $executeRaw: jest.fn().mockResolvedValue(1),
-    };
+    prismaMock = createPrismaMock();
     strategy = new ResumenDiarioStrategy(prismaMock);
   });
 
@@ -189,11 +172,11 @@ describe('ResumenDiarioStrategy', () => {
     const resultado = await strategy.enviar(notificacion);
     expect(resultado.exitoso).toBe(true);
     expect(resultado.canal).toBe('resumen_diario');
-    expect(prismaMock.$executeRaw).toHaveBeenCalled();
+    expect(prismaMock.daily_digest_queue.create).toHaveBeenCalled();
   });
 });
 
-// ─── Aislamiento de errores (criterio 5) ─────────────────────────────────────
+// ─── Aislamiento de errores ─────────────────────────────────────────────────
 
 describe('Aislamiento de errores entre estrategias', () => {
   it('una estrategia que lanza excepción no detiene las demás', async () => {
@@ -206,7 +189,6 @@ describe('Aislamiento de errores entre estrategias', () => {
       enviar: jest.fn().mockResolvedValue({ canal: 'ok', exitoso: true, timestamp: new Date() }),
     };
 
-    // Simula el comportamiento de Promise.allSettled en NotificationsService
     const resultados = await Promise.allSettled([
       estrategiaFallida.enviar(notificacion),
       estrategiaOk.enviar(notificacion),

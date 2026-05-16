@@ -8,11 +8,11 @@
 
 ## 2. Reparar y completar tests de estrategias concretas en strategy.spec.ts
 
-- [ ] 2.1 Actualizar mocks de `PushMovilStrategy` en `strategy.spec.ts`: reemplazar `$queryRaw` por `prismaMock.user_push_token.findMany`
-- [ ] 2.2 Actualizar mocks de `ResumenDiarioStrategy` en `strategy.spec.ts`: reemplazar `$executeRaw`/`$executeRawUnsafe` por `prismaMock.daily_digest_queue.create`
-- [ ] 2.3 Verificar que los 3 tests de `PushMovilStrategy` (sin tokens, con tokens éxito, Expo falla) pasan con los nuevos mocks
-- [ ] 2.4 Verificar que el test de `ResumenDiarioStrategy` (encolado OCP) pasa con el nuevo mock
-- [ ] 2.5 Verificar que los tests existentes de `InAppWebSocketStrategy` y `EmailInstitucionalStrategy` siguen pasando (sin regresiones)
+- [x] 2.1 Actualizar mocks de `PushMovilStrategy` en `strategy.spec.ts`: reemplazar `$queryRaw` por `prismaMock.user_push_token.findMany`
+- [x] 2.2 Actualizar mocks de `ResumenDiarioStrategy` en `strategy.spec.ts`: reemplazar `$executeRaw`/`$executeRawUnsafe` por `prismaMock.daily_digest_queue.create`
+- [x] 2.3 Verificar que los 3 tests de `PushMovilStrategy` (sin tokens, con tokens éxito, Expo falla) pasan con los nuevos mocks
+- [x] 2.4 Verificar que el test de `ResumenDiarioStrategy` (encolado OCP) pasa con el nuevo mock
+- [x] 2.5 Verificar que los tests existentes de `InAppWebSocketStrategy` y `EmailInstitucionalStrategy` siguen pasando (sin regresiones)
 
 ## 3. Testear inyección de dependencias en NotificationsService (Criterio 3)
 
