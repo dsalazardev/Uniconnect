@@ -20,7 +20,7 @@ interface MemberListProps {
   ownerId?: number;
   currentUserId?: number;
   loadingUserId?: number | null;
-  onDirectMessage?: (userId: number) => void;
+  onDirectMessage?: (userId: number, memberInfo?: { name?: string | null; picture?: string | null }) => void;
   onTransfer?: (userId: number) => void;
   onRemove?: (userId: number) => void;
 }
@@ -83,7 +83,10 @@ export const MemberList: React.FC<MemberListProps> = ({
                   className={styles.dmButton}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDirectMessage(member.id_user!);
+                    onDirectMessage(member.id_user!, {
+                      name: member.user?.full_name,
+                      picture: member.user?.picture,
+                    });
                   }}
                   disabled={loadingUserId === member.id_user}
                   title="Enviar mensaje privado"

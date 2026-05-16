@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
   Inject,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -14,8 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { IValidadorMensajeHandler } from './domain/chain-of-responsibility/interfaces';
 import { MessageDto } from './dto/message.dto';
 import { FileAttachmentDto } from './dto/file-attachment.dto';
-
-export const VALIDACION_CHAIN_REST_TOKEN = 'VALIDACION_CHAIN_REST';
+import { VALIDACION_CHAIN_TOKEN } from './application/messages.service';
 
 /** Regex para capturar @nombre (letras, números, guiones, puntos) */
 const MENTION_REGEX = /@([\w.\-]+)/g;
@@ -26,7 +26,7 @@ export class MessagesService {
     private messageRepository: MessageRepository,
     private eventEmitter: EventEmitter2,
     private prisma: PrismaService,
-    @Inject(VALIDACION_CHAIN_REST_TOKEN)
+    @Inject(VALIDACION_CHAIN_TOKEN)
     private readonly validacionChain: IValidadorMensajeHandler,
   ) {}
 
@@ -35,6 +35,8 @@ export class MessagesService {
     const dtoParaValidar: MessageDto = {
       text_content: createMessageDto.text_content,
       id_membership: createMessageDto.id_membership,
+      sender_id: createMessageDto.sender_id,
+      recipient_id: createMessageDto.recipient_id,
       mentions: createMessageDto.mentions ?? [],
       files: (createMessageDto.files ?? []).map(
         (f) =>
@@ -180,10 +182,23 @@ export class MessagesService {
   }
 
   /**
-   * Obtener mensajes recientes de un grupo (últimos N mensajes)
-   * Soporta paginación por cursor: beforeId = id_message del más antiguo ya cargado
+   * Obtener mensajes recientes de un grupo o conversación privada (paginación por cursor).
+   * Valida que userId sea miembro del grupo antes de devolver datos —
+   * esto protege tanto grupos normales como chats privados (is_direct_message: true).
    */
   async findRecentByGroup(id_group: number, limit: number = 50, beforeId?: number, userId?: number, since?: number) {
+    if (!userId) {
+      throw new UnauthorizedException('Se requiere autenticación para acceder al historial.');
+    }
+
+    const membership = await this.prisma.membership.findFirst({
+      where: { id_group, id_user: userId },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('No tienes acceso a este grupo o conversación privada.');
+    }
+
     return this.messageRepository.findRecentByGroup(id_group, limit, beforeId, userId, since);
   }
 

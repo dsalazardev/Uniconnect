@@ -461,15 +461,16 @@ export class GroupsService {
         }
       }
 
-      // Buscar si ya existe un chat privado entre estos dos usuarios
+      // Buscar si ya existe un chat privado donde AMBOS usuarios son miembros.
+      // Se usa `some` × 2 en lugar de `every` porque `every` devuelve grupos
+      // donde solo un usuario tiene membresía (vacíos o con 1 miembro cumplen `every`).
       const existingDirectMessage = await this.prisma.group.findFirst({
         where: {
           is_direct_message: true,
-          memberships: {
-            every: {
-              id_user: { in: [userId1, userId2] },
-            },
-          },
+          AND: [
+            { memberships: { some: { id_user: userId1 } } },
+            { memberships: { some: { id_user: userId2 } } },
+          ],
         },
         include: {
           memberships: {

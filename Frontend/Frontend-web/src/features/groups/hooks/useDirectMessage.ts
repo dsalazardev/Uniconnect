@@ -15,7 +15,10 @@ export function useDirectMessage() {
   const navigate = useNavigate();
   const [loadingUserId, setLoadingUserId] = useState<number | null>(null);
 
-  const openDirectMessage = async (targetUserId: number) => {
+  const openDirectMessage = async (
+    targetUserId: number,
+    memberInfo?: { name?: string | null; picture?: string | null },
+  ) => {
     if (!authStore.isAuthenticated) {
       showToast.error('Error', 'No hay sesión activa.');
       return;
@@ -25,7 +28,13 @@ export function useDirectMessage() {
     try {
       const response = await groupsService.findOrCreateDirectMessage(targetUserId);
       const groupId = response.group.id_group;
-      navigate(`/chat/${groupId}`);
+      navigate(`/chat/${groupId}`, {
+        state: {
+          recipientId: targetUserId,
+          recipientName: memberInfo?.name ?? null,
+          recipientPicture: memberInfo?.picture ?? null,
+        },
+      });
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number } };
       if (axiosErr.response?.status === 403) {

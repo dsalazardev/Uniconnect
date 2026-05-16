@@ -10,11 +10,16 @@ import {
 import { Server, Socket } from 'socket.io';
 import { MessagesService } from './messages.service';
 import { SendMessageDto, MessageEventDto, MessageReadDto, UserPresenceDto, GroupActivityDto } from './dto/websocket-message.dto';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { SocketData } from './types/SocketData';
 import { ChatSessionManager } from './managers/chat-session.manager';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContentModeration } from './decorators/content-moderation.decorator';
+import { VALIDACION_CHAIN_TOKEN } from './application/messages.service';
+import type { IValidadorMensajeHandler } from './domain/chain-of-responsibility/interfaces';
+import { BaseMessage } from './domain/decorator/base-message';
+import { FileMessageDecorator } from './domain/decorator/file-message.decorator';
+import { MentionMessageDecorator } from './domain/decorator/mention-message.decorator';
 
 @WebSocketGateway({
   cors: {
@@ -36,6 +41,8 @@ export class MessagesGateway
   constructor(
     private messagesService: MessagesService,
     private prisma: PrismaService,
+    @Inject(VALIDACION_CHAIN_TOKEN)
+    private readonly validacionChain: IValidadorMensajeHandler,
   ) {}
 
   afterInit(server: Server) {
@@ -114,6 +121,28 @@ export class MessagesGateway
         );
       }
 
+      // Bug 4 fix: salir del room anterior para evitar recibir presencia de grupos ajenos
+      const previousGroupId = client.data.id_group as number | undefined;
+      const previousPrivateRoom = client.data.privateRoom as string | undefined;
+      if (previousGroupId && previousGroupId !== data.id_group) {
+        const prevRoom = `group-${previousGroupId}`;
+        client.leave(prevRoom);
+        this.server.to(prevRoom).emit('user:presence', {
+          id_user: data.id_user,
+          status: 'offline',
+          last_seen: new Date(),
+        });
+        this.logger.log(`User ${data.id_user} left previous room: ${prevRoom}`);
+      }
+      if (previousPrivateRoom) {
+        client.leave(previousPrivateRoom);
+        this.server.to(previousPrivateRoom).emit('user:presence', {
+          id_user: data.id_user,
+          status: 'offline',
+          last_seen: new Date(),
+        });
+      }
+
       const socketData: SocketData = {
         id_user: data.id_user,
         id_membership: membershipId,
@@ -140,6 +169,20 @@ export class MessagesGateway
       // Unirse a la sala personal del usuario para recibir notificaciones directas
       client.join(`user-${data.id_user}`);
 
+      // Si el grupo es un DM, unirse también al room privado para mensajes 1:1
+      const dmGroup = await this.prisma.group.findFirst({
+        where: { id_group: data.id_group, is_direct_message: true },
+        include: { memberships: { select: { id_user: true } } },
+      });
+      let privateRoom: string | undefined;
+      if (dmGroup && dmGroup.memberships.length === 2) {
+        const [u1, u2] = dmGroup.memberships.map((m) => m.id_user!).sort((a, b) => a - b);
+        privateRoom = `private-${u1}-${u2}`;
+        client.join(privateRoom);
+        client.data.privateRoom = privateRoom;
+        this.logger.log(`User ${data.id_user} joined private room: ${privateRoom}`);
+      }
+
       // Establecer presencia inicial a 'online'
       this.sessionManager.setUserPresence(data.id_user, 'online');
 
@@ -154,12 +197,27 @@ export class MessagesGateway
         message: 'Usuario conectado',
       });
 
-      // Emitir evento de presencia online
+      // Emitir evento de presencia online al room
       this.server.to(roomName).emit('user:presence', {
         id_user: data.id_user,
         status: 'online',
         last_seen: new Date(),
       });
+
+      // Bug 2 fix: emitir a este nuevo socket la presencia de quienes ya están en el room
+      // (de lo contrario B no ve que A ya estaba online al unirse después)
+      const roomSockets = await this.server.in(roomName).fetchSockets();
+      for (const existingSocket of roomSockets) {
+        if (existingSocket.id === client.id) continue;
+        const existingUserId = existingSocket.data?.id_user as number | undefined;
+        if (existingUserId && this.sessionManager.isUserOnline(existingUserId)) {
+          client.emit('user:presence', {
+            id_user: existingUserId,
+            status: 'online',
+            last_seen: new Date(),
+          });
+        }
+      }
 
       return { success: true, message: 'Authenticated', id_membership: membershipId };
     } catch (error) {
@@ -209,6 +267,7 @@ export class MessagesGateway
       // Crear DTO con el id_membership correcto de la sesión
       const createMessageDto = {
         id_membership: id_membership,
+        sender_id: id_user,
         text_content: data.text_content,
         attachments: data.attachments || null,
         files: data.files || [],
@@ -643,22 +702,22 @@ export class MessagesGateway
         return { error: 'Usuario no autenticado' };
       }
 
-      // Throttling: verificar si han pasado 5 segundos desde la última emisión
-      const now = Date.now();
-      const lastEmit = this.presenceThrottle.get(id_user);
-      
-      if (lastEmit && now - lastEmit < this.PRESENCE_THROTTLE_MS) {
-        this.logger.debug(
-          `Presence update throttled for user ${id_user} (${now - lastEmit}ms since last)`,
-        );
-        return { success: true, throttled: true };
+      // Bug 3 fix: 'offline' siempre pasa sin throttle para que al salir del chat
+      // el otro usuario lo vea en tiempo real sin esperar los 5 segundos
+      if (data.status !== 'offline') {
+        const now = Date.now();
+        const lastEmit = this.presenceThrottle.get(id_user);
+        if (lastEmit && now - lastEmit < this.PRESENCE_THROTTLE_MS) {
+          this.logger.debug(
+            `Presence update throttled for user ${id_user} (${now - lastEmit}ms since last)`,
+          );
+          return { success: true, throttled: true };
+        }
+        this.presenceThrottle.set(id_user, now);
       }
 
       // Actualizar presencia en ChatSessionManager
       this.sessionManager.setUserPresence(id_user, data.status);
-
-      // Actualizar timestamp de throttling
-      this.presenceThrottle.set(id_user, now);
 
       // Emitir evento a todos los usuarios en el room del grupo
       const roomName = `group-${id_group}`;
@@ -797,6 +856,162 @@ export class MessagesGateway
    */
   getGroupConnectedUsers(id_group: number): string[] {
     return this.sessionManager.getGroupSockets(id_group);
+  }
+
+  /**
+   * Enviar mensaje privado 1:1
+   * Evento: 'private:send'
+   * Datos: { recipient_id, text_content?, files?, mentions? }
+   * Requiere autenticación previa con authenticate({ id_user, id_group: dmGroupId }).
+   * Emite 'message:new' solo al room private-{min(s,r)}-{max(s,r)}.
+   */
+  @SubscribeMessage('private:send')
+  async handlePrivateMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { recipient_id: number; text_content?: string; files?: any[]; mentions?: any[] },
+  ) {
+    try {
+      const sender_id = client.data.id_user as number;
+      const id_membership = client.data.id_membership as number;
+
+      if (!sender_id || !id_membership) {
+        return { error: 'Usuario no autenticado. Llama a authenticate primero.' };
+      }
+
+      if (!data.recipient_id) {
+        return { error: 'recipient_id es requerido.' };
+      }
+
+      if (sender_id === data.recipient_id) {
+        return { error: 'No puedes enviarte un mensaje privado a ti mismo.' };
+      }
+
+      // Room exclusivo para este par de usuarios
+      const [u1, u2] = [sender_id, data.recipient_id].sort((a, b) => a - b);
+      const privateRoom = `private-${u1}-${u2}`;
+
+      // Extraer menciones del texto (sin deduplicar — el handler de validación detecta duplicados)
+      const rawMatches = (data.text_content ?? '').match(/@([\w.\-]+)/g) ?? [];
+      const mentions = rawMatches.map((m, i) => ({
+        userId: 0,
+        displayName: m.slice(1),
+        position: i,
+      }));
+
+      const resolvedMentions = data.mentions?.length ? data.mentions : mentions;
+      const resolvedFiles = data.files || [];
+
+      // ── Cadena de validación (US-CH01) ────────────────────────────────────
+      // Se ejecuta ANTES de persistir para rechazar sin tocar la BD
+      const dtoValidacion = {
+        text_content: data.text_content,
+        sender_id,
+        recipient_id: data.recipient_id,
+        mentions: resolvedMentions,
+        files: resolvedFiles.map((f: any) => ({
+          url: f.url,
+          name: f.file_name,
+          mimeType: f.mime_type,
+          size: f.size,
+        })),
+      };
+
+      const resultado = this.validacionChain.manejar(dtoValidacion);
+      if (!resultado.valido) {
+        client.emit('message:send:error', {
+          error: resultado.mensaje ?? resultado.codigoError,
+          codigoError: resultado.codigoError,
+        });
+        return { error: resultado.mensaje, codigoError: resultado.codigoError };
+      }
+
+      // ── Decoradores Sprint 3 ───────────────────────────────────────────────
+      // Generan rendered_content para enriquecer el evento emitido al cliente
+      let msgObj: any = new BaseMessage(data.text_content || '', sender_id, new Date());
+      if (resolvedFiles.length > 0) {
+        msgObj = new FileMessageDecorator(
+          msgObj,
+          resolvedFiles.map((f: any) => ({
+            url: f.url,
+            name: f.file_name,
+            mimeType: f.mime_type,
+            size: f.size,
+          })),
+        );
+      }
+      if (resolvedMentions.length > 0) {
+        msgObj = new MentionMessageDecorator(msgObj, resolvedMentions);
+      }
+      const rendered_content = msgObj.render();
+
+      const createMessageDto = {
+        id_membership,
+        sender_id,
+        recipient_id: data.recipient_id,
+        text_content: data.text_content,
+        attachments: null,
+        files: resolvedFiles,
+        mentions: resolvedMentions,
+      };
+
+      const message = await this.messagesService.create(createMessageDto);
+
+      if (!message) {
+        return { error: 'Error al crear el mensaje privado.' };
+      }
+
+      if (!message.membership?.user) {
+        return { error: 'Error: usuario faltante en la base de datos.' };
+      }
+
+      const filesArray = (message.files || []).map((file: any) => ({
+        id_file: file.id_file,
+        url: file.url,
+        file_name: file.file_name,
+        mime_type: file.mime_type,
+        size: file.size ?? undefined,
+        created_at: file.created_at ?? undefined,
+      }));
+
+      const messageEvent = {
+        id_message: message.id_message,
+        id_membership: message.id_membership!,
+        text_content: message.text_content || '',
+        rendered_content,
+        send_at: message.send_at ?? new Date(),
+        attachments: message.attachments || null,
+        files: filesArray,
+        sender_name: message.membership.user.full_name,
+        sender_picture: message.membership.user.picture ?? null,
+        membership: {
+          user: {
+            id_user: message.membership.user.id_user,
+            full_name: message.membership.user.full_name!,
+            picture: message.membership.user.picture ?? undefined,
+          },
+          group: {
+            id_group: message.membership.group?.id_group ?? 0,
+            name: message.membership.group?.name || '',
+          },
+        },
+      };
+
+      // Emitir exclusivamente al room privado — solo los dos participantes del DM están en él
+      this.server.to(privateRoom).emit('message:new', messageEvent);
+      this.logger.log(`Private message ${message.id_message} sent to room ${privateRoom}`);
+
+      return { success: true, message: messageEvent };
+    } catch (error) {
+      this.logger.error('Error sending private message:', error);
+      const response = error?.getResponse?.();
+      const codigoError =
+        (typeof response === 'object' && response !== null
+          ? (response as any).codigoError
+          : null) ?? 'ERROR_DESCONOCIDO';
+      const errorMessage = error?.message || 'Error al enviar mensaje privado';
+      client.emit('message:send:error', { error: errorMessage, codigoError });
+      return { error: errorMessage, codigoError };
+    }
   }
 
   /**

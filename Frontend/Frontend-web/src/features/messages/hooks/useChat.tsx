@@ -32,17 +32,22 @@ interface UseChatOptions {
   token: string;
   userFullName: string;
   serverUrl?: string;
+  recipientUserId?: number;
 }
 
-export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: UseChatOptions) => {
+export const useChat = ({ groupId, userId, token, userFullName, serverUrl, recipientUserId }: UseChatOptions) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isRecipientOnline, setIsRecipientOnline] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingData[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pollsState, setPollsState] = useState<Map<number, Poll>>(new Map());
+  // Ref so presence handlers always see the latest recipientUserId without stale closure
+  const recipientUserIdRef = useRef<number | undefined>(recipientUserId);
+  recipientUserIdRef.current = recipientUserId;
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   // Cursor: id_message del mensaje más antiguo cargado
@@ -155,6 +160,16 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     // Escuchar conexión
     const handleUserConnected = (data: any) => {
       setIsConnected(true);
+      if (recipientUserIdRef.current && data.id_user === recipientUserIdRef.current) {
+        setIsRecipientOnline(true);
+      }
+    };
+
+    // Escuchar presencia de usuarios — actualiza indicador online del destinatario en DMs
+    const handleUserPresence = (data: { id_user: number; status: string }) => {
+      if (recipientUserIdRef.current && data.id_user === recipientUserIdRef.current) {
+        setIsRecipientOnline(data.status === 'online');
+      }
     };
 
     // Escuchar nuevos mensajes
@@ -245,6 +260,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     };
 
     websocketService.onUserConnected(handleUserConnected);
+    websocketService.on('user:presence', handleUserPresence);
     websocketService.onNewMessage(handleNewMessage);
     websocketService.onMessageEdited(handleMessageEdited);
     websocketService.onMessageDeleted(handleMessageDeleted);
@@ -387,8 +403,12 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Cleanup
     return () => {
+      // Bug 3 fix: notificar al servidor que el usuario salió del chat para que
+      // el otro participante vea "Desconectado" sin esperar al cierre del socket
+      websocketService.emit('user:presence', { status: 'offline' });
       websocketService.setOnReconnectCallback(null);
       websocketService.off('user:connected', handleUserConnected);
+      websocketService.off('user:presence', handleUserPresence);
       websocketService.off('message:new', handleNewMessage);
       websocketService.off('message:edited', handleMessageEdited);
       websocketService.off('message:deleted', handleMessageDeleted);
@@ -612,6 +632,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     loading,
     error,
     isConnected,
+    isRecipientOnline,
     typingUsers,
     hasMore,
     isLoadingMore,
