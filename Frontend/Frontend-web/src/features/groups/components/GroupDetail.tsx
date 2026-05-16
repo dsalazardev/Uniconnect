@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useGroupInfo, useLeaveGroup } from '../hooks/useGroupInfo';
 import { useDirectMessage } from '../hooks/useDirectMessage';
 import { MemberList } from './MemberList';
@@ -24,7 +24,11 @@ export const GroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const groupId = parseInt(id as string);
+  const focusRequestId = searchParams.get('focusRequestId')
+    ? parseInt(searchParams.get('focusRequestId')!)
+    : undefined;
   const { data: groupInfo, isLoading, error, refetch } = useGroupInfo(groupId);
   const leaveGroup = useLeaveGroup();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -98,6 +102,13 @@ export const GroupDetail: React.FC = () => {
   useEffect(() => {
     setShowInfoPanel(false);
   }, [id]);
+
+  // Auto-open info panel when arriving from a join-request notification
+  useEffect(() => {
+    if (focusRequestId && isOwner && !isLoading) {
+      setShowInfoPanel(true);
+    }
+  }, [focusRequestId, isOwner, isLoading]);
 
   // Issue 4 fix: DM back button goes to /groups, not history(-1)
   const handleGoBack = () => {
@@ -480,6 +491,7 @@ export const GroupDetail: React.FC = () => {
                     ownerId={groupInfo.owner?.id_user}
                     canManage={groupInfo.canManageMembers || false}
                     showMembersSection={false}
+                    focusRequestId={focusRequestId}
                     onInvite={() => { setShowInfoPanel(false); handleOpenInvite(); }}
                   />
                 </div>
