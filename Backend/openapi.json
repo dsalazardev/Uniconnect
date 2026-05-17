@@ -4129,11 +4129,29 @@
     "schemas": {
       "GoogleLoginDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "example": "ya29.a0AfH...",
+            "description": "Access token obtenido desde Google OAuth"
+          }
+        },
+        "required": [
+          "access_token"
+        ]
       },
       "TempLoginDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "googleSub": {
+            "type": "string",
+            "example": "google-oauth2|123456789",
+            "description": "Google sub (identificador único del usuario en Google)"
+          }
+        },
+        "required": [
+          "googleSub"
+        ]
       },
       "Auth0CallbackDto": {
         "type": "object",
@@ -4194,11 +4212,47 @@
       },
       "ProfileUpdateDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "current_semester": {
+            "type": "string",
+            "nullable": true,
+            "example": "5",
+            "description": "Semestre actual del estudiante"
+          },
+          "image": {
+            "type": "string",
+            "nullable": true,
+            "example": "data:image/jpeg;base64,...",
+            "description": "Foto de perfil en base64 o URL"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+573001234567",
+            "description": "Número de teléfono de contacto"
+          }
+        }
       },
       "CompleteOnboardingDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id_program": {
+            "type": "number",
+            "example": 3,
+            "description": "ID del programa académico del estudiante",
+            "minimum": 1
+          },
+          "current_semester": {
+            "type": "number",
+            "example": 4,
+            "description": "Semestre actual del estudiante",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id_program",
+          "current_semester"
+        ]
       },
       "CreateCourseDto": {
         "type": "object",
@@ -4299,11 +4353,53 @@
       },
       "ExpoPushTokenDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+            "maxLength": 255
+          },
+          "platform": {
+            "type": "string",
+            "example": "android",
+            "enum": [
+              "android",
+              "ios",
+              "web"
+            ],
+            "maxLength": 50
+          }
+        },
+        "required": [
+          "token"
+        ]
       },
       "PreferenciaCanalDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "tipo_evento": {
+            "type": "string",
+            "example": "event_published",
+            "description": "Clave del tipo de evento",
+            "maxLength": 100
+          },
+          "canal": {
+            "type": "string",
+            "example": "push",
+            "description": "Canal de notificación (push, email, in_app)",
+            "maxLength": 100
+          },
+          "activo": {
+            "type": "boolean",
+            "example": true,
+            "description": "true = activado, false = desactivado"
+          }
+        },
+        "required": [
+          "tipo_evento",
+          "canal",
+          "activo"
+        ]
       },
       "CreateConnectionDto": {
         "type": "object",
@@ -4311,7 +4407,35 @@
       },
       "CreateMembershipDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id_user": {
+            "type": "number",
+            "example": 5,
+            "description": "ID del usuario a agregar al grupo",
+            "minimum": 1
+          },
+          "id_group": {
+            "type": "number",
+            "example": 12,
+            "description": "ID del grupo",
+            "minimum": 1
+          },
+          "is_admin": {
+            "type": "boolean",
+            "example": false,
+            "description": "Si el usuario es administrador del grupo"
+          },
+          "joined_at": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2026-05-17T10:00:00Z",
+            "description": "Fecha de ingreso al grupo"
+          }
+        },
+        "required": [
+          "id_user",
+          "id_group"
+        ]
       },
       "UpdateMembershipDto": {
         "type": "object",

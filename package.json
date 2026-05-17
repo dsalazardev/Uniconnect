@@ -16,6 +16,7 @@
     "build:shared": "cd Frontend/shared && npm run build",
     "build:web": "cd Frontend/Frontend-web && npm run build",
     "generate:api-types": "cd packages/api-types && npm run generate",
+    "generate:all": "cd Backend && npm run generate:openapi && cd ../packages/api-types && npm run generate",
     "test:mobile": "cd Frontend/Frontend-mobile && npm test",
     "test:web": "cd Frontend/Frontend-web && npm test",
     "test:all": "npm run test:mobile && npm run test:web",

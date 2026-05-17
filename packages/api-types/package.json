@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "generate": "openapi-typescript ../../openspec/openapi.json -o src/openapi.d.ts",
+    "generate": "openapi-typescript ../../openspec/openapi.json -o src/openapi.d.ts && openapi-zod-client ../../openspec/openapi.json -o src/schemas.ts --template schemas-template.hbs",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -18,6 +18,7 @@
   "license": "MIT",
   "devDependencies": {
     "openapi-typescript": "^7.13.0",
+    "openapi-zod-client": "^1.18.3",
     "typescript": "~5.9.2"
   },
   "dependencies": {

@@ -1845,8 +1845,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        GoogleLoginDto: Record<string, never>;
-        TempLoginDto: Record<string, never>;
+        GoogleLoginDto: {
+            /**
+             * @description Access token obtenido desde Google OAuth
+             * @example ya29.a0AfH...
+             */
+            access_token: string;
+        };
+        TempLoginDto: {
+            /**
+             * @description Google sub (identificador único del usuario en Google)
+             * @example google-oauth2|123456789
+             */
+            googleSub: string;
+        };
         Auth0CallbackDto: {
             /**
              * @description Authorization code received from Auth0 Universal Login
@@ -1883,8 +1895,35 @@ export interface components {
              */
             access_token: string;
         };
-        ProfileUpdateDto: Record<string, never>;
-        CompleteOnboardingDto: Record<string, never>;
+        ProfileUpdateDto: {
+            /**
+             * @description Semestre actual del estudiante
+             * @example 5
+             */
+            current_semester?: string | null;
+            /**
+             * @description Foto de perfil en base64 o URL
+             * @example data:image/jpeg;base64,...
+             */
+            image?: string | null;
+            /**
+             * @description Número de teléfono de contacto
+             * @example +573001234567
+             */
+            phone?: string | null;
+        };
+        CompleteOnboardingDto: {
+            /**
+             * @description ID del programa académico del estudiante
+             * @example 3
+             */
+            id_program: number;
+            /**
+             * @description Semestre actual del estudiante
+             * @example 4
+             */
+            current_semester: number;
+        };
         CreateCourseDto: {
             /**
              * @description Nombre de la materia
@@ -1940,10 +1979,56 @@ export interface components {
         };
         CreateMessageDto: Record<string, never>;
         UpdateMessageDto: Record<string, never>;
-        ExpoPushTokenDto: Record<string, never>;
-        PreferenciaCanalDto: Record<string, never>;
+        ExpoPushTokenDto: {
+            /** @example ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx] */
+            token: string;
+            /**
+             * @example android
+             * @enum {string}
+             */
+            platform?: "android" | "ios" | "web";
+        };
+        PreferenciaCanalDto: {
+            /**
+             * @description Clave del tipo de evento
+             * @example event_published
+             */
+            tipo_evento: string;
+            /**
+             * @description Canal de notificación (push, email, in_app)
+             * @example push
+             */
+            canal: string;
+            /**
+             * @description true = activado, false = desactivado
+             * @example true
+             */
+            activo: boolean;
+        };
         CreateConnectionDto: Record<string, never>;
-        CreateMembershipDto: Record<string, never>;
+        CreateMembershipDto: {
+            /**
+             * @description ID del usuario a agregar al grupo
+             * @example 5
+             */
+            id_user: number;
+            /**
+             * @description ID del grupo
+             * @example 12
+             */
+            id_group: number;
+            /**
+             * @description Si el usuario es administrador del grupo
+             * @example false
+             */
+            is_admin?: boolean;
+            /**
+             * Format: date-time
+             * @description Fecha de ingreso al grupo
+             * @example 2026-05-17T10:00:00Z
+             */
+            joined_at?: string;
+        };
         UpdateMembershipDto: Record<string, never>;
         CreateGroupInvitationDto: {
             /**
