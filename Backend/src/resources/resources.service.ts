@@ -22,9 +22,45 @@ export class ResourcesService {
     private readonly openGraphService: OpenGraphService,
   ) {}
 
-  // ── CA1: Crear recurso con extracción Open Graph ────────────────────────
-  async crearRecurso(groupId: number, dto: CreateResourceDto, userId: number) {
-    await this.validateMembership(groupId, userId);
+  // ── CA4: Listar recursos por programa (pantalla biblioteca) ──────────
+  async listarPorPrograma(programId: number, userId: number, tipo?: TipoContenido) {
+    await this.validateProgramAccess(programId, userId);
+    const resources = await this.prisma.resource.findMany({
+      where: { id_program: programId, ...(tipo ? { tipo_contenido: tipo } : {}) },
+      include: this.resourceInclude(),
+      orderBy: { created_at: 'desc' },
+    });
+    return resources.map((r) => this.buildResponse(r));
+  }
+
+  // ── Listar programas accesibles para el usuario ────────────────────
+  async listarProgramasDelUsuario(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id_user: userId },
+      select: {
+        id_program: true,
+        program: { select: { id_program: true, name: true } },
+        enrollments: {
+          select: {
+            course: { select: { id_program: true, program: { select: { id_program: true, name: true } } } },
+          },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    const programMap = new Map<number, string>();
+    if (user.program) programMap.set(user.program.id_program, user.program.name ?? 'Mi programa');
+    for (const e of user.enrollments) {
+      const p = e.course?.program;
+      if (p) programMap.set(p.id_program, p.name ?? 'Programa');
+    }
+    return [...programMap.entries()].map(([id_program, name]) => ({ id_program, name }));
+  }
+
+  // ── CA1: Crear recurso en programa con extracción Open Graph ─────────
+  async crearEnPrograma(programId: number, dto: CreateResourceDto, userId: number) {
+    await this.validateProgramAccess(programId, userId);
 
     let titulo = dto.titulo ?? '';
     let descripcion = dto.descripcion ?? null;
@@ -37,11 +73,12 @@ export class ResourcesService {
       imagen_preview = og.imagen_preview;
     }
 
-    if (!titulo) throw new BadRequestException('El título es requerido si no se proporciona una URL');
+    if (!titulo) throw new BadRequestException('El título es requerido si no se proporciona URL');
 
     const resource = await this.prisma.resource.create({
       data: {
-        id_group: groupId,
+        id_program: programId,
+        id_group: dto.id_group ?? null,
         created_by: userId,
         url_externa: dto.url_externa ?? null,
         titulo,
@@ -58,23 +95,10 @@ export class ResourcesService {
     return this.buildResponse(resource);
   }
 
-  // ── CA4: Listar con filtro por tipo ───────────────────────────────────
-  async listarRecursos(groupId: number, userId: number, tipo?: TipoContenido) {
-    await this.validateMembership(groupId, userId);
-
-    const resources = await this.prisma.resource.findMany({
-      where: { id_group: groupId, ...(tipo ? { tipo_contenido: tipo } : {}) },
-      include: this.resourceInclude(),
-      orderBy: { created_at: 'desc' },
-    });
-
-    return resources.map((r) => this.buildResponse(r));
-  }
-
-  // ── CA3: Editar — solo propietario o admin del grupo ──────────────────
-  async editarRecurso(groupId: number, resourceId: number, dto: UpdateResourceDto, userId: number) {
-    const resource = await this.findOrFail(resourceId, groupId);
-    await this.assertOwnerOrAdmin(resource, groupId, userId);
+  // ── CA3: Editar — propietario o admin del grupo asociado ────────────
+  async editarRecurso(resourceId: number, dto: UpdateResourceDto, userId: number) {
+    const resource = await this.findOrFail(resourceId);
+    await this.assertOwnerOrAdmin(resource, userId);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.etiquetas !== undefined) {
@@ -99,18 +123,25 @@ export class ResourcesService {
     return this.buildResponse(updated);
   }
 
-  // ── CA3: Eliminar — solo propietario o admin del grupo ────────────────
-  async eliminarRecurso(groupId: number, resourceId: number, userId: number) {
-    const resource = await this.findOrFail(resourceId, groupId);
-    await this.assertOwnerOrAdmin(resource, groupId, userId);
+  // ── CA3: Eliminar — propietario o admin del grupo asociado ──────────
+  async eliminarRecurso(resourceId: number, userId: number) {
+    const resource = await this.findOrFail(resourceId);
+    await this.assertOwnerOrAdmin(resource, userId);
     await this.prisma.resource.delete({ where: { id_resource: resourceId } });
     return { message: 'Recurso eliminado' };
   }
 
+  // ── Obtener recurso decorado ──────────────────────────────────────────
+  async obtenerRecurso(resourceId: number, userId: number) {
+    const resource = await this.findOrFail(resourceId);
+    await this.validateProgramAccess(resource.id_program, userId);
+    return this.buildResponse(resource);
+  }
+
   // ── Agregar comentario ────────────────────────────────────────────────
-  async agregarComentario(groupId: number, resourceId: number, contenido: string, userId: number) {
-    await this.validateMembership(groupId, userId);
-    await this.findOrFail(resourceId, groupId);
+  async agregarComentario(resourceId: number, contenido: string, userId: number) {
+    const resource = await this.findOrFail(resourceId);
+    await this.validateProgramAccess(resource.id_program, userId);
     return this.prisma.resource_comment.create({
       data: { id_resource: resourceId, id_user: userId, contenido },
       include: { user: { select: { id_user: true, full_name: true } } },
@@ -118,9 +149,9 @@ export class ResourcesService {
   }
 
   // ── Valorar recurso ───────────────────────────────────────────────────
-  async valorarRecurso(groupId: number, resourceId: number, valor: number, userId: number) {
-    await this.validateMembership(groupId, userId);
-    await this.findOrFail(resourceId, groupId);
+  async valorarRecurso(resourceId: number, valor: number, userId: number) {
+    const resource = await this.findOrFail(resourceId);
+    await this.validateProgramAccess(resource.id_program, userId);
     return this.prisma.resource_rating.upsert({
       where: { id_resource_id_user: { id_resource: resourceId, id_user: userId } },
       create: { id_resource: resourceId, id_user: userId, valor },
@@ -128,44 +159,45 @@ export class ResourcesService {
     });
   }
 
-  // ── Obtener recurso decorado por ID ──────────────────────────────────
-  async obtenerRecurso(groupId: number, resourceId: number, userId: number) {
-    await this.validateMembership(groupId, userId);
-    const resource = await this.findOrFail(resourceId, groupId);
-    return this.buildResponse(resource);
-  }
+  // ── Helpers ────────────────────────────────────────────────────────────
 
-  // ── Helpers ───────────────────────────────────────────────────────────
-
-  private async validateMembership(groupId: number, userId: number) {
-    const m = await this.prisma.membership.findUnique({
-      where: { id_user_id_group: { id_user: userId, id_group: groupId } },
+  /** Valida que el usuario pertenece al programa (via user.id_program o enrollment) */
+  private async validateProgramAccess(programId: number, userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id_user: userId },
+      select: {
+        id_program: true,
+        enrollments: { select: { course: { select: { id_program: true } } } },
+      },
     });
-    if (!m) throw new ForbiddenException('No eres miembro de este grupo');
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    const hasAccess =
+      user.id_program === programId ||
+      user.enrollments.some((e) => e.course?.id_program === programId);
+    if (!hasAccess) throw new ForbiddenException('No tienes acceso a los recursos de este programa');
   }
 
-  private async assertOwnerOrAdmin(
-    resource: { created_by: number },
-    groupId: number,
-    userId: number,
-  ) {
+  /** CA3: solo el creador o el admin del grupo asociado puede editar/eliminar */
+  private async assertOwnerOrAdmin(resource: { created_by: number; id_group: number | null }, userId: number) {
     if (resource.created_by === userId) return;
-    const m = await this.prisma.membership.findUnique({
-      where: { id_user_id_group: { id_user: userId, id_group: groupId } },
-    });
-    if (!m?.is_admin) throw new ForbiddenException('Solo el propietario o un administrador puede modificar este recurso');
+    if (resource.id_group) {
+      const m = await this.prisma.membership.findUnique({
+        where: { id_user_id_group: { id_user: userId, id_group: resource.id_group } },
+      });
+      if (m?.is_admin) return;
+    }
+    throw new ForbiddenException('Solo el propietario o un administrador del grupo puede modificar este recurso');
   }
 
-  private async findOrFail(resourceId: number, groupId: number) {
-    const r = await this.prisma.resource.findFirst({
-      where: { id_resource: resourceId, id_group: groupId },
+  private async findOrFail(resourceId: number) {
+    const r = await this.prisma.resource.findUnique({
+      where: { id_resource: resourceId },
       include: this.resourceInclude(),
     });
-    if (!r) throw new NotFoundException('Recurso no encontrado en este grupo');
+    if (!r) throw new NotFoundException('Recurso no encontrado');
     return r;
   }
 
-  /** CA2/CA5: Construye la cadena de decoradores y serializa getMetadata() en rendered_content */
   private buildResponse(resource: ResourceWithRelations) {
     const promedio = resource.valoraciones.length
       ? resource.valoraciones.reduce((s, v) => s + v.valor, 0) / resource.valoraciones.length
@@ -180,28 +212,21 @@ export class ResourcesService {
       resource.created_by,
     );
 
-    if (resource.etiquetas.length > 0) {
+    if (resource.etiquetas.length > 0)
       decorado = new RecursoConEtiquetas(decorado, resource.etiquetas.map((t) => t.etiqueta));
-    }
-
-    if (resource.valoraciones.length > 0) {
+    if (resource.valoraciones.length > 0)
       decorado = new RecursoConValoracion(decorado, promedio, resource.valoraciones.length);
-    }
-
-    if (resource.comentarios.length > 0) {
-      decorado = new RecursoConComentarios(
-        decorado,
-        resource.comentarios.map((c) => ({
-          id_comment: c.id_comment,
-          contenido: c.contenido,
-          usuario: c.user.full_name,
-          fecha: c.created_at.toISOString(),
-        })),
-      );
-    }
+    if (resource.comentarios.length > 0)
+      decorado = new RecursoConComentarios(decorado, resource.comentarios.map((c) => ({
+        id_comment: c.id_comment,
+        contenido: c.contenido,
+        usuario: c.user.full_name,
+        fecha: c.created_at.toISOString(),
+      })));
 
     return {
       id_resource: resource.id_resource,
+      id_program: resource.id_program,
       id_group: resource.id_group,
       created_by: resource.created_by,
       creator: resource.creator,

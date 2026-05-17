@@ -1,5 +1,6 @@
-import { IsString, IsOptional, IsUrl, IsEnum, IsArray, MaxLength, ArrayMaxSize } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsOptional, IsUrl, IsEnum, IsArray, MaxLength, ArrayMaxSize, IsInt, Min } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import { TipoContenido } from '@prisma/client';
 
 export class CreateResourceDto {
@@ -21,7 +22,8 @@ export class CreateResourceDto {
   @MaxLength(2000)
   descripcion?: string;
 
-  @ApiProperty({ enum: TipoContenido, default: TipoContenido.ENLACE })
+  @ApiPropertyOptional({ enum: TipoContenido, default: TipoContenido.ENLACE })
+  @IsOptional()
   @IsEnum(TipoContenido)
   tipo_contenido: TipoContenido = TipoContenido.ENLACE;
 
@@ -31,4 +33,12 @@ export class CreateResourceDto {
   @IsString({ each: true })
   @ArrayMaxSize(10)
   etiquetas?: string[];
+
+  /** Grupo opcional para contexto de permisos CA3 */
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  id_group?: number;
 }

@@ -9,7 +9,10 @@ enum TipoContenido {
 
 model resource {
   id_resource      Int                @id @default(autoincrement())
-  id_group         Int
+  /// Segmentación primaria: programa académico al que pertenece el recurso
+  id_program       Int
+  /// Contexto de grupo opcional — usado para validar permisos CA3
+  id_group         Int?
   created_by       Int
   url_externa      String?            @db.VarChar(2048)
   titulo           String             @db.VarChar(500)
@@ -21,12 +24,14 @@ model resource {
   created_at       DateTime           @default(now()) @db.Timestamptz(6)
   updated_at       DateTime           @updatedAt @db.Timestamptz(6)
 
-  group            group              @relation(fields: [id_group], references: [id_group], onDelete: Cascade)
+  program          program            @relation(fields: [id_program], references: [id_program], onDelete: Cascade)
+  group            group?             @relation(fields: [id_group], references: [id_group], onDelete: SetNull)
   creator          user               @relation("ResourceCreator", fields: [created_by], references: [id_user], onDelete: Cascade)
   etiquetas        resource_tag[]
   valoraciones     resource_rating[]
   comentarios      resource_comment[]
 
+  @@index([id_program])
   @@index([id_group])
   @@index([created_by])
   @@index([tipo_contenido])

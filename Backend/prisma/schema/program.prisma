@@ -1,6 +1,7 @@
 model program {
-  id_program Int      @id @default(autoincrement())
-  name       String?  @db.VarChar
+  id_program Int        @id @default(autoincrement())
+  name       String?    @db.VarChar
   courses    course[]
   users      user[]
+  resources  resource[]
 }
