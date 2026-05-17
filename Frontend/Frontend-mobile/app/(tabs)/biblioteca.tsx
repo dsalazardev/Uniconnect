@@ -9,7 +9,7 @@ import { api } from '@/src/constants/api';
 import { authStore } from '@/src/features/auth/store/AuthStore';
 import { showToast } from '@/src/lib/toast';
 import { BIBLIOTECA_ENDPOINTS } from '@uniconnect/shared';
-import type { Resource, ProgramaSummary, TipoContenido } from '@uniconnect/shared';
+import type { Resource, TipoContenido } from '@uniconnect/shared';
 
 const TIPOS: { value: TipoContenido | ''; label: string }[] = [
   { value: '', label: 'Todos' },
@@ -22,51 +22,36 @@ const TIPOS: { value: TipoContenido | ''; label: string }[] = [
 ];
 
 export default function BibliotecaScreen() {
-  const [programas, setProgramas] = useState<ProgramaSummary[]>([]);
-  const [programaActivo, setProgramaActivo] = useState<number | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [filtroTipo, setFiltroTipo] = useState<TipoContenido | ''>('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ url: '', titulo: '', tipo: 'ENLACE' as TipoContenido, etiquetas: '' });
 
   const currentUserId = authStore.user?.id_user ?? 0;
-  const userProgramId = authStore.user?.id_program ?? null;
+  const programId = authStore.user?.id_program ?? null;
 
-  // Cargar programas al montar
-  useEffect(() => {
-    api.get(BIBLIOTECA_ENDPOINTS.MIS_PROGRAMAS)
-      .then((r) => {
-        const list: ProgramaSummary[] = Array.isArray(r.data) ? r.data : [];
-        setProgramas(list);
-        const defaultId = list.find((p) => p.id_program === userProgramId)?.id_program ?? list[0]?.id_program ?? null;
-        setProgramaActivo(defaultId);
-      })
-      .catch(() => showToast.error('Error', 'No se pudieron cargar los programas'));
-  }, [userProgramId]);
-
-  // Cargar recursos cuando cambia programa o filtro (con spinner)
   const cargarRecursos = useCallback(() => {
-    if (!programaActivo) return;
+    if (!programId) return;
     setLoading(true);
-    api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programaActivo, filtroTipo || undefined))
+    api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, filtroTipo || undefined))
       .then((r) => setResources(Array.isArray(r.data) ? r.data : []))
       .catch(() => showToast.error('Error', 'No se pudieron cargar los recursos'))
       .finally(() => setLoading(false));
-  }, [programaActivo, filtroTipo]);
+  }, [programId, filtroTipo]);
 
-  // Recarga silenciosa para sincronizar tras mutaciones
-  const silentRefresh = useCallback((programId: number, tipo: TipoContenido | '') => {
-    api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, tipo || undefined))
+  const silentRefresh = useCallback(() => {
+    if (!programId) return;
+    api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, filtroTipo || undefined))
       .then((r) => setResources(Array.isArray(r.data) ? r.data : []))
       .catch(() => {});
-  }, []);
+  }, [programId, filtroTipo]);
 
   useEffect(() => { cargarRecursos(); }, [cargarRecursos]);
 
   const handleCreate = async () => {
-    if (!programaActivo || (!form.url && !form.titulo)) {
+    if (!programId || (!form.url && !form.titulo)) {
       showToast.error('Requerido', 'Ingresa una URL o un título');
       return;
     }
@@ -78,14 +63,12 @@ export default function BibliotecaScreen() {
         tipo_contenido: form.tipo,
         etiquetas: form.etiquetas ? form.etiquetas.split(',').map((t) => t.trim()).filter(Boolean) : [],
       };
-      const { data: newResource } = await api.post(BIBLIOTECA_ENDPOINTS.CREATE(programaActivo), payload);
-      // Actualización optimista inmediata
+      const { data: newResource } = await api.post(BIBLIOTECA_ENDPOINTS.CREATE(programId), payload);
       setResources((p) => [newResource, ...p]);
       setShowModal(false);
       setForm({ url: '', titulo: '', tipo: 'ENLACE', etiquetas: '' });
       showToast.success('Recurso agregado');
-      // Recarga silenciosa para sincronizar OG y decoradores del servidor
-      silentRefresh(programaActivo, filtroTipo);
+      silentRefresh();
     } catch (err: any) {
       showToast.error('Error', err?.response?.data?.message ?? 'No se pudo crear el recurso');
     } finally {
@@ -102,6 +85,17 @@ export default function BibliotecaScreen() {
       showToast.error('Error', 'No tienes permiso para eliminar este recurso');
     }
   };
+
+  if (!programId) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyState}>
+          <Ionicons name="library-outline" size={44} color="#444" />
+          <Text style={styles.emptyText}>No tienes un programa académico asignado.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const renderResource = ({ item: r }: { item: Resource }) => {
     const dec = r.decoradores;
@@ -141,44 +135,33 @@ export default function BibliotecaScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Ionicons name="library-outline" size={22} color="#D9B97E" />
-        <Text style={styles.headerTitle}>Biblioteca de Recursos</Text>
+        <View style={styles.headerLeft}>
+          <Ionicons name="library-outline" size={22} color="#D9B97E" />
+          <Text style={styles.headerTitle}>Biblioteca de Recursos</Text>
+        </View>
+        <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
+          <Ionicons name="add" size={18} color="#111" />
+        </TouchableOpacity>
       </View>
 
-      {/* Selector de programa (segmentación) */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.programScroll}>
-        {programas.map((p) => (
+      {/* Filtro por tipo */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 16 }}>
+        {TIPOS.map((t) => (
           <TouchableOpacity
-            key={p.id_program}
-            style={[styles.programChip, programaActivo === p.id_program && styles.programChipActive]}
-            onPress={() => { setProgramaActivo(p.id_program); setFiltroTipo(''); }}
+            key={String(t.value)}
+            style={[styles.filterChip, filtroTipo === t.value && styles.filterChipActive]}
+            onPress={() => setFiltroTipo(t.value as TipoContenido | '')}
           >
-            <Text style={[styles.programChipText, programaActivo === p.id_program && styles.programChipTextActive]}>
-              {p.name ?? `Programa ${p.id_program}`}
+            <Text style={[styles.filterChipText, filtroTipo === t.value && styles.filterChipTextActive]}>
+              {t.label}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Filtro tipo + botón agregar */}
-      <View style={styles.toolbar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-          {TIPOS.map((t) => (
-            <TouchableOpacity key={String(t.value)} style={[styles.filterChip, filtroTipo === t.value && styles.filterChipActive]} onPress={() => setFiltroTipo(t.value as TipoContenido | '')}>
-              <Text style={[styles.filterChipText, filtroTipo === t.value && styles.filterChipTextActive]}>{t.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        {programaActivo && (
-          <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
-            <Ionicons name="add" size={18} color="#111" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Lista de recursos */}
+      {/* Lista */}
       {loading
-        ? <ActivityIndicator color="#D9B97E" style={{ marginTop: 32 }} />
+        ? <ActivityIndicator color="#D9B97E" style={{ marginTop: 40 }} />
         : <FlatList
             data={resources}
             keyExtractor={(r) => String(r.id_resource)}
@@ -187,13 +170,13 @@ export default function BibliotecaScreen() {
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Ionicons name="library-outline" size={44} color="#444" />
-                <Text style={styles.emptyText}>No hay recursos en este programa</Text>
+                <Text style={styles.emptyText}>No hay recursos aún. ¡Agrega el primero!</Text>
               </View>
             }
           />
       }
 
-      {/* Modal agregar recurso */}
+      {/* Modal agregar */}
       <Modal visible={showModal} transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
@@ -205,25 +188,35 @@ export default function BibliotecaScreen() {
             </View>
 
             <Text style={styles.label}>URL externa</Text>
-            <TextInput style={styles.input} placeholder="https://..." placeholderTextColor="#6B7280" value={form.url} onChangeText={(v) => setForm((p) => ({ ...p, url: v }))} autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder="https://..." placeholderTextColor="#6B7280"
+              value={form.url} onChangeText={(v) => setForm((p) => ({ ...p, url: v }))} autoCapitalize="none" keyboardType="url" />
 
             <Text style={styles.label}>Título (opcional si hay URL)</Text>
-            <TextInput style={styles.input} placeholder="Título del recurso" placeholderTextColor="#6B7280" value={form.titulo} onChangeText={(v) => setForm((p) => ({ ...p, titulo: v }))} />
+            <TextInput style={styles.input} placeholder="Título del recurso" placeholderTextColor="#6B7280"
+              value={form.titulo} onChangeText={(v) => setForm((p) => ({ ...p, titulo: v }))} />
 
             <Text style={styles.label}>Tipo</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
               {TIPOS.filter((t) => t.value !== '').map((t) => (
-                <TouchableOpacity key={String(t.value)} style={[styles.filterChip, form.tipo === t.value && styles.filterChipActive]} onPress={() => setForm((p) => ({ ...p, tipo: t.value as TipoContenido }))}>
+                <TouchableOpacity
+                  key={String(t.value)}
+                  style={[styles.filterChip, form.tipo === t.value && styles.filterChipActive]}
+                  onPress={() => setForm((p) => ({ ...p, tipo: t.value as TipoContenido }))}
+                >
                   <Text style={[styles.filterChipText, form.tipo === t.value && styles.filterChipTextActive]}>{t.label}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             <Text style={styles.label}>Etiquetas (separadas por coma)</Text>
-            <TextInput style={styles.input} placeholder="IA, Paper, Referencia" placeholderTextColor="#6B7280" value={form.etiquetas} onChangeText={(v) => setForm((p) => ({ ...p, etiquetas: v }))} />
+            <TextInput style={styles.input} placeholder="IA, Paper, Referencia" placeholderTextColor="#6B7280"
+              value={form.etiquetas} onChangeText={(v) => setForm((p) => ({ ...p, etiquetas: v }))} />
 
             <TouchableOpacity style={[styles.submitBtn, submitting && { opacity: 0.6 }]} onPress={handleCreate} disabled={submitting}>
-              {submitting ? <ActivityIndicator size="small" color="#111" /> : <Text style={styles.submitBtnText}>Agregar recurso</Text>}
+              {submitting
+                ? <ActivityIndicator size="small" color="#111" />
+                : <Text style={styles.submitBtnText}>Agregar recurso</Text>
+              }
             </TouchableOpacity>
           </View>
         </View>
@@ -234,26 +227,22 @@ export default function BibliotecaScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1e1e1e' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 20, paddingBottom: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  programScroll: { paddingHorizontal: 16, marginBottom: 8 },
-  programChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: 'rgba(217,185,126,0.15)', marginRight: 8 },
-  programChipActive: { backgroundColor: 'rgba(217,185,126,0.15)', borderColor: '#D9B97E' },
-  programChipText: { color: '#9CA3AF', fontSize: 13 },
-  programChipTextActive: { color: '#D9B97E', fontWeight: '700' },
-  toolbar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12, gap: 8 },
-  filterChip: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 14, backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: 'rgba(217,185,126,0.15)', marginRight: 6 },
+  addBtn: { backgroundColor: '#D9B97E', borderRadius: 8, padding: 8 },
+  filterScroll: { marginBottom: 12 },
+  filterChip: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 16, backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: 'rgba(217,185,126,0.15)', marginRight: 7 },
   filterChipActive: { backgroundColor: 'rgba(217,185,126,0.12)', borderColor: '#D9B97E' },
   filterChipText: { color: '#9CA3AF', fontSize: 12 },
   filterChipTextActive: { color: '#D9B97E', fontWeight: '700' },
-  addBtn: { backgroundColor: '#D9B97E', borderRadius: 8, padding: 9 },
-  listContent: { paddingHorizontal: 16, paddingBottom: 24 },
+  listContent: { paddingHorizontal: 16, paddingBottom: 28 },
   emptyContainer: { flex: 1 },
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
   emptyText: { color: '#555', fontSize: 14, marginTop: 12, textAlign: 'center' },
   card: { backgroundColor: '#2a2a2a', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(217,185,126,0.12)', marginBottom: 12, overflow: 'hidden' },
-  cardImage: { width: '100%', height: 110 },
-  cardImagePlaceholder: { width: '100%', height: 110, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
+  cardImage: { width: '100%', height: 120 },
+  cardImagePlaceholder: { width: '100%', height: 120, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
   cardBody: { padding: 11, gap: 5 },
   cardTitle: { color: '#fff', fontSize: 14, fontWeight: '700', lineHeight: 18 },
   cardDesc: { color: '#9CA3AF', fontSize: 12, lineHeight: 16 },
