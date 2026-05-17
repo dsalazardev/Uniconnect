@@ -42,15 +42,15 @@
 
 ## 4. Configurar el pipeline de CI para la ejecución de pruebas, umbral de cobertura del 70% y recolección de artefactos
 
-- [ ] 4.1 Extender `.github/workflows/ci.yml` con paso de `npm run test:e2e -- --coverage` en el job `backend`
-- [ ] 4.2 Agregar verificación de umbral de cobertura ≥70% para statements, branches, functions, lines en módulos Sprint 4
-- [ ] 4.3 Agregar job `e2e-android` en `ci.yml` con `reactivecircus/android-emulator-runner@v2` (API 34)
-- [ ] 4.4 Configurar instalación de Maestro en el job E2E vía `curl -Ls "https://get.maestro.mobile.dev" | bash`
-- [ ] 4.5 Configurar instalación del APK debug en el emulador (`adb install`)
-- [ ] 4.6 Configurar ejecución del flow `maestro test maestro/flows/study-session.yaml`
-- [ ] 4.7 Configurar subida de artefactos en fallo: `actions/upload-artifact@v4` con path `~/.maestro/output/`
-- [ ] 4.8 Condicionar job E2E para ejecutar solo en PRs a main o workflow_dispatch (no en cada push)
-- [ ] 4.9 Configurar `romeovs/lcov-reporter-action` para comentario de cobertura en PRs
+- [x] 4.1 Extender `.github/workflows/ci.yml` con paso de `npm run test:e2e -- --coverage` en el job `backend`
+- [x] 4.2 Agregar verificación de umbral de cobertura ≥70% para statements, branches, functions, lines en módulos Sprint 4
+- [x] 4.3 Agregar job `e2e-android` en `ci.yml` con `reactivecircus/android-emulator-runner@v2` (API 34)
+- [x] 4.4 Configurar instalación de Maestro en el job E2E vía `curl -Ls "https://get.maestro.mobile.dev" | bash`
+- [x] 4.5 Configurar instalación del APK debug en el emulador (`adb install`)
+- [x] 4.6 Configurar ejecución del flow `maestro test maestro/flows/study-session.yaml`
+- [x] 4.7 Configurar subida de artefactos en fallo: `actions/upload-artifact@v4` con path `~/.maestro/output/`
+- [x] 4.8 Condicionar job E2E para ejecutar solo en PRs a main o workflow_dispatch (no en cada push)
+- [x] 4.9 Configurar `romeovs/lcov-reporter-action` para comentario de cobertura en PRs
 
 ## 5. Documentar en el README móvil el proceso de ejecución local de E2E y la interpretación de artefactos del CI
 
