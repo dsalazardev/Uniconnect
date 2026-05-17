@@ -33,12 +33,12 @@
 
 ## 3. Escribir la prueba E2E para la creación de sesiones y verificar la sincronización por WebSockets con el calendario web
 
-- [ ] 3.1 Crear `Frontend/Frontend-mobile/maestro/flows/study-session.yaml` con flow completo: login → navegar a grupo → crear sesión con título, fecha, duración → verificar sesión en lista del grupo
-- [ ] 3.2 Agregar paso en el flow que capture screenshot después de crear la sesión
-- [ ] 3.3 Crear `Frontend/Frontend-web/maestro/flows/verify-session-web.yaml` con flow que navegue al calendario web y verifique que la sesión aparece (si Maestro soporta multi-app, o alternativa vía API)
-- [ ] 3.4 Implementar verificación de sincronización WebSocket: ejecutar flow mobile, luego consultar `GET /groups/:groupId/study-sessions` vía API para confirmar que la sesión está disponible sin recarga manual
-- [ ] 3.5 Ejecutar flow completo localmente con backend + emulador Android y verificar que pasa
-- [ ] 3.6 Verificar que en caso de fallo, Maestro genera screenshots en `~/.maestro/output/`
+- [x] 3.1 Crear `Frontend/Frontend-mobile/maestro/flows/study-session.yaml` con flow completo: login → navegar a grupo → crear sesión con título, fecha, duración → verificar sesión en lista del grupo
+- [x] 3.2 Agregar paso en el flow que capture screenshot después de crear la sesión
+- [x] 3.3 Crear `Frontend/Frontend-web/maestro/flows/verify-session-web.yaml` con flow que navegue al calendario web y verifique que la sesión aparece (si Maestro soporta multi-app, o alternativa vía API)
+- [x] 3.4 Implementar verificación de sincronización WebSocket: ejecutar flow mobile, luego consultar `GET /groups/:groupId/study-sessions` vía API para confirmar que la sesión está disponible sin recarga manual
+- [ ] 3.5 ⏸️ Ejecutar flow completo localmente con backend + emulador Android y verificar que pasa (pendiente de verificación manual — requiere emulador + backend + APK debug instalada)
+- [ ] 3.6 ⏸️ Verificar que en caso de fallo, Maestro genera screenshots en `~/.maestro/output/` (depende de 3.5)
 
 ## 4. Configurar el pipeline de CI para la ejecución de pruebas, umbral de cobertura del 70% y recolección de artefactos
 
