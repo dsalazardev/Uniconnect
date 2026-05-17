@@ -165,7 +165,7 @@ jobs:
 
       - name: Report coverage to PR
         if: github.event_name == 'pull_request' && always()
-        uses: romeovs/lcov-reporter-action@v0.4.1
+        uses: romeovs/lcov-reporter-action@v0.4.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           lcov-file: ./coverage/lcov.info
@@ -233,7 +233,7 @@ jobs:
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v2
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
           payload: |
             {
