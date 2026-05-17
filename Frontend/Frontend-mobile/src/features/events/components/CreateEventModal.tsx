@@ -10,443 +10,303 @@ import {
   Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { EventType, CreateEventPayload } from '../types/event.types';
+
+interface EventCategory {
+  id_category: number;
+  name: string;
+  color: string;
+}
+
+export interface CreateEventFormPayload {
+  id_category: number;
+  title: string;
+  description: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+}
 
 interface CreateEventModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateEventPayload) => void;
+  onSubmit: (data: CreateEventFormPayload) => void;
   isSubmitting?: boolean;
+  categories?: EventCategory[];
 }
 
-/**
- * CreateEventModal - Pure UI component for event creation
- * Follows MVC pattern: only handles UI and emits data via onSubmit prop
- * Does NOT call services directly - maintains complete decoupling
- * 
- * ⭐ UX IMPROVEMENT: Uses native DateTimePicker for better user experience
- */
+type PickerTarget = 'start_date' | 'start_time' | 'end_date' | 'end_time' | null;
+
+function fmt(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function fmtTime(d: Date) {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   visible,
   onClose,
   onSubmit,
   isSubmitting = false,
+  categories = [],
 }) => {
-  // Form state
+  const [idCategory, setIdCategory] = useState<number | null>(null);
+  const [showCatPicker, setShowCatPicker] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [date, setDate] = useState<Date>(new Date());
-  const [time, setTime] = useState<Date>(new Date());
   const [location, setLocation] = useState('');
-  const [type, setType] = useState<EventType>(EventType.CONFERENCIA);
-
-  // DateTimePicker visibility state
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-
-  // Validation errors
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [pickerTarget, setPickerTarget] = useState<PickerTarget>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  /**
-   * Format date to YYYY-MM-DD
-   */
-  const formatDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  const selectedCat = categories.find((c) => c.id_category === idCategory);
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!idCategory) e.category = 'Selecciona una categoría';
+    if (!title.trim()) e.title = 'El título es obligatorio';
+    if (!description.trim()) e.description = 'La descripción es obligatoria';
+    if (!location.trim()) e.location = 'La ubicación es obligatoria';
+    if (endDate <= startDate) e.end_date = 'La fecha de fin debe ser posterior al inicio';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  /**
-   * Format time to HH:MM
-   */
-  const formatTime = (time: Date): string => {
-    const hours = String(time.getHours()).padStart(2, '0');
-    const minutes = String(time.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-  };
-
-  /**
-   * Handle date change from DateTimePicker
-   */
-  const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios'); // Keep open on iOS
-    if (selectedDate) {
-      setDate(selectedDate);
-    }
-  };
-
-  /**
-   * Handle time change from DateTimePicker
-   */
-  const onTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios'); // Keep open on iOS
-    if (selectedTime) {
-      setTime(selectedTime);
-    }
-  };
-
-  /**
-   * Validate form fields
-   */
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!title.trim()) {
-      newErrors.title = 'El título es obligatorio';
-    }
-
-    if (!description.trim()) {
-      newErrors.description = 'La descripción es obligatoria';
-    }
-
-    if (!location.trim()) {
-      newErrors.location = 'La ubicación es obligatoria';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  /**
-   * Handle form submission
-   */
   const handleSubmit = () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    // Emit data to parent via onSubmit prop
-    const payload: CreateEventPayload = {
+    if (!validate() || !idCategory) return;
+    onSubmit({
+      id_category: idCategory,
       title: title.trim(),
       description: description.trim(),
-      date: formatDate(date), // Format as YYYY-MM-DD
-      time: formatTime(time), // Format as HH:MM
       location: location.trim(),
-      type,
-    };
-
-    onSubmit(payload);
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString(),
+    });
   };
 
-  /**
-   * Reset form and close modal
-   */
   const handleClose = () => {
-    setTitle('');
-    setDescription('');
-    setDate(new Date());
-    setTime(new Date());
-    setLocation('');
-    setType(EventType.CONFERENCIA);
-    setErrors({});
-    setShowDatePicker(false);
-    setShowTimePicker(false);
+    setIdCategory(null); setTitle(''); setDescription(''); setLocation('');
+    setStartDate(new Date()); setEndDate(new Date());
+    setErrors({}); setPickerTarget(null); setShowCatPicker(false);
     onClose();
   };
 
+  const handlePickerChange = (_: any, selected?: Date) => {
+    if (Platform.OS === 'android') setPickerTarget(null);
+    if (!selected) return;
+    if (pickerTarget === 'start_date') {
+      const d = new Date(startDate);
+      d.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+      setStartDate(d);
+    } else if (pickerTarget === 'start_time') {
+      const d = new Date(startDate);
+      d.setHours(selected.getHours(), selected.getMinutes());
+      setStartDate(d);
+    } else if (pickerTarget === 'end_date') {
+      const d = new Date(endDate);
+      d.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+      setEndDate(d);
+    } else if (pickerTarget === 'end_time') {
+      const d = new Date(endDate);
+      d.setHours(selected.getHours(), selected.getMinutes());
+      setEndDate(d);
+    }
+  };
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.container}>
+          <ScrollView showsVerticalScrollIndicator={false}>
             {/* Header */}
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Crear Nuevo Evento</Text>
               <TouchableOpacity onPress={handleClose} disabled={isSubmitting}>
-                <Text style={styles.closeButton}>✕</Text>
+                <Text style={styles.closeBtn}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Form */}
-            <View style={styles.form}>
-              {/* Title */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Título *</Text>
-                <TextInput
-                  style={[styles.input, errors.title && styles.inputError]}
-                  placeholder="Ej: Conferencia de Inteligencia Artificial"
-                  value={title}
-                  onChangeText={setTitle}
-                  editable={!isSubmitting}
-                />
-                {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
-              </View>
-
-              {/* Description */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Descripción *</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea, errors.description && styles.inputError]}
-                  placeholder="Describe el evento..."
-                  value={description}
-                  onChangeText={setDescription}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  editable={!isSubmitting}
-                />
-                {errors.description && <Text style={styles.errorText}>{errors.description}</Text>}
-              </View>
-
-              {/* Date - Native Picker */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Fecha *</Text>
-                <TouchableOpacity
-                  style={[styles.input, styles.dateTimeButton]}
-                  onPress={() => setShowDatePicker(true)}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.dateTimeText}>{formatDate(date)}</Text>
-                  <Text style={styles.dateTimeIcon}>📅</Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={date}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onDateChange}
-                    minimumDate={new Date()}
-                  />
-                )}
-              </View>
-
-              {/* Time - Native Picker */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Hora *</Text>
-                <TouchableOpacity
-                  style={[styles.input, styles.dateTimeButton]}
-                  onPress={() => setShowTimePicker(true)}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.dateTimeText}>{formatTime(time)}</Text>
-                  <Text style={styles.dateTimeIcon}>🕐</Text>
-                </TouchableOpacity>
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={time}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={onTimeChange}
-                    is24Hour={true}
-                  />
-                )}
-              </View>
-
-              {/* Location */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Ubicación *</Text>
-                <TextInput
-                  style={[styles.input, errors.location && styles.inputError]}
-                  placeholder="Ej: Auditorio Principal"
-                  value={location}
-                  onChangeText={setLocation}
-                  editable={!isSubmitting}
-                />
-                {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
-              </View>
-
-              {/* Type */}
-              <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Tipo de Evento *</Text>
-                <View style={styles.typeContainer}>
-                  {Object.values(EventType).map((eventType) => (
-                    <TouchableOpacity
-                      key={eventType}
-                      style={[
-                        styles.typeButton,
-                        type === eventType && styles.typeButtonActive,
-                      ]}
-                      onPress={() => setType(eventType)}
-                      disabled={isSubmitting}
-                    >
-                      <Text
-                        style={[
-                          styles.typeButtonText,
-                          type === eventType && styles.typeButtonTextActive,
-                        ]}
-                      >
-                        {eventType}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
-
-            {/* Actions */}
-            <View style={styles.actions}>
+            {/* Categoría */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Categoría *</Text>
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={handleClose}
+                style={[styles.input, styles.selectRow, errors.category && styles.inputError]}
+                onPress={() => setShowCatPicker(true)}
                 disabled={isSubmitting}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-                onPress={handleSubmit}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.submitButtonText}>
-                  {isSubmitting ? 'Creando...' : 'Crear Evento'}
+                <Text style={selectedCat ? styles.selectText : styles.selectPlaceholder}>
+                  {selectedCat ? selectedCat.name : 'Seleccionar categoría'}
                 </Text>
+                <Text style={styles.chevron}>▾</Text>
+              </TouchableOpacity>
+              {errors.category && <Text style={styles.error}>{errors.category}</Text>}
+            </View>
+
+            {/* Título */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Título *</Text>
+              <TextInput
+                style={[styles.input, errors.title && styles.inputError]}
+                placeholder="Ej: Conferencia de Inteligencia Artificial"
+                placeholderTextColor="#6B7280"
+                value={title} onChangeText={setTitle}
+                editable={!isSubmitting} maxLength={300}
+              />
+              {errors.title && <Text style={styles.error}>{errors.title}</Text>}
+            </View>
+
+            {/* Descripción */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Descripción *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea, errors.description && styles.inputError]}
+                placeholder="Describe el evento..."
+                placeholderTextColor="#6B7280"
+                value={description} onChangeText={setDescription}
+                multiline numberOfLines={4} textAlignVertical="top"
+                editable={!isSubmitting} maxLength={2000}
+              />
+              {errors.description && <Text style={styles.error}>{errors.description}</Text>}
+            </View>
+
+            {/* Ubicación */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Ubicación *</Text>
+              <TextInput
+                style={[styles.input, errors.location && styles.inputError]}
+                placeholder="Ej: Auditorio Principal"
+                placeholderTextColor="#6B7280"
+                value={location} onChangeText={setLocation}
+                editable={!isSubmitting} maxLength={300}
+              />
+              {errors.location && <Text style={styles.error}>{errors.location}</Text>}
+            </View>
+
+            {/* Fecha/hora inicio */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Inicio *</Text>
+              <View style={styles.dateRow}>
+                <TouchableOpacity
+                  style={[styles.input, styles.datePart]}
+                  onPress={() => setPickerTarget('start_date')}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.selectText}>📅 {fmt(startDate)}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.input, styles.timePart]}
+                  onPress={() => setPickerTarget('start_time')}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.selectText}>🕐 {fmtTime(startDate)}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Fecha/hora fin */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Fin *</Text>
+              <View style={styles.dateRow}>
+                <TouchableOpacity
+                  style={[styles.input, styles.datePart, errors.end_date && styles.inputError]}
+                  onPress={() => setPickerTarget('end_date')}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.selectText}>📅 {fmt(endDate)}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.input, styles.timePart]}
+                  onPress={() => setPickerTarget('end_time')}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.selectText}>🕐 {fmtTime(endDate)}</Text>
+                </TouchableOpacity>
+              </View>
+              {errors.end_date && <Text style={styles.error}>{errors.end_date}</Text>}
+            </View>
+
+            {/* Acciones */}
+            <View style={styles.actions}>
+              <TouchableOpacity style={[styles.btn, styles.cancelBtn]} onPress={handleClose} disabled={isSubmitting}>
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btn, styles.submitBtn, isSubmitting && styles.submitDisabled]}
+                onPress={handleSubmit} disabled={isSubmitting}
+              >
+                <Text style={styles.submitText}>{isSubmitting ? 'Creando...' : 'Crear Evento'}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
       </View>
+
+      {/* Native date/time picker */}
+      {pickerTarget !== null && (
+        <DateTimePicker
+          value={pickerTarget === 'start_date' || pickerTarget === 'start_time' ? startDate : endDate}
+          mode={pickerTarget === 'start_time' || pickerTarget === 'end_time' ? 'time' : 'date'}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handlePickerChange}
+          is24Hour
+        />
+      )}
+
+      {/* Category picker modal */}
+      <Modal visible={showCatPicker} transparent animationType="fade" onRequestClose={() => setShowCatPicker(false)}>
+        <TouchableOpacity style={styles.catOverlay} activeOpacity={1} onPress={() => setShowCatPicker(false)}>
+          <View style={styles.catSheet}>
+            <Text style={styles.catTitle}>Categoría</Text>
+            {categories.map((c) => (
+              <TouchableOpacity
+                key={c.id_category}
+                style={[styles.catOption, idCategory === c.id_category && styles.catOptionActive]}
+                onPress={() => { setIdCategory(c.id_category); setShowCatPicker(false); }}
+              >
+                <Text style={[styles.catOptionText, idCategory === c.id_category && styles.catOptionTextActive]}>
+                  {c.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '90%',
-    maxWidth: 500,
-    maxHeight: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 5,
-      },
-    }),
-  },
-  scrollView: {
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  closeButton: {
-    fontSize: 24,
-    color: '#666',
-    fontWeight: 'bold',
-  },
-  form: {
-    marginBottom: 20,
-  },
-  fieldContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  inputError: {
-    borderColor: '#ef4444',
-  },
-  textArea: {
-    minHeight: 100,
-    paddingTop: 12,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#ef4444',
-    marginTop: 4,
-  },
-  dateTimeButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dateTimeText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  dateTimeIcon: {
-    fontSize: 20,
-  },
-  typeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  typeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    backgroundColor: '#fff',
-  },
-  typeButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  typeButtonText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
-  },
-  typeButtonTextActive: {
-    color: '#fff',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f3f4f6',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  submitButton: {
-    backgroundColor: '#3b82f6',
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#93c5fd',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  container: { backgroundColor: '#1e1e1e', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 20, maxHeight: '92%' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  closeBtn: { fontSize: 22, color: '#aaa', fontWeight: 'bold' },
+  field: { marginBottom: 14 },
+  label: { fontSize: 13, fontWeight: '600', color: '#aaa', marginBottom: 6 },
+  input: { backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: 'rgba(217,185,126,0.2)', borderRadius: 8, padding: 11, color: '#fff', fontSize: 14 },
+  inputError: { borderColor: '#EF4444' },
+  textArea: { minHeight: 90, paddingTop: 11 },
+  selectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  selectText: { color: '#fff', fontSize: 14 },
+  selectPlaceholder: { color: '#6B7280', fontSize: 14 },
+  chevron: { color: '#6B7280', fontSize: 16 },
+  dateRow: { flexDirection: 'row', gap: 8 },
+  datePart: { flex: 3 },
+  timePart: { flex: 2 },
+  error: { fontSize: 12, color: '#EF4444', marginTop: 4 },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 8 },
+  btn: { flex: 1, paddingVertical: 13, borderRadius: 8, alignItems: 'center' },
+  cancelBtn: { backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: '#444' },
+  cancelText: { fontSize: 15, fontWeight: '600', color: '#aaa' },
+  submitBtn: { backgroundColor: '#D9B97E' },
+  submitDisabled: { opacity: 0.6 },
+  submitText: { fontSize: 15, fontWeight: '700', color: '#111' },
+  catOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  catSheet: { backgroundColor: '#2a2a2a', borderTopLeftRadius: 14, borderTopRightRadius: 14, padding: 16, paddingBottom: 32 },
+  catTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 12 },
+  catOption: { paddingVertical: 13, paddingHorizontal: 8, borderRadius: 8, marginBottom: 4 },
+  catOptionActive: { backgroundColor: 'rgba(217,185,126,0.15)' },
+  catOptionText: { fontSize: 15, color: '#ccc' },
+  catOptionTextActive: { color: '#D9B97E', fontWeight: '700' },
 });
