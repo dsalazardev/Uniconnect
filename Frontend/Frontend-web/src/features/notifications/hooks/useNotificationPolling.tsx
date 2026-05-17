@@ -49,17 +49,38 @@ export const useNotificationPolling = () => {
                   border: '1px solid rgba(217, 185, 126, 0.3)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: 10,
                   minWidth: 260,
+                  maxWidth: 340,
                   opacity: t.visible ? 1 : 0,
                   transition: 'opacity 0.2s',
                 }}
               >
-                <span style={{ fontSize: 12, color: '#D9B97E', fontWeight: 600 }}>
-                  {label}
-                </span>
-                <span style={{ fontSize: 14 }}>{n.message}</span>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: 12, color: '#D9B97E', fontWeight: 600 }}>
+                    {label}
+                  </span>
+                  <span style={{ fontSize: 14 }}>{n.message}</span>
+                </div>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#888',
+                    fontSize: 18,
+                    lineHeight: 1,
+                    padding: '0 2px',
+                    flexShrink: 0,
+                    marginTop: -2,
+                  }}
+                  aria-label="Cerrar notificación"
+                >
+                  ×
+                </button>
               </div>
             ),
             { duration: 5000 },
