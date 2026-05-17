@@ -7,7 +7,8 @@
   "license": "UNLICENSED",
   "packageManager": "pnpm@9.12.2",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && npm run generate:openapi",
+    "generate:openapi": "ts-node -r tsconfig-paths/register scripts/generate-openapi.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
