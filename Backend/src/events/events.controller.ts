@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetClaim } from '../auth/decorators/get-token-claim.decorator';
 import { EventsService } from './events.service';
@@ -39,10 +39,34 @@ export class EventsController {
     return this.eventsService.getSubscriptions(userId);
   }
 
-  // ── POST /events/categories/:categoryId/subscribe ────────────────────────
+  // ── POST /eventos/suscribir — CA2 ────────────────────────────────────────
+  @Post('eventos/suscribir')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'CA2: Suscribirse a una categoría de eventos' })
+  @ApiBody({ schema: { properties: { id_category: { type: 'integer' } }, required: ['id_category'] } })
+  subscribeByBody(
+    @Body('id_category', ParseIntPipe) categoryId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.eventsService.subscribeCategory(categoryId, userId);
+  }
+
+  // ── DELETE /eventos/suscribir — CA2 ──────────────────────────────────────
+  @Delete('eventos/suscribir')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'CA2: Cancelar suscripción a una categoría de eventos' })
+  @ApiBody({ schema: { properties: { id_category: { type: 'integer' } }, required: ['id_category'] } })
+  unsubscribeByBody(
+    @Body('id_category', ParseIntPipe) categoryId: number,
+    @GetClaim('sub') userId: number,
+  ) {
+    return this.eventsService.unsubscribeCategory(categoryId, userId);
+  }
+
+  // ── POST /events/categories/:categoryId/subscribe (ruta original) ────────
   @Post('events/categories/:categoryId/subscribe')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Suscribirse a una categoría de eventos' })
+  @ApiOperation({ summary: 'Suscribirse a una categoría de eventos (vía param)' })
   subscribeCategory(
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @GetClaim('sub') userId: number,
@@ -50,10 +74,10 @@ export class EventsController {
     return this.eventsService.subscribeCategory(categoryId, userId);
   }
 
-  // ── DELETE /events/categories/:categoryId/subscribe ──────────────────────
+  // ── DELETE /events/categories/:categoryId/subscribe (ruta original) ──────
   @Delete('events/categories/:categoryId/subscribe')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cancelar suscripción a una categoría de eventos' })
+  @ApiOperation({ summary: 'Cancelar suscripción a una categoría de eventos (vía param)' })
   unsubscribeCategory(
     @Param('categoryId', ParseIntPipe) categoryId: number,
     @GetClaim('sub') userId: number,

@@ -1,14 +1,13 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import { MESSAGE_EVENTS } from '../messages/events/message.events';
+import { EventoUniversidadSubject } from './domain/observer/evento-universidad.subject';
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly eventoUniversidadSubject: EventoUniversidadSubject,
   ) {}
 
   // ── GET /categories ──────────────────────────────────────────────────────
@@ -63,24 +62,25 @@ export class EventsService {
       },
     });
 
-    // Obtener suscriptores de esta categoría
-    const subscriptions = await this.prisma.event_category_subscription.findMany({
-      where: { id_category: dto.id_category },
-      select: { id_user: true },
-    });
-
-    // Emitir evento del sistema → NotificationEventListener lo procesa
-    // Esto guarda en tabla notification + emite notification:new por WS
-    this.eventEmitter.emit(MESSAGE_EVENTS.EVENT_PUBLISHED, {
-      event,
-      subscriberIds: subscriptions.map((s) => s.id_user),
-      categoryName: event.category.name,
+    // CA1/CA3/CA4: notificar vía Observer pattern.
+    // El EventPublishedObserver consulta suscriptores por categoría y filtra antes
+    // de emitir el WebSocket — sólo los estudiantes suscritos a esta categoría reciben la notificación.
+    this.eventoUniversidadSubject.notify({
+      tipo: 'NUEVO_EVENTO',
+      categoria: event.category.name,
+      idCategoria: event.id_category,
+      evento: {
+        id_event: event.id_event,
+        title: event.title,
+        start_date: event.start_date,
+      },
+      timestamp: new Date(),
     });
 
     return event;
   }
 
-  // ── POST /events/categories/:categoryId/subscribe ────────────────────────
+  // ── POST /events/categories/:categoryId/subscribe (alias: /eventos/suscribir) ──
   async subscribeCategory(categoryId: number, userId: number) {
     await this.prisma.event_category
       .findUniqueOrThrow({ where: { id_category: categoryId } })
@@ -97,7 +97,7 @@ export class EventsService {
     }
   }
 
-  // ── DELETE /events/categories/:categoryId/subscribe ──────────────────────
+  // ── DELETE /events/categories/:categoryId/subscribe (alias: /eventos/suscribir) ──
   async unsubscribeCategory(categoryId: number, userId: number) {
     const sub = await this.prisma.event_category_subscription.findUnique({
       where: { id_user_id_category: { id_user: userId, id_category: categoryId } },
