@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"TransferInvitationBanner\\\\|pending_owner\\\\|acceptTransfer\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\LHENAO\\\\Documents\\\\Software III\\\\Uniconnect\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(xargs ls -1)"
+    ]
+  }
+}
