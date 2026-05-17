@@ -231,6 +231,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send Slack notification
+        if: always() && secrets.SLACK_WEBHOOK != ''
         uses: slackapi/slack-github-action@v1.25.0
         with:
           payload: |
