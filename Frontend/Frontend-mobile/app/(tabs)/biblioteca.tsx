@@ -145,21 +145,24 @@ export default function BibliotecaScreen() {
       </View>
 
       {/* Filtro por tipo */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={{ paddingHorizontal: 16 }}>
-        {TIPOS.map((t) => (
-          <TouchableOpacity
-            key={String(t.value)}
-            style={[styles.filterChip, filtroTipo === t.value && styles.filterChipActive]}
-            onPress={() => setFiltroTipo(t.value as TipoContenido | '')}
-          >
-            <Text style={[styles.filterChipText, filtroTipo === t.value && styles.filterChipTextActive]}>
-              {t.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+          {TIPOS.map((t) => (
+            <TouchableOpacity
+              key={String(t.value)}
+              style={[styles.filterChip, filtroTipo === t.value && styles.filterChipActive]}
+              onPress={() => setFiltroTipo(t.value as TipoContenido | '')}
+            >
+              <Text style={[styles.filterChipText, filtroTipo === t.value && styles.filterChipTextActive]}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Lista */}
+      <View style={styles.listWrapper}>
       {loading
         ? <ActivityIndicator color="#D9B97E" style={{ marginTop: 40 }} />
         : <FlatList
@@ -175,6 +178,7 @@ export default function BibliotecaScreen() {
             }
           />
       }
+      </View>
 
       {/* Modal agregar */}
       <Modal visible={showModal} transparent animationType="slide" onRequestClose={() => setShowModal(false)}>
@@ -231,7 +235,8 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
   addBtn: { backgroundColor: '#D9B97E', borderRadius: 8, padding: 8 },
-  filterScroll: { marginBottom: 12 },
+  filterContainer: { height: 44, marginBottom: 8 },
+  listWrapper: { flex: 1 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 6, borderRadius: 16, backgroundColor: '#2a2a2a', borderWidth: 1, borderColor: 'rgba(217,185,126,0.15)', marginRight: 7 },
   filterChipActive: { backgroundColor: 'rgba(217,185,126,0.12)', borderColor: '#D9B97E' },
   filterChipText: { color: '#9CA3AF', fontSize: 12 },
