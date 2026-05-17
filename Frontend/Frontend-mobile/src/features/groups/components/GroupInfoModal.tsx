@@ -19,6 +19,8 @@ import { InviteToGroupModal } from './InviteToGroupModal';
 import { JoinRequestsList } from './JoinRequestsList';
 import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
+import { ResourceLibrary } from './ResourceLibrary';
+import { authStore } from '@/src/features/auth/store/AuthStore';
 
 interface GroupInfoModalProps {
   groupId: number;
@@ -158,6 +160,18 @@ export const GroupInfoModal = ({ groupId, visible, onClose, scrollToAccept = fal
               <Text style={styles.sectionTitle}>Miembros del Grupo</Text>
               <GroupMembersTab groupInfo={groupInfo} onClose={onClose} />
             </View>
+
+            {/* CA6: Biblioteca de recursos */}
+            {!groupInfo.is_direct_message && (
+              <View style={styles.resourceSection}>
+                <Text style={styles.sectionTitle}>Biblioteca de recursos</Text>
+                <ResourceLibrary
+                  groupId={groupId}
+                  currentUserId={authStore.user?.id_user ?? 0}
+                  isOwner={groupInfo.isOwner ?? false}
+                />
+              </View>
+            )}
           </ScrollView>
         ) : null}
       </View>
@@ -225,6 +239,11 @@ const styles = StyleSheet.create({
   membersSection: {
     marginTop: 12,
     marginBottom: 20,
+  },
+  resourceSection: {
+    marginTop: 4,
+    marginBottom: 24,
+    paddingHorizontal: 16,
   },
   requestsSection: {
     marginTop: 12,
