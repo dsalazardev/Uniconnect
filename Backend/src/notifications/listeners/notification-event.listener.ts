@@ -179,6 +179,31 @@ export class NotificationEventListener {
     }
   }
 
+  @OnEvent(MESSAGE_EVENTS.EVENT_PUBLISHED)
+  async handleEventPublished(payload: {
+    event: { id_event: number; title: string; category: { name: string } };
+    subscriberIds: number[];
+    categoryName: string;
+  }) {
+    try {
+      await Promise.all(
+        payload.subscriberIds.map((userId) =>
+          this.notificationsService.enviarNotificacion({
+            id_user: userId,
+            mensaje: `Nuevo evento en ${payload.categoryName}: "${payload.event.title}"`,
+            tipo_evento: 'event_published',
+            entidad_relacionada_id: payload.event.id_event,
+          }),
+        ),
+      );
+      this.logger.log(
+        `EVENT_PUBLISHED: notificaciones enviadas a ${payload.subscriberIds.length} suscriptor(es) — evento ${payload.event.id_event}`,
+      );
+    } catch (error) {
+      this.logger.error('Error handling EVENT_PUBLISHED:', error);
+    }
+  }
+
   @OnEvent('group.ownership_transfer_requested')
   async handleOwnershipTransferRequested(payload: {
     id_group: number;
@@ -207,12 +232,42 @@ export class NotificationEventListener {
     new_owner_id: number;
   }) {
     try {
+      // Notificar al dueño anterior que la transferencia fue aceptada
       await this.notificationsService.enviarNotificacion({
         id_user: payload.previous_owner_id,
         mensaje: `La transferencia de administración del grupo "${payload.group_name}" fue aceptada`,
         tipo_evento: 'admin_transfer_accepted',
         entidad_relacionada_id: payload.id_group,
       });
+
+      // Notificar a todos los demás miembros del grupo sobre el nuevo administrador
+      const members = await this.prisma.membership.findMany({
+        where: {
+          id_group: payload.id_group,
+          id_user: { notIn: [payload.previous_owner_id, payload.new_owner_id] },
+        },
+        include: { user: { select: { full_name: true } } },
+      });
+
+      const newOwner = await this.prisma.user.findUnique({
+        where: { id_user: payload.new_owner_id },
+        select: { full_name: true },
+      });
+
+      await Promise.all(
+        members.map((member) =>
+          this.notificationsService.enviarNotificacion({
+            id_user: member.id_user!,
+            mensaje: `${newOwner?.full_name || 'Un usuario'} es ahora el nuevo administrador del grupo "${payload.group_name}"`,
+            tipo_evento: 'admin_transfer_accepted',
+            entidad_relacionada_id: payload.id_group,
+          }),
+        ),
+      );
+
+      this.logger.log(
+        `ownership_transfer_accepted: notificaciones enviadas a ${members.length + 1} miembro(s) del grupo ${payload.id_group}`,
+      );
     } catch (error) {
       this.logger.error('Error handling group.ownership_transfer_accepted event:', error);
     }

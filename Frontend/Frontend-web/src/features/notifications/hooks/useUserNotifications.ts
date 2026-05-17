@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationsService } from '../services';
 import { notificationObserver } from '../services/notification-observer.service';
+import { groupsService } from '@/features/groups/services';
 import type { Notification } from '@uniconnect/shared';
 
 export const useUserNotifications = () => {
@@ -117,7 +118,6 @@ export const useUserNotifications = () => {
         break;
       case 'group_invitation_accepted':
       case 'user_joined_group':
-      case 'join_request':
       case 'member_removed':
         if (entityId) {
           navigate(`/groups/${entityId}`);
@@ -125,6 +125,22 @@ export const useUserNotifications = () => {
           navigate('/groups');
         }
         break;
+      case 'group_join_request':
+      case 'join_request': {
+        // related_entity_id is id_request; resolve id_group before navigating
+        try {
+          const groups = await groupsService.getPendingJoinRequests();
+          const req = groups.flatMap((g) => g.joinRequests).find((r) => r.id_request === entityId);
+          if (req) {
+            navigate(`/groups/${req.id_group}?focusRequestId=${entityId}`);
+          } else {
+            navigate('/groups');
+          }
+        } catch {
+          navigate('/groups');
+        }
+        break;
+      }
       default:
         break;
     }

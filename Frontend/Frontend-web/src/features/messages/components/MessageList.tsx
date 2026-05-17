@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageCircle, Pencil, Trash2, MoreVertical, X } from 'lucide-react';
+import { MessageCircle, Pencil, Trash2, MoreVertical, X, Loader2 } from 'lucide-react';
 import type { Message } from '@uniconnect/shared';
 import { BaseMessage } from './BaseMessage';
 import { WithFileAttachment } from './WithFileAttachment';
@@ -14,6 +14,9 @@ interface MessageListProps {
   onDelete?: (messageId: number) => void;
   onFilePress?: (file: { id_file: number; file_name: string }) => void;
   onVotePoll?: (pollId: number, optionId: number) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -24,9 +27,19 @@ export const MessageList: React.FC<MessageListProps> = ({
   onDelete,
   onFilePress,
   onVotePoll,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
 }) => {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Keep refs current so observer callbacks always see latest values without stale closures
+  const isLoadingMoreRef = useRef(false);
+  isLoadingMoreRef.current = isLoadingMore;
+  const onLoadMoreRef = useRef(onLoadMore);
+  onLoadMoreRef.current = onLoadMore;
 
   // Deduplicate poll messages: keep only the first occurrence of each poll.id
   const dedupedMessages = React.useMemo(() => {
@@ -39,11 +52,36 @@ export const MessageList: React.FC<MessageListProps> = ({
     });
   }, [messages]);
 
+  // Auto-scroll only when the newest message (index 0) changes — not when old messages are appended
+  const prevNewestIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    const newestId = messages[0]?.id_message ?? null;
+    if (newestId !== prevNewestIdRef.current) {
+      prevNewestIdRef.current = newestId;
+      if (!isLoadingMoreRef.current && containerRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      }
     }
   }, [messages]);
+
+  // IntersectionObserver on sentinel: fires when user scrolls up to the oldest messages
+  // With flex-direction:column-reverse the sentinel is last in DOM → topmost visually
+  useEffect(() => {
+    if (!hasMore || !onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoadingMoreRef.current) {
+          onLoadMoreRef.current?.();
+        }
+      },
+      { threshold: 0 },
+    );
+
+    const sentinel = sentinelRef.current;
+    if (sentinel) observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, onLoadMore]);
 
   if (loading) {
     return (
@@ -66,6 +104,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   return (
     <div ref={containerRef} className={styles.messagesContainer}>
       {dedupedMessages.map((message) => {
+
         const isOwnMessage = message.membership?.user?.id_user === currentUserId;
         const senderName = message.membership?.user?.full_name || 'Usuario';
         const showActions = isOwnMessage && onEdit && onDelete;
@@ -150,6 +189,13 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
         );
       })}
+      {/* Sentinel and loader are last in DOM → topmost visually with flex-direction:column-reverse */}
+      {hasMore && <div ref={sentinelRef} className={styles.sentinel} />}
+      {isLoadingMore && (
+        <div className={styles.topLoader}>
+          <Loader2 size={18} className={styles.topLoaderSpinner} />
+        </div>
+      )}
     </div>
   );
 };

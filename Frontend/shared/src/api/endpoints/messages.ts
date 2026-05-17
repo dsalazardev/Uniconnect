@@ -1,8 +1,9 @@
 // Messages API endpoints
 
 export const MESSAGES_ENDPOINTS = {
-  GET_RECENT_MESSAGES: (groupId: number, limit: number = 50, beforeId?: number) => {
+  GET_RECENT_MESSAGES: (groupId: number, limit: number = 50, beforeId?: number, since?: number) => {
     const base = `/messages/group/${groupId}/recent?limit=${limit}`;
+    if (since) return `${base}&since=${since}`;
     return beforeId ? `${base}&beforeId=${beforeId}` : base;
   },
   SEARCH_MESSAGES: (groupId: number, query: string) => `/messages/group/${groupId}/search?query=${encodeURIComponent(query)}`,

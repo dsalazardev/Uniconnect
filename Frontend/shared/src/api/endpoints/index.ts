@@ -16,3 +16,4 @@ export * from './notifications';
 export * from './programs';
 export * from './students';
 export * from './polls';
+export * from './forum';

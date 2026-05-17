@@ -30,6 +30,7 @@ interface ChatScreenProps {
   isAdmin: boolean;
   userFullName: string;
   serverUrl?: string;
+  onPresenceChange?: (isOnline: boolean) => void;
   group?: {
     id_group: number;
     name: string;
@@ -65,6 +66,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   isAdmin,
   userFullName,
   serverUrl,
+  onPresenceChange,
   group,
 }) => {
   const [inputText, setInputText] = useState('');
@@ -80,18 +82,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   // Determinar si es un chat privado
   const isDirectMessage = group?.is_direct_message ?? false;
 
-  // Obtener el nombre del otro usuario en chats privados
-  const getOtherUserName = (): string => {
-    if (!isDirectMessage || !group?.memberships) {
-      return group?.name ?? 'Chat';
-    }
+  // Datos del destinatario en chats privados
+  const otherMember = isDirectMessage
+    ? group?.memberships?.find((m) => (m.id_user ?? m.user?.id_user) !== userId)
+    : undefined;
 
-    const otherMember = group.memberships.find(
-      (m) => m.id_user !== userId
-    );
-
-    return otherMember?.user?.full_name ?? 'Usuario';
-  };
+  const getOtherUserName = (): string =>
+    otherMember?.user?.full_name ||
+    otherMember?.user?.email?.split('@')[0] ||
+    group?.name ||
+    'Usuario';
 
   // Nombre a mostrar en el header (se usará desde el componente padre)
   const displayName = isDirectMessage ? getOtherUserName() : group?.name ?? 'Chat';
@@ -104,6 +104,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     loading,
     error,
     isConnected,
+    isRecipientOnline,
     typingUsers,
     hasMore,
     isLoadingMore,
@@ -121,6 +122,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     token,
     userFullName,
     serverUrl,
+    recipientUserId: otherMember?.id_user,
   });
 
   // Con inverted FlatList no necesitamos scroll manual — ya empieza abajo
@@ -129,6 +131,11 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     }
   }, [loading]);
+
+  // Notificar al padre cuando cambia la presencia del destinatario (para el header de navegación)
+  useEffect(() => {
+    if (isDirectMessage) onPresenceChange?.(isRecipientOnline);
+  }, [isRecipientOnline, isDirectMessage]);
 
   // Deduplicar mensajes de encuesta: conservar solo la primera aparición de cada poll.id
   const dedupedMessages = useMemo(() => {
@@ -144,10 +151,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleSend = () => {
     if (!inputText.trim()) return;
 
-    sendMessage(inputText);
-    setInputText('');
-    setIsTyping(false);
-    emitTyping(false, userFullName);
+    const sent = sendMessage(inputText);
+    if (sent !== false) {
+      setInputText('');
+      setIsTyping(false);
+      emitTyping(false, userFullName);
+    }
   };
 
   const handleEmojiSelect = (emoji: string) => {

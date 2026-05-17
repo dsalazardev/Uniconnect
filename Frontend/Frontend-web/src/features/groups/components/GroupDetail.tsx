@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useGroupInfo, useLeaveGroup } from '../hooks/useGroupInfo';
+import { notificationObserver } from '@/features/notifications/services';
 import { useDirectMessage } from '../hooks/useDirectMessage';
 import { MemberList } from './MemberList';
 import { InviteMemberModal } from './InviteMemberModal';
@@ -8,6 +9,9 @@ import { TransferOwnershipModal } from './TransferOwnershipModal';
 import { PendingTransferOwnerBanner } from './PendingTransferOwnerBanner';
 import { TransferInvitationBanner } from './TransferInvitationBanner';
 import { GroupAdminPanel } from './GroupAdminPanel';
+import { SessionList } from '@/features/study-sessions/components/SessionList';
+import { SessionCreateForm } from '@/features/study-sessions/components/SessionCreateForm';
+import { useStudySessions } from '@/features/study-sessions/hooks/useStudySessions';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
 import { useChat } from '@/features/messages/hooks/useChat.tsx';
@@ -16,7 +20,7 @@ import { LoadingSpinner } from '@/components/elements';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import { groupsService } from '../services';
-import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, BookOpen, LogOut, UserPlus, MoreVertical, User } from 'lucide-react';
 import { PollCreationModal } from '@/features/messages/components/PollCreationModal';
 import styles from './GroupDetail.module.css';
 
@@ -24,7 +28,11 @@ export const GroupDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const groupId = parseInt(id as string);
+  const focusRequestId = searchParams.get('focusRequestId')
+    ? parseInt(searchParams.get('focusRequestId')!)
+    : undefined;
   const { data: groupInfo, isLoading, error, refetch } = useGroupInfo(groupId);
   const leaveGroup = useLeaveGroup();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -35,6 +43,7 @@ export const GroupDetail: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showPollModal, setShowPollModal] = useState(false);
+  const [showSessionForm, setShowSessionForm] = useState(false);
 
   // Member management state (for MemberList action buttons in the panel)
   const [removeMemberTarget, setRemoveMemberTarget] = useState<{ id: number; name: string } | null>(null);
@@ -52,12 +61,40 @@ export const GroupDetail: React.FC = () => {
   const isMember = groupInfo?.isMember ?? false;
   const isOwner = groupInfo?.isOwner ?? false;
 
-  // DM detection
+  const studySessions = useStudySessions(groupId);
+
+  // DM detection — la info del destinatario viene del navigation state (pasada al hacer clic
+  // en "Mensaje privado") para mostrarla de inmediato, sin esperar al refetch de groupInfo
+  const navState = location.state as {
+    recipientId?: number;
+    recipientName?: string | null;
+    recipientPicture?: string | null;
+  } | null;
+
   const isDirectMessage = groupInfo?.is_direct_message ?? false;
-  const otherUser = isDirectMessage
-    ? (groupInfo?.memberships || []).find((m) => m.id_user !== currentUserId)
+
+  const otherMembership = isDirectMessage
+    ? (groupInfo?.memberships || []).find(
+        (m) => (m.id_user ?? m.user?.id_user) !== currentUserId
+      )
     : undefined;
-  const otherUserName = otherUser?.user?.full_name || 'Chat Privado';
+
+  // Prioridad: navigation state > memberships > fallback al email
+  const recipientName =
+    navState?.recipientName ||
+    otherMembership?.user?.full_name ||
+    otherMembership?.user?.email?.split('@')[0] ||
+    'Usuario';
+
+  const recipientPicture =
+    navState?.recipientPicture !== undefined
+      ? navState.recipientPicture
+      : (otherMembership?.user?.picture ?? null);
+
+  const recipientId =
+    navState?.recipientId ||
+    otherMembership?.id_user ||
+    otherMembership?.user?.id_user;
 
   // Chat hook: only initialize when user is a member
   const chat = useChat({
@@ -65,12 +102,28 @@ export const GroupDetail: React.FC = () => {
     userId: currentUserId,
     token,
     userFullName: currentUser?.full_name || 'Usuario',
+    recipientUserId: recipientId,
   });
 
   // Issue 3 fix: reset panel when navigating between group/chat routes
   useEffect(() => {
     setShowInfoPanel(false);
   }, [id]);
+
+  // Refetch group info in real-time when any notification arrives (transfer events, etc.)
+  useEffect(() => {
+    const unsubscribe = notificationObserver.subscribe(() => {
+      refetch?.();
+    });
+    return unsubscribe;
+  }, [refetch]);
+
+  // Auto-open info panel when arriving from a join-request notification
+  useEffect(() => {
+    if (focusRequestId && isOwner && !isLoading) {
+      setShowInfoPanel(true);
+    }
+  }, [focusRequestId, isOwner, isLoading]);
 
   // Issue 4 fix: DM back button goes to /groups, not history(-1)
   const handleGoBack = () => {
@@ -232,7 +285,7 @@ export const GroupDetail: React.FC = () => {
     );
   }
 
-  const displayName = isDirectMessage ? otherUserName : groupInfo.name;
+  const displayName = isDirectMessage ? recipientName : groupInfo.name;
 
   // ── Main render ───────────────────────────────────────────────────────────
   return (
@@ -243,7 +296,31 @@ export const GroupDetail: React.FC = () => {
         <button onClick={handleGoBack} className={styles.backButton}>
           <ArrowLeft size={18} /> Volver
         </button>
-        <h1 className={styles.headerTitle}>{displayName}</h1>
+
+        {isDirectMessage ? (
+          /* DM header: avatar + nombre + estado de presencia */
+          <div className={styles.dmHeaderCenter}>
+            <div className={styles.dmAvatarWrapper}>
+              {recipientPicture ? (
+                <img src={recipientPicture} alt={recipientName} className={styles.dmAvatar} />
+              ) : (
+                <div className={styles.dmAvatarPlaceholder}>
+                  <User size={18} />
+                </div>
+              )}
+              <span className={`${styles.dmPresenceDot} ${chat.isRecipientOnline ? styles.dmPresenceOnline : styles.dmPresenceOffline}`} />
+            </div>
+            <div className={styles.dmHeaderInfo}>
+              <span className={styles.dmHeaderName}>{recipientName}</span>
+              <span className={`${styles.dmHeaderStatus} ${chat.isRecipientOnline ? styles.dmStatusOnline : styles.dmStatusOffline}`}>
+                {chat.isRecipientOnline ? 'En línea' : 'Desconectado'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <h1 className={styles.headerTitle}>{displayName}</h1>
+        )}
+
         {/* Three-dots: only for group members (not DMs) */}
         {isMember && !isDirectMessage && (
           <button
@@ -270,6 +347,9 @@ export const GroupDetail: React.FC = () => {
                 onDelete={handleDeleteMessage}
                 onFilePress={(file) => chat.downloadFile(file)}
                 onVotePoll={chat.castVote}
+                onLoadMore={chat.loadMoreMessages}
+                hasMore={chat.hasMore}
+                isLoadingMore={chat.isLoadingMore}
               />
               <MessageInput
                 onSend={handleSendOrEdit}
@@ -321,7 +401,7 @@ export const GroupDetail: React.FC = () => {
                   ownerId={groupInfo.owner?.id_user}
                   currentUserId={currentUserId}
                   loadingUserId={dm.loadingUserId}
-                  onDirectMessage={dm.openDirectMessage}
+                  onDirectMessage={(userId, memberInfo) => dm.openDirectMessage(userId, memberInfo)}
                 />
               </div>
             )}
@@ -367,6 +447,7 @@ export const GroupDetail: React.FC = () => {
                 <TransferInvitationBanner
                   groupId={groupId}
                   ownerName={groupInfo.owner?.full_name}
+                  onResolved={() => refetch?.()}
                 />
               )}
               {groupInfo.pending_owner_id && groupInfo.pending_owner_id !== currentUserId && (
@@ -377,6 +458,7 @@ export const GroupDetail: React.FC = () => {
                       (m) => m.id_user === groupInfo.pending_owner_id
                     )?.user?.full_name
                   }
+                  onResolved={() => refetch?.()}
                 />
               )}
 
@@ -409,9 +491,9 @@ export const GroupDetail: React.FC = () => {
                   ownerId={groupInfo.owner?.id_user}
                   currentUserId={currentUserId}
                   loadingUserId={dm.loadingUserId}
-                  onDirectMessage={(userId) => {
+                  onDirectMessage={(userId, memberInfo) => {
                     setShowInfoPanel(false);
-                    dm.openDirectMessage(userId);
+                    dm.openDirectMessage(userId, memberInfo);
                   }}
                   onTransfer={isOwner ? handleMemberTransfer : undefined}
                   onRemove={isOwner ? handleMemberRemove : undefined}
@@ -426,8 +508,51 @@ export const GroupDetail: React.FC = () => {
                     ownerId={groupInfo.owner?.id_user}
                     canManage={groupInfo.canManageMembers || false}
                     showMembersSection={false}
+                    focusRequestId={focusRequestId}
                     onInvite={() => { setShowInfoPanel(false); handleOpenInvite(); }}
                   />
+                </div>
+              )}
+
+              {/* Study sessions — visible for all members */}
+              {isMember && !groupInfo.is_direct_message && (
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>Sesiones de estudio</h3>
+                  {studySessions.loading ? (
+                    <p style={{ fontSize: 13, color: '#6B7280', margin: 0 }}>Cargando...</p>
+                  ) : (
+                    <SessionList
+                      sessions={studySessions.sessions}
+                      currentUserId={currentUserId}
+                      isOwner={isOwner}
+                      onCancel={studySessions.cancelInstance}
+                      onUpdateAttendance={studySessions.updateAttendance}
+                    />
+                  )}
+                  {isMember && !showSessionForm && (
+                    <button
+                      onClick={() => setShowSessionForm(true)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        background: 'none',
+                        border: '1px dashed rgba(217,185,126,0.4)',
+                        borderRadius: 6, color: '#D9B97E', fontSize: 13,
+                        fontWeight: 600, padding: '8px 12px', cursor: 'pointer',
+                        width: '100%', justifyContent: 'center', marginTop: 8,
+                      }}
+                    >
+                      + Programar sesión
+                    </button>
+                  )}
+                  {showSessionForm && (
+                    <SessionCreateForm
+                      onSubmit={async (dto) => {
+                        await studySessions.createSession(dto);
+                        setShowSessionForm(false);
+                      }}
+                      onCancel={() => setShowSessionForm(false)}
+                    />
+                  )}
                 </div>
               )}
 

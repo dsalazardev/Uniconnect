@@ -10,6 +10,8 @@ export * from './notifications';
 export * from './connections';
 export * from './programs';
 export * from './polls';
+export * from './forum';
+export * from './study-session';
 export type {
   StudentProfile, Student, UpdateProfileData, Enrollment, CommonCourse,
   PerfilBase, PerfilCompleto, AsignaturaActiva, EstadisticasEstudiante, InsigniaEstudiante,

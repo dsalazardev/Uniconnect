@@ -33,6 +33,7 @@ export default function GroupChatScreen() {
   const [error, setError] = useState<string | null>(null);
   // Si viene de una notificación push con autoOpenInfo=true, abrir el modal directamente
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [recipientOnline, setRecipientOnline] = useState(false);
 
   const userId = authStore.user?.id_user;
   const token = authStore.accessToken || '';
@@ -145,7 +146,9 @@ export default function GroupChatScreen() {
   };
 
   const displayName = isDirectMessage ? getOtherUserName() : group.name;
-  const displaySubtitle = isDirectMessage ? 'Chat privado' : 'Grupo de estudio';
+  const displaySubtitle = isDirectMessage
+    ? (recipientOnline ? 'En línea' : 'Desconectado')
+    : 'Grupo de estudio';
   // HOTFIX: El botón de opciones debe aparecer en TODOS los grupos (no solo para admins)
   // La restricción de admin se aplica DENTRO del modal, no en la visibilidad del botón
   const showGroupOptionsButton = !isDirectMessage;
@@ -162,7 +165,13 @@ export default function GroupChatScreen() {
           <Text style={styles.headerTitle} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1}>
+          <Text
+            style={[
+              styles.headerSubtitle,
+              isDirectMessage && { color: recipientOnline ? '#4caf50' : '#888' },
+            ]}
+            numberOfLines={1}
+          >
             {displaySubtitle}
           </Text>
         </View>
@@ -176,7 +185,16 @@ export default function GroupChatScreen() {
         </TouchableOpacity>
 
         {showGroupOptionsButton && (
-          <TouchableOpacity 
+          <TouchableOpacity
+            style={styles.headerAction}
+            onPress={() => router.push(`/groups/${group.id_group}/sessions` as any)}
+          >
+            <Ionicons name="calendar-outline" size={22} color="#D9B97E" />
+          </TouchableOpacity>
+        )}
+
+        {showGroupOptionsButton && (
+          <TouchableOpacity
             style={styles.headerAction}
             onPress={() => setShowGroupInfo(true)}
           >
@@ -193,6 +211,7 @@ export default function GroupChatScreen() {
         userFullName={authStore.user?.full_name || 'Usuario'}
         serverUrl={WEBSOCKET_URL}
         group={group}
+        onPresenceChange={isDirectMessage ? setRecipientOnline : undefined}
       />
 
       {showGroupOptionsButton && (
@@ -278,5 +297,32 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     fontSize: 16,
     fontWeight: '600',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(217,185,126,0.15)',
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#D9B97E',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  tabTextActive: {
+    color: '#D9B97E',
   },
 });

@@ -43,7 +43,7 @@ export class PrivateChatObserver implements IObserver<MessageDto> {
     };
 
     try {
-      this.chatGateway.emitToRoom(roomId, 'NUEVO_MENSAJE', enrichedMessage);
+      this.chatGateway.emitToRoom(roomId, 'message:new', enrichedMessage);
       this.logger.log(`Successfully emitted private message ${message.id_message} to room ${roomId}`);
     } catch (error) {
       this.logger.error(`Failed to emit private message to room ${roomId}: ${error.message}`, error.stack);

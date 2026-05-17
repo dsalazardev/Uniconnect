@@ -9,6 +9,40 @@
   position: relative;
 }
 
+/* ── Tab bar ─────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  background-color: #141414;
+  border-bottom: 1px solid rgba(217, 185, 126, 0.15);
+  flex-shrink: 0;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0;
+  background: none;
+  border: none;
+  color: #6B7280;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: #D9B97E;
+}
+
+.tabActive {
+  color: #D9B97E;
+  border-bottom-color: #D9B97E;
+}
+
 /* ── Header ──────────────────────────────────────────────────── */
 .header {
   display: flex;
@@ -73,6 +107,74 @@
 .menuButton:hover {
   background-color: rgba(217, 185, 126, 0.1);
 }
+
+/* ── DM header (avatar + nombre + presencia en el header principal) ── */
+.dmHeaderCenter {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dmAvatarWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.dmAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dmAvatarPlaceholder {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #3a3a3a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+}
+
+.dmPresenceDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #1e1e1e;
+}
+
+.dmPresenceOnline  { background-color: #4caf50; }
+.dmPresenceOffline { background-color: #666; }
+
+.dmHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.dmHeaderName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dmHeaderStatus {
+  font-size: 11px;
+}
+
+.dmStatusOnline  { color: #4caf50; }
+.dmStatusOffline { color: #888; }
 
 /* ── Main content area ───────────────────────────────────────── */
 .content {

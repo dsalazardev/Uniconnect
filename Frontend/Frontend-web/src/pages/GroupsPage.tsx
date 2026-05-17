@@ -67,6 +67,13 @@ export const GroupsPage: React.FC = () => {
     name: c.name || '',
   })) || [];
 
+  const groupsPerCourse: Record<number, number> = {};
+  (myGroups || []).forEach((g: Group) => {
+    if (g.id_course) {
+      groupsPerCourse[g.id_course] = (groupsPerCourse[g.id_course] ?? 0) + 1;
+    }
+  });
+
   const handleGroupPress = (groupId: number) => {
     navigate(`/groups/${groupId}`);
   };
@@ -527,6 +534,7 @@ export const GroupsPage: React.FC = () => {
         onSave={handleSaveNewGroup}
         isCreating={isCreating}
         courses={profileLoading ? [] : courses}
+        groupsPerCourse={groupsPerCourse}
       />
 
       {/* Edit Group Modal */}

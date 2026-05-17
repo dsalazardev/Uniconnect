@@ -14,29 +14,50 @@ import {
   type CreatePollDto,
 } from '@uniconnect/shared';
 
+const ERROR_CODE_MESSAGES: Record<string, string> = {
+  MSG_TAMANO_EXCEDIDO: 'El mensaje es demasiado largo.',
+  MSG_CONTENIDO_VACIO: 'El mensaje no puede estar vacío.',
+  MSG_CONTENIDO_INAPROPIADO: 'El mensaje contiene contenido inapropiado.',
+  MSG_MENCIONES_EXCEDIDAS: 'Solo puedes mencionar hasta 3 personas por mensaje.',
+  MSG_MENCIONES_DUPLICADAS: 'No puedes mencionar a la misma persona más de una vez.',
+  MSG_MENCIONES_INVALIDAS: 'Una o más menciones no son válidas.',
+  MSG_PERMISOS_INSUFICIENTES: 'No tienes permiso para enviar mensajes en este grupo.',
+  MSG_ADJUNTO_TAMANO_EXCEDIDO: 'El archivo supera el límite de 10 MB.',
+  MSG_ADJUNTO_TIPO_NO_PERMITIDO: 'Tipo de archivo no permitido.',
+};
+
 interface UseChatOptions {
   groupId: number;
   userId: number;
   token: string;
   userFullName: string;
   serverUrl?: string;
+  recipientUserId?: number;
 }
 
-export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: UseChatOptions) => {
+export const useChat = ({ groupId, userId, token, userFullName, serverUrl, recipientUserId }: UseChatOptions) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isRecipientOnline, setIsRecipientOnline] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingData[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pollsState, setPollsState] = useState<Map<number, Poll>>(new Map());
+  // Ref so presence handlers always see the latest recipientUserId without stale closure
+  const recipientUserIdRef = useRef<number | undefined>(recipientUserId);
+  recipientUserIdRef.current = recipientUserId;
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingMessagesRef = useRef<Set<string>>(new Set());
   // Cursor: id_message del mensaje más antiguo cargado
   const oldestMessageIdRef = useRef<number | null>(null);
   // Safety net: timestamp del último mensaje recibido vía WebSocket
   const lastWsMessageRef = useRef<number>(0);
+  // ID temporal del último mensaje optimista (para rollback si el servidor lo rechaza)
+  const lastOptimisticIdRef = useRef<number | null>(null);
+  // Timestamp del mensaje más reciente para sincronizar mensajes perdidos al reconectar
+  const lastMessageTimestampRef = useRef<number | null>(null);
 
   // Cargar mensajes iniciales
   const loadMessages = useCallback(async () => {
@@ -57,9 +78,12 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       // inverted FlatList: el índice 0 debe ser el más nuevo → invertir el array
       setMessages(data ? [...data].reverse() : []);
       setHasMore(more);
-      // Cursor: id del mensaje más antiguo = data[0] (backend retorna oldest-first)
       if (data && data.length > 0) {
+        // Cursor hacia atrás: el más antiguo es el primero del array (oldest-first)
         oldestMessageIdRef.current = data[0].id_message;
+        // Timestamp del más reciente (último del array)
+        const newest = data[data.length - 1];
+        lastMessageTimestampRef.current = new Date(newest.send_at).getTime();
       }
       setError(null);
     } catch (err: any) {
@@ -77,6 +101,35 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       setLoading(false);
     }
   }, [groupId]);
+
+  // Descargar mensajes posteriores a un timestamp (sincronización post-reconexión)
+  const loadMissedMessages = useCallback(async (since: number) => {
+    try {
+      const { messages: missed } = await messagesService.getRecentMessages(
+        groupId,
+        50,
+        undefined,
+        since,
+      );
+      if (!missed || missed.length === 0) return;
+
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id_message));
+        const newOnes = missed.filter((m) => !existingIds.has(m.id_message));
+        if (newOnes.length === 0) return prev;
+        const newest = missed[missed.length - 1];
+        const ts = new Date(newest.send_at).getTime();
+        if (ts > (lastMessageTimestampRef.current ?? 0)) {
+          lastMessageTimestampRef.current = ts;
+        }
+        // Los mensajes llegan ASC del backend; el más reciente va al inicio (array invertido)
+        return [...newOnes.reverse(), ...prev];
+      });
+    } catch (err: any) {
+      console.error('[useChat] Error al sincronizar mensajes perdidos:', err.message || err);
+    }
+  }, [groupId]);
+
   // Conectar al WebSocket
   useEffect(() => {
     // Usar serverUrl proporccionado o la configuración centralizada
@@ -95,19 +148,40 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       id_group: groupId,
     });
 
-    // Al reconectar, recargar mensajes (por si llegaron durante desconexión)
+    // Al reconectar, sincronizar solo los mensajes perdidos (o recarga completa si no hay timestamp)
     websocketService.setOnReconnectCallback(() => {
-      loadMessages();
+      if (lastMessageTimestampRef.current) {
+        loadMissedMessages(lastMessageTimestampRef.current);
+      } else {
+        loadMessages();
+      }
     });
 
     // Escuchar conexión
     const handleUserConnected = (data: any) => {
       setIsConnected(true);
+      if (recipientUserIdRef.current && data.id_user === recipientUserIdRef.current) {
+        setIsRecipientOnline(true);
+      }
+    };
+
+    // Escuchar presencia de usuarios — actualiza indicador online del destinatario en DMs
+    const handleUserPresence = (data: { id_user: number; status: string }) => {
+      if (recipientUserIdRef.current && data.id_user === recipientUserIdRef.current) {
+        setIsRecipientOnline(data.status === 'online');
+      }
     };
 
     // Escuchar nuevos mensajes
     const handleNewMessage = (rawMessage: any) => {
       lastWsMessageRef.current = Date.now();
+      // Actualizar timestamp del mensaje más reciente para la sincronización post-reconexión
+      if (rawMessage.send_at) {
+        const ts = new Date(rawMessage.send_at).getTime();
+        if (!lastMessageTimestampRef.current || ts > lastMessageTimestampRef.current) {
+          lastMessageTimestampRef.current = ts;
+        }
+      }
 
       // Si tiene archivos pero no texto, es un mensaje de archivo puro — siempre agregar
       const hasFiles = (rawMessage.files?.length ?? 0) > 0;
@@ -186,6 +260,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     };
 
     websocketService.onUserConnected(handleUserConnected);
+    websocketService.on('user:presence', handleUserPresence);
     websocketService.onNewMessage(handleNewMessage);
     websocketService.onMessageEdited(handleMessageEdited);
     websocketService.onMessageDeleted(handleMessageDeleted);
@@ -310,13 +385,30 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     websocketService.on(POLL_WS_EVENTS.CLOSED, handlePollClosed);
     websocketService.on('poll:created', handlePollCreated);
 
+    // Escuchar errores de validación al enviar mensaje
+    const handleSendError = (data: { error: string; codigoError: string }) => {
+      // Revertir el mensaje optimista si existe
+      if (lastOptimisticIdRef.current !== null) {
+        setMessages((prev) => prev.filter((msg) => msg.id_message !== lastOptimisticIdRef.current));
+        lastOptimisticIdRef.current = null;
+      }
+      pendingMessagesRef.current.clear();
+      const userMessage = ERROR_CODE_MESSAGES[data.codigoError] ?? data.error ?? 'Error al enviar el mensaje.';
+      toast.error(userMessage);
+    };
+    websocketService.on('message:send:error', handleSendError);
+
     // Cargar mensajes iniciales
     loadMessages();
 
     // Cleanup
     return () => {
+      // Bug 3 fix: notificar al servidor que el usuario salió del chat para que
+      // el otro participante vea "Desconectado" sin esperar al cierre del socket
+      websocketService.emit('user:presence', { status: 'offline' });
       websocketService.setOnReconnectCallback(null);
       websocketService.off('user:connected', handleUserConnected);
+      websocketService.off('user:presence', handleUserPresence);
       websocketService.off('message:new', handleNewMessage);
       websocketService.off('message:edited', handleMessageEdited);
       websocketService.off('message:deleted', handleMessageDeleted);
@@ -325,12 +417,31 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
       websocketService.off(POLL_WS_EVENTS.VOTE_UPDATED, handlePollVoteUpdated);
       websocketService.off(POLL_WS_EVENTS.CLOSED, handlePollClosed);
       websocketService.off('poll:created', handlePollCreated);
+      websocketService.off('message:send:error', handleSendError);
     };
-  }, [groupId, userId, serverUrl, loadMessages]);
+  }, [groupId, userId, serverUrl, loadMessages, loadMissedMessages]);
 
   // Enviar mensaje (ya no necesita id_membership, el backend lo toma de la sesión)
-  const sendMessage = useCallback((text: string, attachments: string = '') => {
-    if (!text.trim()) return;
+  const sendMessage = useCallback((text: string, attachments: string = ''): boolean => {
+    if (!text.trim()) return false;
+    if (text.trim().length > 500) {
+      toast.error(ERROR_CODE_MESSAGES.MSG_TAMANO_EXCEDIDO);
+      return false;
+    }
+
+    // Validación de menciones en el cliente
+    const rawMentions = (text.match(/@([\w.\-]+)/g) ?? []).map((m) => m.slice(1).toLowerCase());
+    if (rawMentions.length > 0) {
+      const unicos = new Set(rawMentions);
+      if (unicos.size < rawMentions.length) {
+        toast.error(ERROR_CODE_MESSAGES.MSG_MENCIONES_DUPLICADAS);
+        return false;
+      }
+      if (unicos.size > 3) {
+        toast.error(ERROR_CODE_MESSAGES.MSG_MENCIONES_EXCEDIDAS);
+        return false;
+      }
+    }
 
     const messageData: MessageSendData = {
       text_content: text.trim(),
@@ -363,12 +474,16 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
 
     // Agregar mensaje optimista al inicio (índice 0 = más nuevo con inverted)
     setMessages((prev) => [optimisticMessage, ...prev]);
-    
+
+    // Guardar ID temporal para poder revertirlo si el servidor rechaza el mensaje
+    lastOptimisticIdRef.current = optimisticMessage.id_message;
+
     // Marcar este mensaje como pendiente
     pendingMessagesRef.current.add(text.trim());
 
     // Enviar al servidor
     websocketService.sendMessage(messageData);
+    return true;
   }, [userId, userFullName, groupId]);
 
   // Editar mensaje
@@ -459,34 +574,38 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     await filesService.downloadAndOpenFile(file, token);
   }, [token]);
 
-  // Registrar o cambiar voto — optimismo completo: userVote + porcentajes al instante
+  // Registrar voto — un único voto por usuario, sin retractación
   const castVote = useCallback(async (pollId: number, optionId: number) => {
     let prevPoll: Poll | undefined;
+    let alreadyVoted = false;
 
     setMessages((prev) =>
       prev.map((msg) => {
         if (msg.poll?.id !== pollId) return msg;
         prevPoll = msg.poll;
 
-        const prevVote = msg.poll.userVote ?? null;
-        const isNewVote = prevVote === null;
+        if (msg.poll.userVote !== null) {
+          alreadyVoted = true;
+          return msg;
+        }
+
         const currentTotal = msg.poll.options.reduce((s, o) => s + o.count, 0);
-        const newTotal = isNewVote ? currentTotal + 1 : currentTotal;
+        const newTotal = currentTotal + 1;
 
         const newOptions = msg.poll.options.map((o) => {
-          let count = o.count;
-          if (o.id === optionId) count += 1;
-          if (!isNewVote && o.id === prevVote && prevVote !== optionId) count -= 1;
+          const count = o.id === optionId ? o.count + 1 : o.count;
           return {
             ...o,
             count,
-            percentage: newTotal > 0 ? Math.round((count / newTotal) * 100) : 0,
+            percentage: Math.round((count / newTotal) * 100),
           };
         });
 
         return { ...msg, poll: { ...msg.poll!, options: newOptions, userVote: optionId } };
       })
     );
+
+    if (alreadyVoted) return;
 
     try {
       const updated = await pollService.castVote(pollId, optionId);
@@ -513,6 +632,7 @@ export const useChat = ({ groupId, userId, token, userFullName, serverUrl }: Use
     loading,
     error,
     isConnected,
+    isRecipientOnline,
     typingUsers,
     hasMore,
     isLoadingMore,

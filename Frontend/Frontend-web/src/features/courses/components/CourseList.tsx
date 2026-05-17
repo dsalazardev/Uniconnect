@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStudentCourses } from '../hooks/useStudentCourses';
 import { LoadingSpinner } from '@/components/elements';
 import { AddCourseModal } from './AddCourseModal';
-import { BookOpen, Plus } from 'lucide-react';
+import { BookOpen, Plus, MessageSquare } from 'lucide-react';
 import styles from './CourseList.module.css';
 
 export const CourseList: React.FC = () => {
   const { courses, loading, error, availableCourses, loadAvailableCourses, addCourse, isAddingCourse } = useStudentCourses();
   const [showAddModal, setShowAddModal] = useState(false);
+  const navigate = useNavigate();
 
   if (loading) {
     return <LoadingSpinner size="lg" label="Cargando cursos..." />;
@@ -59,6 +61,7 @@ export const CourseList: React.FC = () => {
           <div className={styles.columnCode}>Código</div>
           <div className={styles.columnProgram}>Programa</div>
           <div className={styles.columnState}>Estado</div>
+          <div className={styles.columnForum}>Foro</div>
         </div>
 
         <div className={styles.tableBody}>
@@ -72,6 +75,16 @@ export const CourseList: React.FC = () => {
                 </div>
                 <div className={styles.columnState}>
                   <span className={styles.stateBadge}>{course.state || 'Activo'}</span>
+                </div>
+                <div className={styles.columnForum}>
+                  <button
+                    className={styles.forumBtn}
+                    onClick={() => navigate(`/courses/${course.id_course}/forum`)}
+                    title="Ver foro de preguntas"
+                  >
+                    <MessageSquare size={14} />
+                    Foro
+                  </button>
                 </div>
               </div>
             ))

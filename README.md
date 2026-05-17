@@ -185,20 +185,37 @@ El proyecto utiliza:
 4. **Clean Architecture**: Separación clara de capas (Domain, Infrastructure, Application)
 5. **Programación Defensiva**: Try/catch en todas las operaciones async
 
-## 🚀 Despliegue (US-INF07)
+## 🚀 Distribución Móvil (APK)
 
-Se ha configurado con éxito el pipeline de **EAS Build** para la generación de binarios Android, permitiendo la distribución de versiones de prueba (Preview).
+La aplicación móvil se distribuye mediante **EAS Build** de Expo, generando un APK firmado listo para instalar en cualquier dispositivo Android.
 
-- **Plataforma:** Android
-- **Perfil de Build:** `preview` (Genera archivo APK instalable)
-- **Estado:** Configurado y Validado (Login funcional con Auth0 y Backend)
-- **Enlace de descarga (Último Build):** [Descargar UniConnect APK](https://expo.dev/accounts/salazar04/projects/uniconnect_g/builds/1fae3daa-64cf-44a3-b796-ee4d66cc782b)
+### Último Build (Preview)
 
-### Instrucciones de Instalación
-1. Acceder al enlace desde un dispositivo Android.
-2. Descargar el archivo APK.
-3. Habilitar "Instalar aplicaciones de fuentes desconocidas" si es necesario.
-4. Ejecutar el instalador.
+| Atributo | Valor |
+|----------|-------|
+| **Perfil** | `preview` — APK firmado para pruebas |
+| **Plataforma** | Android |
+| **Estado** | ✅ Build exitoso |
+| **Descargar APK** | https://expo.dev/accounts/salazar04/projects/uniconnect_g/builds/4cff4cea-9e09-4d00-8560-10b1e157b5aa |
+
+> ⚠️ Este APK apunta al backend de producción en **Fly.io**. No requiere servidor local — al instalarlo puedes autenticarte con Auth0, gestionar grupos, eventos, conexiones sociales y enviar mensajes en tiempo real contra la API en producción.
+
+### Instalación en Android
+
+1. Abre el enlace de descarga desde cualquier navegador en tu dispositivo Android.
+2. Toca *Descargar* y espera a que se complete.
+3. Si es la primera vez, habilita *Instalar aplicaciones de fuentes desconocidas* cuando el sistema lo solicite.
+4. Abre el archivo descargado y toca *Instalar*.
+5. Una vez instalada, abre **Uniconnect** desde el menú de aplicaciones.
+
+### Generar un Nuevo Build
+
+```bash
+cd Frontend/Frontend-mobile
+npx eas build --profile preview --platform android --non-interactive
+```
+
+Variables de entorno (`EXPO_PUBLIC_*`) y credenciales se inyectan desde los secrets de EAS — ningún valor sensible está hardcodeado en el repositorio.
 
 ## 📄 Licencia
 

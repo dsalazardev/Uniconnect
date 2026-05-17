@@ -108,9 +108,6 @@ export const CreateGroupModal = ({
     setSelectedCourseId(courseId);
     setShowCourseDropdown(false);
     setInlineError(null);
-    if ((groupsPerCourse[courseId] ?? 0) >= 3) {
-      setInlineError('Ya perteneces a 3 grupos para esta materia. No puedes crear otro.');
-    }
   };
 
   const selectedCourse = courses?.find((c: Course) => c.id_course === selectedCourseId);
@@ -131,6 +128,16 @@ export const CreateGroupModal = ({
               <Ionicons name="close" size={28} color="#333" />
             </TouchableOpacity>
           </View>
+
+          {/* Aviso de límite por materia */}
+          {selectedCourseAtLimit && (
+            <View style={styles.limitWarningBanner}>
+              <Ionicons name="warning-outline" size={16} color="#F59E0B" />
+              <Text style={styles.limitWarningText}>
+                Ya perteneces a 3 grupos en esta materia. No puedes crear otro.
+              </Text>
+            </View>
+          )}
 
           {/* Body */}
           <ScrollView
@@ -223,6 +230,7 @@ export const CreateGroupModal = ({
                       </ScrollView>
                     </View>
                   )}
+
                 </>
               )}
             </View>
@@ -421,6 +429,26 @@ const styles = StyleSheet.create({
     color: "#1a1a1a",
     fontSize: 16,
     fontWeight: "600",
+  },
+  limitWarningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "rgba(245, 158, 11, 0.1)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.35)",
+  },
+  limitWarningText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#F59E0B",
+    fontWeight: "500",
+    textAlign: "center",
   },
   errorBanner: {
     flexDirection: "row",

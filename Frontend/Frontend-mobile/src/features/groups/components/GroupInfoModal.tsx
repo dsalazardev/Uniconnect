@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
+import { notificationObserver } from '@/src/features/notifications';
 import { useGroupInfo } from '../hooks/useGroupInfo';
 import { GroupInfoHeader } from './GroupInfoHeader';
 import { GroupMembersTab } from './GroupMembersTab';
@@ -27,11 +29,21 @@ interface GroupInfoModalProps {
 }
 
 export const GroupInfoModal = ({ groupId, visible, onClose, scrollToAccept = false }: GroupInfoModalProps) => {
-  const { data: groupInfo, isLoading, error } = useGroupInfo(groupId);
+  const { data: groupInfo, isLoading, error, refetch } = useGroupInfo(groupId);
+  const queryClient = useQueryClient();
   const [showInviteModal, setShowInviteModal] = useState(false);
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const bannerYRef = useRef<number>(0);
+
+  // Refetch group info in real-time when any notification arrives (transfer events, etc.)
+  useEffect(() => {
+    if (!visible) return;
+    const unsubscribe = notificationObserver.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['group-info', groupId] });
+    });
+    return unsubscribe;
+  }, [visible, groupId, queryClient]);
 
   // Obtener el nombre del candidato desde memberships usando pending_owner_id
   const getCandidateName = () => {

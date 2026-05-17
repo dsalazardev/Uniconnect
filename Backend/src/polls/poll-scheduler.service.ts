@@ -59,8 +59,19 @@ export class PollSchedulerService implements OnModuleInit, OnModuleDestroy {
         this.logger.warn(
           'Poll table not found — run `prisma migrate dev` to create it. Scheduler will be inactive until then.',
         );
+      } else if (
+        err?.message?.includes('Connection terminated') ||
+        err?.message?.includes('connection timeout') ||
+        err?.code === 'ECONNREFUSED'
+      ) {
+        // Transient connection error on startup — retry after 5 s
+        this.logger.warn(
+          'PollSchedulerService: DB not ready on startup, retrying in 5 s…',
+        );
+        setTimeout(() => void this.onModuleInit(), 5_000);
       } else {
-        this.logger.error('PollSchedulerService init error:', err);
+        this.logger.error('PollSchedulerService init error:');
+        this.logger.error(err);
       }
     }
   }

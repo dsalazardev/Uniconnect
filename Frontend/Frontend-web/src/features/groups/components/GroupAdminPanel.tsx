@@ -14,6 +14,7 @@ interface GroupAdminPanelProps {
   canManage?: boolean;
   onInvite?: () => void;
   showMembersSection?: boolean;
+  focusRequestId?: number;
 }
 
 export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
@@ -22,12 +23,14 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   canManage = false,
   onInvite,
   showMembersSection = true,
+  focusRequestId,
 }) => {
   const [pendingRequests, setPendingRequests] = useState<GroupJoinRequest[]>([]);
   const [members, setMembers] = useState<GroupMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const requestRowRefs = React.useRef<Record<number, HTMLDivElement | null>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -51,6 +54,14 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!focusRequestId || loading) return;
+    const el = requestRowRefs.current[focusRequestId];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [focusRequestId, loading]);
 
   const handleAcceptRequest = async (requestId: number) => {
     setProcessingId(requestId);
@@ -173,7 +184,11 @@ export const GroupAdminPanel: React.FC<GroupAdminPanelProps> = ({
           </div>
         ) : (
           pendingRequests.map((req) => (
-            <div key={req.id_request} className={styles.requestRow}>
+            <div
+              key={req.id_request}
+              ref={(el) => { requestRowRefs.current[req.id_request] = el; }}
+              className={`${styles.requestRow} ${req.id_request === focusRequestId ? styles.requestRowFocused : ''}`}
+            >
               <div className={styles.userInfo}>
                 <User size={20} />
                 <span>{req.requester?.full_name || `Usuario #${req.id_user}`}</span>

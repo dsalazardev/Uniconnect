@@ -6,5 +6,6 @@ model course {
   type        String?      @db.VarChar
   program     program?     @relation(fields: [id_program], references: [id_program])
   enrollments enrollment[]
-  groups      group[]
+  groups           group[]
+  forum_questions  forum_question[]
 }
