@@ -104,7 +104,7 @@ dist
 # vuepress build output
 .vuepress/dist
 
-Backend/HU-Docs
+Backend/HU-Docs/
 
 # vuepress v2.x temp and cache directory
 .temp
