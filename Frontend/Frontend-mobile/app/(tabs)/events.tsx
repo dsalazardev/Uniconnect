@@ -15,6 +15,7 @@ import { api } from '@/src/constants/api';
 import { authStore } from '@/src/features/auth/store/AuthStore';
 import { websocketService } from '@/src/features/messages/services/websocket.service';
 import { showToast } from '@/src/lib/toast';
+import { CreateEventModal, type CreateEventFormPayload } from '@/src/features/events/components/CreateEventModal';
 
 // ── Local types ──────────────────────────────────────────────────────────────
 interface EventCategory { id_category: number; name: string; color: string; }
@@ -143,6 +144,10 @@ const EventsScreen: React.FC = () => {
   const [error, setError]                   = useState<string | null>(null);
   const [subscribed, setSubscribed]         = useState<Set<number>>(new Set());
   const [togglingSubscription, setToggling] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating]               = useState(false);
+
+  const canCreate = ['admin', 'superadmin'].includes(authStore.user?.role?.name ?? '');
 
   const selectedCategoryRef = useRef<number | null>(null);
   useEffect(() => { selectedCategoryRef.current = selectedCategoryId; }, [selectedCategoryId]);
@@ -208,6 +213,20 @@ const EventsScreen: React.FC = () => {
     } finally { setToggling(false); }
   };
 
+  const handleCreateEvent = async (payload: CreateEventFormPayload) => {
+    setCreating(true);
+    try {
+      const { data: newEvent } = await api.post('/events', payload);
+      setEvents((prev) => [newEvent, ...prev]);
+      setShowCreateModal(false);
+      showToast.success('Evento creado', newEvent.title);
+    } catch (err: any) {
+      showToast.error('Error', err?.response?.data?.message ?? 'No se pudo crear el evento');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const isSubscribed = selectedCategoryId !== null && subscribed.has(selectedCategoryId);
   const selectOptions: SelectOption[] = [
     { label: 'Todas las categorías', value: null },
@@ -218,6 +237,12 @@ const EventsScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Eventos Académicos</Text>
+        {canCreate && (
+          <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreateModal(true)}>
+            <Ionicons name="add" size={18} color="#111" />
+            <Text style={styles.createBtnText}>Crear</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
@@ -287,6 +312,14 @@ const EventsScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <CreateEventModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateEvent}
+        isSubmitting={creating}
+        categories={categories}
+      />
     </SafeAreaView>
   );
 };
@@ -294,8 +327,10 @@ const EventsScreen: React.FC = () => {
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container:   { flex: 1, backgroundColor: '#1e1e1e' },
-  header:      { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
+  header:      { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  createBtn:   { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#D9B97E', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  createBtnText: { fontSize: 14, fontWeight: '700', color: '#111' },
 
   // Filter bar
   filterBar: {

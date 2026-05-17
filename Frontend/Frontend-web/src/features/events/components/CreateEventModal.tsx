@@ -1,101 +1,84 @@
 import React, { useState } from 'react';
-import type { CreateEventPayload } from '@uniconnect/shared';
-import { EventType } from '@uniconnect/shared';
 import { X } from 'lucide-react';
 import styles from './CreateEventModal.module.css';
+
+interface EventCategory {
+  id_category: number;
+  name: string;
+  color: string;
+}
+
+export interface CreateEventFormPayload {
+  id_category: number;
+  title: string;
+  description: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+}
 
 interface CreateEventModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateEventPayload) => void;
+  onSubmit: (data: CreateEventFormPayload) => void;
   isSubmitting?: boolean;
+  categories?: EventCategory[];
 }
 
-/**
- * CreateEventModal - Pure UI component for event creation
- * Follows MVC pattern: only handles UI and emits data via onSubmit prop
- * Does NOT call services directly - maintains complete decoupling
- */
 export const CreateEventModal: React.FC<CreateEventModalProps> = ({
   visible,
   onClose,
   onSubmit,
   isSubmitting = false,
+  categories = [],
 }) => {
-  // Form state
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [location, setLocation] = useState('');
-  const [type, setType] = useState<EventType>(EventType.CONFERENCIA);
-
-  // Validation errors
+  const [form, setForm] = useState<{
+    id_category: number | '';
+    title: string;
+    description: string;
+    location: string;
+    start_date: string;
+    end_date: string;
+  }>({
+    id_category: '',
+    title: '',
+    description: '',
+    location: '',
+    start_date: '',
+    end_date: '',
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  /**
-   * Validate form fields
-   */
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const set = (key: keyof typeof form, value: string | number) =>
+    setForm((p) => ({ ...p, [key]: value }));
 
-    if (!title.trim()) {
-      newErrors.title = 'El título es obligatorio';
-    }
-
-    if (!description.trim()) {
-      newErrors.description = 'La descripción es obligatoria';
-    }
-
-    if (!date) {
-      newErrors.date = 'La fecha es obligatoria';
-    }
-
-    if (!time) {
-      newErrors.time = 'La hora es obligatoria';
-    }
-
-    if (!location.trim()) {
-      newErrors.location = 'La ubicación es obligatoria';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.id_category) e.id_category = 'Selecciona una categoría';
+    if (!form.title.trim()) e.title = 'El título es obligatorio';
+    if (!form.description.trim()) e.description = 'La descripción es obligatoria';
+    if (!form.location.trim()) e.location = 'La ubicación es obligatoria';
+    if (!form.start_date) e.start_date = 'La fecha de inicio es obligatoria';
+    if (!form.end_date) e.end_date = 'La fecha de fin es obligatoria';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
-    // Emit data to parent via onSubmit prop
-    const payload: CreateEventPayload = {
-      title: title.trim(),
-      description: description.trim(),
-      date,
-      time,
-      location: location.trim(),
-      type,
-    };
-
-    onSubmit(payload);
+    if (!validate() || form.id_category === '') return;
+    onSubmit({
+      id_category: form.id_category as number,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      location: form.location.trim(),
+      start_date: new Date(form.start_date).toISOString(),
+      end_date: new Date(form.end_date).toISOString(),
+    });
   };
 
-  /**
-   * Reset form and close modal
-   */
   const handleClose = () => {
-    setTitle('');
-    setDescription('');
-    setDate('');
-    setTime('');
-    setLocation('');
-    setType(EventType.CONFERENCIA);
+    setForm({ id_category: '', title: '', description: '', location: '', start_date: '', end_date: '' });
     setErrors({});
     onClose();
   };
@@ -106,7 +89,6 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
     <div className={styles.overlay} onClick={handleClose}>
       <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
         <div className={styles.scrollView}>
-          {/* Header */}
           <div className={styles.header}>
             <h2 className={styles.headerTitle}>Crear Nuevo Evento</h2>
             <button onClick={handleClose} disabled={isSubmitting} className={styles.closeButton}>
@@ -114,95 +96,95 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
             </button>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className={styles.form}>
-            {/* Title */}
+            {/* Categoría */}
+            <div className={styles.fieldContainer}>
+              <label className={styles.label}>Categoría *</label>
+              <select
+                className={`${styles.input} ${errors.id_category ? styles.inputError : ''}`}
+                value={form.id_category}
+                onChange={(e) => set('id_category', e.target.value === '' ? '' : Number(e.target.value))}
+                disabled={isSubmitting}
+              >
+                <option value="">Seleccionar categoría</option>
+                {categories.map((c) => (
+                  <option key={c.id_category} value={c.id_category}>{c.name}</option>
+                ))}
+              </select>
+              {errors.id_category && <span className={styles.errorText}>{errors.id_category}</span>}
+            </div>
+
+            {/* Título */}
             <div className={styles.fieldContainer}>
               <label className={styles.label}>Título *</label>
               <input
-                type="text"
+                type="text" maxLength={300}
                 className={`${styles.input} ${errors.title ? styles.inputError : ''}`}
                 placeholder="Ej: Conferencia de Inteligencia Artificial"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={form.title}
+                onChange={(e) => set('title', e.target.value)}
                 disabled={isSubmitting}
               />
               {errors.title && <span className={styles.errorText}>{errors.title}</span>}
             </div>
 
-            {/* Description */}
+            {/* Descripción */}
             <div className={styles.fieldContainer}>
               <label className={styles.label}>Descripción *</label>
               <textarea
                 className={`${styles.input} ${styles.textArea} ${errors.description ? styles.inputError : ''}`}
                 placeholder="Describe el evento..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={form.description}
+                onChange={(e) => set('description', e.target.value)}
                 rows={4}
+                maxLength={2000}
                 disabled={isSubmitting}
               />
               {errors.description && <span className={styles.errorText}>{errors.description}</span>}
             </div>
 
-            {/* Date */}
-            <div className={styles.fieldContainer}>
-              <label className={styles.label}>Fecha *</label>
-              <input
-                type="date"
-                className={`${styles.input} ${errors.date ? styles.inputError : ''}`}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                disabled={isSubmitting}
-              />
-              {errors.date && <span className={styles.errorText}>{errors.date}</span>}
-            </div>
-
-            {/* Time */}
-            <div className={styles.fieldContainer}>
-              <label className={styles.label}>Hora *</label>
-              <input
-                type="time"
-                className={`${styles.input} ${errors.time ? styles.inputError : ''}`}
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                disabled={isSubmitting}
-              />
-              {errors.time && <span className={styles.errorText}>{errors.time}</span>}
-            </div>
-
-            {/* Location */}
+            {/* Ubicación */}
             <div className={styles.fieldContainer}>
               <label className={styles.label}>Ubicación *</label>
               <input
-                type="text"
+                type="text" maxLength={300}
                 className={`${styles.input} ${errors.location ? styles.inputError : ''}`}
                 placeholder="Ej: Auditorio Principal"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={form.location}
+                onChange={(e) => set('location', e.target.value)}
                 disabled={isSubmitting}
               />
               {errors.location && <span className={styles.errorText}>{errors.location}</span>}
             </div>
 
-            {/* Type */}
+            {/* Fecha inicio */}
             <div className={styles.fieldContainer}>
-              <label className={styles.label}>Tipo de Evento *</label>
-              <div className={styles.typeContainer}>
-                {Object.values(EventType).map((eventType) => (
-                  <button
-                    key={eventType}
-                    type="button"
-                    className={`${styles.typeButton} ${type === eventType ? styles.typeButtonActive : ''}`}
-                    onClick={() => setType(eventType)}
-                    disabled={isSubmitting}
-                  >
-                    {eventType}
-                  </button>
-                ))}
-              </div>
+              <label className={styles.label}>Fecha y hora de inicio *</label>
+              <input
+                type="datetime-local"
+                className={`${styles.input} ${errors.start_date ? styles.inputError : ''}`}
+                value={form.start_date}
+                onChange={(e) => set('start_date', e.target.value)}
+                disabled={isSubmitting}
+                style={{ colorScheme: 'dark' }}
+              />
+              {errors.start_date && <span className={styles.errorText}>{errors.start_date}</span>}
             </div>
 
-            {/* Actions */}
+            {/* Fecha fin */}
+            <div className={styles.fieldContainer}>
+              <label className={styles.label}>Fecha y hora de fin *</label>
+              <input
+                type="datetime-local"
+                className={`${styles.input} ${errors.end_date ? styles.inputError : ''}`}
+                value={form.end_date}
+                onChange={(e) => set('end_date', e.target.value)}
+                disabled={isSubmitting}
+                style={{ colorScheme: 'dark' }}
+              />
+              {errors.end_date && <span className={styles.errorText}>{errors.end_date}</span>}
+            </div>
+
             <div className={styles.actions}>
               <button
                 type="button"
@@ -212,7 +194,6 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({
               >
                 Cancelar
               </button>
-
               <button
                 type="submit"
                 className={`${styles.button} ${styles.submitButton} ${isSubmitting ? styles.submitButtonDisabled : ''}`}

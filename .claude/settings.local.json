@@ -6,7 +6,18 @@
       "Bash(git commit -m ' *)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\LHENAO\\\\Documents\\\\Software III\\\\Uniconnect\" -Directory)",
       "Bash(Select-Object Name)",
-      "Bash(xargs ls -1)"
+      "Bash(xargs ls -1)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\LHENAO\\\\Documents\\\\Software III\\\\Uniconnect\\\\Backend\\\\src\\\\events\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(git checkout *)",
+      "Bash(git commit -m 'feat\\(events\\): CA1 — crear EventoUniversidadSubject e interfaz EventoUniversidadEvent *)",
+      "Bash(git commit -m 'feat\\(events\\): CA4 — EventPublishedObserver filtra suscriptores por categoría antes de emitir WebSocket *)",
+      "Bash(npx tsc *)",
+      "Bash(git commit -m 'chore\\(docs\\): agregar HUDocs de US-003 suscripcion-eventos *)",
+      "Bash(git commit -m 'fix\\(events\\): agregar botón y modal de crear evento en EventsDashboard *)",
+      "Bash(git commit -m 'fix\\(events\\): restringir botón '\\\\''Crear evento'\\\\'' a roles admin y superadmin *)",
+      "Bash(git commit -m 'fix\\(mobile/events\\): agregar botón '\\\\''Crear'\\\\'' y modal de creación de eventos *)",
+      "Bash(git commit -m 'feat\\(notifications\\): agregar preferencia '\\\\''Eventos académicos'\\\\'' en web y mobile *)"
     ]
   }
 }

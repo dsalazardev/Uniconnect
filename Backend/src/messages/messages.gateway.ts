@@ -1020,6 +1020,14 @@ export class MessagesGateway
   isUserOnline(userId: number): boolean {
     return this.sessionManager.isUserOnline(userId);
   }
+
+  /**
+   * Broadcast a todos los sockets conectados (sin filtro de sala).
+   * Usado para eventos globales como la publicación de un evento universitario.
+   */
+  broadcastToAll(event: string, data: any) {
+    this.server.emit(event, data);
+  }
 }
 
 // ── Helper: extrae nombres de menciones del texto ─────────────────────────

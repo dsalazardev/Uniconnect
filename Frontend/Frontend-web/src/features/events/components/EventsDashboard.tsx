@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, Calendar, Clock, MapPin } from 'lucide-react';
+import { Bell, BellOff, Calendar, Clock, MapPin, Plus } from 'lucide-react';
 import { api } from '@/constants/api';
+import { CreateEventModal } from './CreateEventModal';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { websocketService } from '@/features/messages/services/websocket.service';
 import { showToast } from '@/lib/toast';
@@ -64,6 +65,8 @@ export const EventsDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [subscribed, setSubscribed] = useState<Set<number>>(new Set());
   const [togglingSubscription, setTogglingSubscription] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const selectedCategoryRef = useRef<number | null>(null);
   useEffect(() => {
@@ -171,6 +174,22 @@ export const EventsDashboard: React.FC = () => {
     }
   };
 
+  const handleCreateEvent = async (payload: { id_category: number; title: string; description: string; location: string; start_date: string; end_date: string }) => {
+    setCreating(true);
+    try {
+      const { data: newEvent } = await api.post('/events', payload);
+      setEvents((prev) => [newEvent, ...prev]);
+      setShowCreateModal(false);
+      showToast.success('Evento creado', newEvent.title);
+    } catch (err: any) {
+      showToast.error('Error', err?.response?.data?.message ?? 'No se pudo crear el evento');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const canCreate = ['admin', 'superadmin'].includes(authStore.user?.role?.name ?? '');
+
   const selectedCategory = categories.find((c) => c.id_category === selectedCategoryId);
   const isSubscribed = selectedCategoryId !== '' && subscribed.has(selectedCategoryId as number);
   const statusLabel: Record<EventStatus, string> = {
@@ -183,8 +202,21 @@ export const EventsDashboard: React.FC = () => {
     <div className={styles.page}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className={styles.pageHeader}>
+      <div className={styles.pageHeader} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 className={styles.pageTitle}>Eventos Académicos</h1>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: '#D9B97E', color: '#111', border: 'none',
+              borderRadius: 8, padding: '8px 16px', fontWeight: 700,
+              fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            <Plus size={16} /> Crear evento
+          </button>
+        )}
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
@@ -298,6 +330,14 @@ export const EventsDashboard: React.FC = () => {
           })}
         </div>
       )}
+
+      <CreateEventModal
+        visible={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSubmit={handleCreateEvent}
+        isSubmitting={creating}
+        categories={categories}
+      />
     </div>
   );
 };
