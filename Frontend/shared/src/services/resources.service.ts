@@ -1,41 +1,52 @@
 import type { AxiosInstance } from 'axios';
-import type { Resource, CreateResourcePayload, UpdateResourcePayload, TipoContenido } from '../types/resources';
-import { RESOURCES_ENDPOINTS } from '../api/endpoints/resources';
+import type {
+  Resource,
+  ProgramaSummary,
+  CreateResourcePayload,
+  UpdateResourcePayload,
+  TipoContenido,
+} from '../types/resources';
+import { BIBLIOTECA_ENDPOINTS } from '../api/endpoints/resources';
 
 export class ResourcesService {
   constructor(private readonly api: AxiosInstance) {}
 
-  async listar(groupId: number, tipo?: TipoContenido): Promise<Resource[]> {
-    const { data } = await this.api.get(RESOURCES_ENDPOINTS.LIST(groupId, tipo));
+  async misProgramas(): Promise<ProgramaSummary[]> {
+    const { data } = await this.api.get(BIBLIOTECA_ENDPOINTS.MIS_PROGRAMAS);
     return Array.isArray(data) ? data : [];
   }
 
-  async crear(groupId: number, payload: CreateResourcePayload): Promise<Resource> {
-    const { data } = await this.api.post(RESOURCES_ENDPOINTS.CREATE(groupId), payload);
+  async listarPorPrograma(programId: number, tipo?: TipoContenido): Promise<Resource[]> {
+    const { data } = await this.api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, tipo));
+    return Array.isArray(data) ? data : [];
+  }
+
+  async crear(programId: number, payload: CreateResourcePayload): Promise<Resource> {
+    const { data } = await this.api.post(BIBLIOTECA_ENDPOINTS.CREATE(programId), payload);
     return data;
   }
 
-  async obtener(groupId: number, id: number): Promise<Resource> {
-    const { data } = await this.api.get(RESOURCES_ENDPOINTS.GET(groupId, id));
+  async obtener(id: number): Promise<Resource> {
+    const { data } = await this.api.get(BIBLIOTECA_ENDPOINTS.GET(id));
     return data;
   }
 
-  async editar(groupId: number, id: number, payload: UpdateResourcePayload): Promise<Resource> {
-    const { data } = await this.api.patch(RESOURCES_ENDPOINTS.UPDATE(groupId, id), payload);
+  async editar(id: number, payload: UpdateResourcePayload): Promise<Resource> {
+    const { data } = await this.api.patch(BIBLIOTECA_ENDPOINTS.UPDATE(id), payload);
     return data;
   }
 
-  async eliminar(groupId: number, id: number): Promise<void> {
-    await this.api.delete(RESOURCES_ENDPOINTS.DELETE(groupId, id));
+  async eliminar(id: number): Promise<void> {
+    await this.api.delete(BIBLIOTECA_ENDPOINTS.DELETE(id));
   }
 
-  async comentar(groupId: number, id: number, contenido: string): Promise<unknown> {
-    const { data } = await this.api.post(RESOURCES_ENDPOINTS.COMMENT(groupId, id), { contenido });
+  async comentar(id: number, contenido: string): Promise<unknown> {
+    const { data } = await this.api.post(BIBLIOTECA_ENDPOINTS.COMMENT(id), { contenido });
     return data;
   }
 
-  async valorar(groupId: number, id: number, valor: number): Promise<unknown> {
-    const { data } = await this.api.post(RESOURCES_ENDPOINTS.RATE(groupId, id), { valor });
+  async valorar(id: number, valor: number): Promise<unknown> {
+    const { data } = await this.api.post(BIBLIOTECA_ENDPOINTS.RATE(id), { valor });
     return data;
   }
 }

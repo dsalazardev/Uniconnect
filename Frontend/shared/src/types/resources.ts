@@ -12,9 +12,15 @@ export interface ResourceDecorators {
   comentarios?: { id_comment: number; contenido: string; usuario: string; fecha: string }[];
 }
 
+export interface ProgramaSummary {
+  id_program: number;
+  name: string;
+}
+
 export interface Resource {
   id_resource: number;
-  id_group: number;
+  id_program: number;
+  id_group: number | null;
   created_by: number;
   creator: { id_user: number; full_name: string; picture: string | null };
   url_externa: string | null;
