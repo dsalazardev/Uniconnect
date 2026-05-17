@@ -188,6 +188,8 @@ export const EventsDashboard: React.FC = () => {
     }
   };
 
+  const canCreate = ['admin', 'superadmin'].includes(authStore.user?.role?.name ?? '');
+
   const selectedCategory = categories.find((c) => c.id_category === selectedCategoryId);
   const isSubscribed = selectedCategoryId !== '' && subscribed.has(selectedCategoryId as number);
   const statusLabel: Record<EventStatus, string> = {
@@ -202,17 +204,19 @@ export const EventsDashboard: React.FC = () => {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className={styles.pageHeader} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 className={styles.pageTitle}>Eventos Académicos</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: '#D9B97E', color: '#111', border: 'none',
-            borderRadius: 8, padding: '8px 16px', fontWeight: 700,
-            fontSize: 14, cursor: 'pointer',
-          }}
-        >
-          <Plus size={16} /> Crear evento
-        </button>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: '#D9B97E', color: '#111', border: 'none',
+              borderRadius: 8, padding: '8px 16px', fontWeight: 700,
+              fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            <Plus size={16} /> Crear evento
+          </button>
+        )}
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
