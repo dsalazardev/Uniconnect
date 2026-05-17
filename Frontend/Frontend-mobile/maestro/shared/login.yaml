@@ -1,0 +1,23 @@
+appId: com.damaluja.uniconnect
+---
+# Login subflow - reusable by other Maestro flows
+# Strategy: Tap Google OAuth button, then mock the auth callback at API level.
+# For environments without real OAuth, set MAESTRO_MOCK_AUTH=true.
+
+- waitFor:
+    text: "Ingresar con Google"
+    timeout: 15000
+- assertVisible:
+    text: "UniConnect"
+- assertVisible:
+    text: "Solo cuenta institucional de la Universidad de Caldas"
+- tapOn:
+    text: "Ingresar con Google"
+# After tapping, the app opens an OAuth browser session.
+# In a real E2E run, configure Auth0 with a test account so the redirect
+# completes automatically. For mock runs, intercept POST /auth/callback
+# to return a pre-generated JWT.
+- waitFor:
+    text: "Bienvenido"
+    timeout: 30000
+    optional: true

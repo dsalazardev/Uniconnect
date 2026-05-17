@@ -1,0 +1,6 @@
+appId: com.damaluja.uniconnect
+env:
+  MAESTRO_API_URL: http://10.0.2.2:8007/api
+  MAESTRO_WEBSOCKET_URL: http://10.0.2.2:3000
+testFileBasePath: ../maestro
+outputFormat: json
