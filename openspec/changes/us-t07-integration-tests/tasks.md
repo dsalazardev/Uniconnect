@@ -54,10 +54,10 @@
 
 ## 5. Documentar en el README móvil el proceso de ejecución local de E2E y la interpretación de artefactos del CI
 
-- [ ] 5.1 Agregar sección "Pruebas E2E (Maestro)" en `Frontend/Frontend-mobile/README.md`
-- [ ] 5.2 Documentar instalación de Maestro (`brew install maestro` para macOS, `curl` para Linux/WSL)
-- [ ] 5.3 Documentar precondiciones: emulador Android corriendo, backend en ejecución, APK debug instalada
-- [ ] 5.4 Documentar comandos de ejecución: `maestro test maestro/flows/study-session.yaml` para flow específico, `maestro test maestro/flows/` para todos
-- [ ] 5.5 Documentar cómo descargar artefactos de CI desde GitHub Actions (Actions → run fallido → Artifacts → maestro-artifacts.zip)
-- [ ] 5.6 Documentar cómo interpretar artefactos: screenshots por paso, video `.mp4` del flow completo
-- [ ] 5.7 Documentar cómo re-ejecutar flow localmente con artefactos descargados para debuggear fallos
+- [x] 5.1 Agregar sección "Pruebas E2E (Maestro)" en `Frontend/Frontend-mobile/README.md`
+- [x] 5.2 Documentar instalación de Maestro (`brew install maestro` para macOS, `curl` para Linux/WSL)
+- [x] 5.3 Documentar precondiciones: emulador Android corriendo, backend en ejecución, APK debug instalada
+- [x] 5.4 Documentar comandos de ejecución: `maestro test maestro/flows/study-session.yaml` para flow específico, `maestro test maestro/flows/` para todos
+- [x] 5.5 Documentar cómo descargar artefactos de CI desde GitHub Actions (Actions → run fallido → Artifacts → maestro-artifacts.zip)
+- [x] 5.6 Documentar cómo interpretar artefactos: screenshots por paso, video `.mp4` del flow completo
+- [x] 5.7 Documentar cómo re-ejecutar flow localmente con artefactos descargados para debuggear fallos
