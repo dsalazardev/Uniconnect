@@ -8,8 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/src/constants/api';
 import { authStore } from '@/src/features/auth/store/AuthStore';
 import { showToast } from '@/src/lib/toast';
-import { BIBLIOTECA_ENDPOINTS } from '@uniconnect/shared';
+import { BIBLIOTECA_ENDPOINTS, ResourceArraySchema, ResourceSchema } from '@uniconnect/shared';
 import type { Resource, TipoContenido } from '@uniconnect/shared';
+import { validateApiResponse } from '@uniconnect/api-types';
 
 const TIPOS: { value: TipoContenido | ''; label: string }[] = [
   { value: '', label: 'Todos' },
@@ -36,15 +37,27 @@ export default function BibliotecaScreen() {
     if (!programId) return;
     setLoading(true);
     api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, filtroTipo || undefined))
-      .then((r) => setResources(Array.isArray(r.data) ? r.data : []))
-      .catch(() => showToast.error('Error', 'No se pudieron cargar los recursos'))
+      .then((r) => {
+        const validated = validateApiResponse(ResourceArraySchema, r.data);
+        setResources(validated as Resource[]);
+      })
+      .catch((err) => {
+        if (err?.name === 'ApiValidationError') {
+          showToast.error('Datos inválidos', 'La respuesta del servidor tiene un formato inesperado');
+        } else {
+          showToast.error('Error', 'No se pudieron cargar los recursos');
+        }
+      })
       .finally(() => setLoading(false));
   }, [programId, filtroTipo]);
 
   const silentRefresh = useCallback(() => {
     if (!programId) return;
     api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, filtroTipo || undefined))
-      .then((r) => setResources(Array.isArray(r.data) ? r.data : []))
+      .then((r) => {
+        const validated = validateApiResponse(ResourceArraySchema, r.data);
+        setResources(validated as Resource[]);
+      })
       .catch(() => {});
   }, [programId, filtroTipo]);
 
@@ -63,7 +76,8 @@ export default function BibliotecaScreen() {
         tipo_contenido: form.tipo,
         etiquetas: form.etiquetas ? form.etiquetas.split(',').map((t) => t.trim()).filter(Boolean) : [],
       };
-      const { data: newResource } = await api.post(BIBLIOTECA_ENDPOINTS.CREATE(programId), payload);
+      const { data: rawResource } = await api.post(BIBLIOTECA_ENDPOINTS.CREATE(programId), payload);
+      const newResource = validateApiResponse(ResourceSchema, rawResource) as Resource;
       setResources((p) => [newResource, ...p]);
       setShowModal(false);
       setForm({ url: '', titulo: '', tipo: 'ENLACE', etiquetas: '' });
