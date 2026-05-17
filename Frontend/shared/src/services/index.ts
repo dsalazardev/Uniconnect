@@ -12,4 +12,5 @@ export { AuthService } from './auth.service';
 export { NotificationObserverService, notificationObserver } from './notification-observer.service';
 export { PollService } from './poll.service';
 export { ForumService } from './forum.service';
+export { ResourcesService } from './resources.service';
 

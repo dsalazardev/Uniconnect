@@ -17,4 +17,5 @@ model group {
   memberships         membership[]
   polls               poll[]
   study_sessions      study_session[]
+  resources           resource[]
 }

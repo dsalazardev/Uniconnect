@@ -15,6 +15,7 @@ import { ConnectionList } from './features/connections/components';
 import { CourseList } from './features/courses/components';
 import { ProgramList } from './features/programs/components';
 import { ForumPage } from './features/forum/components/ForumPage';
+import { BibliotecaPage } from './pages/BibliotecaPage';
 
 // Lazy-load LoginScreen so @auth0/auth0-spa-js is only loaded when
 // the user navigates to /login, preventing postMessage errors on other pages.
@@ -98,6 +99,10 @@ export const router = createBrowserRouter([
       {
         path: 'forum',
         element: <ForumPage />,
+      },
+      {
+        path: 'biblioteca',
+        element: <BibliotecaPage />,
       },
       {
         path: 'programs',

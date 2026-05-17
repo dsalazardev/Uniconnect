@@ -1,0 +1,75 @@
+enum TipoContenido {
+  ENLACE
+  DOCUMENTO
+  VIDEO
+  IMAGEN
+  ARTICULO
+  OTRO
+}
+
+model resource {
+  id_resource      Int                @id @default(autoincrement())
+  /// Segmentación primaria: programa académico al que pertenece el recurso
+  id_program       Int
+  /// Contexto de grupo opcional — usado para validar permisos CA3
+  id_group         Int?
+  created_by       Int
+  url_externa      String?            @db.VarChar(2048)
+  titulo           String             @db.VarChar(500)
+  descripcion      String?            @db.VarChar(2000)
+  imagen_preview   String?            @db.VarChar(2048)
+  tipo_contenido   TipoContenido      @default(ENLACE)
+  /// JSON con los decoradores activos serializados (etiquetas, valoración, comentarios)
+  rendered_content String?
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime           @updatedAt @db.Timestamptz(6)
+
+  program          program            @relation(fields: [id_program], references: [id_program], onDelete: Cascade)
+  group            group?             @relation(fields: [id_group], references: [id_group], onDelete: SetNull)
+  creator          user               @relation("ResourceCreator", fields: [created_by], references: [id_user], onDelete: Cascade)
+  etiquetas        resource_tag[]
+  valoraciones     resource_rating[]
+  comentarios      resource_comment[]
+
+  @@index([id_program])
+  @@index([id_group])
+  @@index([created_by])
+  @@index([tipo_contenido])
+  @@map("resources")
+}
+
+model resource_tag {
+  id_tag      Int      @id @default(autoincrement())
+  id_resource Int
+  etiqueta    String   @db.VarChar(100)
+
+  resource resource @relation(fields: [id_resource], references: [id_resource], onDelete: Cascade)
+
+  @@map("resource_tags")
+}
+
+model resource_rating {
+  id_rating   Int @id @default(autoincrement())
+  id_resource Int
+  id_user     Int
+  valor       Int // 1–5
+
+  resource resource @relation(fields: [id_resource], references: [id_resource], onDelete: Cascade)
+  user     user     @relation("ResourceRatingUser", fields: [id_user], references: [id_user], onDelete: Cascade)
+
+  @@unique([id_resource, id_user])
+  @@map("resource_ratings")
+}
+
+model resource_comment {
+  id_comment  Int      @id @default(autoincrement())
+  id_resource Int
+  id_user     Int
+  contenido   String   @db.VarChar(1000)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  resource resource @relation(fields: [id_resource], references: [id_resource], onDelete: Cascade)
+  user     user     @relation("ResourceCommentUser", fields: [id_user], references: [id_user], onDelete: Cascade)
+
+  @@map("resource_comments")
+}

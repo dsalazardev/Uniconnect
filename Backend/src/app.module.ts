@@ -23,6 +23,7 @@ import { EventsModule } from './events/events.module';
 import { PollsModule } from './polls/polls.module';
 import { ForumModule } from './forum/forum.module';
 import { StudySessionsModule } from './study-sessions/study-sessions.module';
+import { ResourcesModule } from './resources/resources.module';
 import { LoggerMiddleware } from './core/logger/logger.middleware';
 
 @Module({
@@ -59,6 +60,7 @@ import { LoggerMiddleware } from './core/logger/logger.middleware';
     PollsModule,
     ForumModule,
     StudySessionsModule,
+    ResourcesModule,
   ],
   controllers: [AppController],
   providers: [AppService, RolesService, PermissionsService],

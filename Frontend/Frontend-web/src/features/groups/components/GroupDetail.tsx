@@ -556,7 +556,8 @@ export const GroupDetail: React.FC = () => {
                 </div>
               )}
 
-            </div>
+
+</div>
 
             {/* Panel footer actions */}
             <div className={styles.panelActions}>

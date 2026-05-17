@@ -158,6 +158,7 @@ export const GroupInfoModal = ({ groupId, visible, onClose, scrollToAccept = fal
               <Text style={styles.sectionTitle}>Miembros del Grupo</Text>
               <GroupMembersTab groupInfo={groupInfo} onClose={onClose} />
             </View>
+
           </ScrollView>
         ) : null}
       </View>
