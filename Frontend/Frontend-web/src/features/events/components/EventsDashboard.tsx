@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, Calendar, Clock, MapPin } from 'lucide-react';
+import { Bell, BellOff, Calendar, Clock, MapPin, Plus, X } from 'lucide-react';
 import { api } from '@/constants/api';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { websocketService } from '@/features/messages/services/websocket.service';
@@ -64,6 +64,16 @@ export const EventsDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [subscribed, setSubscribed] = useState<Set<number>>(new Set());
   const [togglingSubscription, setTogglingSubscription] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    id_category: '' as number | '',
+    title: '',
+    description: '',
+    location: '',
+    start_date: '',
+    end_date: '',
+  });
 
   const selectedCategoryRef = useRef<number | null>(null);
   useEffect(() => {
@@ -171,6 +181,26 @@ export const EventsDashboard: React.FC = () => {
     }
   };
 
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (createForm.id_category === '') return;
+    setCreating(true);
+    try {
+      const { data: newEvent } = await api.post('/events', {
+        ...createForm,
+        id_category: Number(createForm.id_category),
+      });
+      setEvents((prev) => [newEvent, ...prev]);
+      setShowCreateModal(false);
+      setCreateForm({ id_category: '', title: '', description: '', location: '', start_date: '', end_date: '' });
+      showToast.success('Evento creado', newEvent.title);
+    } catch (err: any) {
+      showToast.error('Error', err?.response?.data?.message ?? 'No se pudo crear el evento');
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const selectedCategory = categories.find((c) => c.id_category === selectedCategoryId);
   const isSubscribed = selectedCategoryId !== '' && subscribed.has(selectedCategoryId as number);
   const statusLabel: Record<EventStatus, string> = {
@@ -183,8 +213,19 @@ export const EventsDashboard: React.FC = () => {
     <div className={styles.page}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className={styles.pageHeader}>
+      <div className={styles.pageHeader} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 className={styles.pageTitle}>Eventos Académicos</h1>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: '#D9B97E', color: '#111', border: 'none',
+            borderRadius: 8, padding: '8px 16px', fontWeight: 700,
+            fontSize: 14, cursor: 'pointer',
+          }}
+        >
+          <Plus size={16} /> Crear evento
+        </button>
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
@@ -296,6 +337,111 @@ export const EventsDashboard: React.FC = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Create event modal ───────────────────────────────────────────────── */}
+      {showCreateModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: 16,
+          }}
+          onClick={(e) => e.target === e.currentTarget && setShowCreateModal(false)}
+        >
+          <div style={{
+            background: '#2a2a2a', borderRadius: 12, padding: 28,
+            width: '100%', maxWidth: 520,
+            border: '1px solid rgba(217,185,126,0.25)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700 }}>Crear evento</h2>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', padding: 4 }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEvent} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Categoría */}
+              <div>
+                <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 4 }}>Categoría *</label>
+                <select
+                  required
+                  value={createForm.id_category}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, id_category: e.target.value === '' ? '' : Number(e.target.value) }))}
+                  style={{ width: '100%', background: '#1e1e1e', color: '#fff', border: '1px solid rgba(217,185,126,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 14 }}
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {categories.map((c) => <option key={c.id_category} value={c.id_category}>{c.name}</option>)}
+                </select>
+              </div>
+
+              {/* Título */}
+              <div>
+                <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 4 }}>Título *</label>
+                <input
+                  required maxLength={300} value={createForm.title}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, title: e.target.value }))}
+                  style={{ width: '100%', background: '#1e1e1e', color: '#fff', border: '1px solid rgba(217,185,126,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 14, boxSizing: 'border-box' }}
+                  placeholder="Nombre del evento"
+                />
+              </div>
+
+              {/* Descripción */}
+              <div>
+                <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 4 }}>Descripción *</label>
+                <textarea
+                  required maxLength={2000} rows={3} value={createForm.description}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))}
+                  style={{ width: '100%', background: '#1e1e1e', color: '#fff', border: '1px solid rgba(217,185,126,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }}
+                  placeholder="Descripción del evento"
+                />
+              </div>
+
+              {/* Lugar */}
+              <div>
+                <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 4 }}>Lugar *</label>
+                <input
+                  required maxLength={300} value={createForm.location}
+                  onChange={(e) => setCreateForm((p) => ({ ...p, location: e.target.value }))}
+                  style={{ width: '100%', background: '#1e1e1e', color: '#fff', border: '1px solid rgba(217,185,126,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 14, boxSizing: 'border-box' }}
+                  placeholder="Auditorio, salón, etc."
+                />
+              </div>
+
+              {/* Fechas */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 4 }}>Inicio *</label>
+                  <input
+                    type="datetime-local" required value={createForm.start_date}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, start_date: e.target.value }))}
+                    style={{ width: '100%', background: '#1e1e1e', color: '#fff', border: '1px solid rgba(217,185,126,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 14, boxSizing: 'border-box', colorScheme: 'dark' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', color: '#aaa', fontSize: 13, marginBottom: 4 }}>Fin *</label>
+                  <input
+                    type="datetime-local" required value={createForm.end_date}
+                    onChange={(e) => setCreateForm((p) => ({ ...p, end_date: e.target.value }))}
+                    style={{ width: '100%', background: '#1e1e1e', color: '#fff', border: '1px solid rgba(217,185,126,0.3)', borderRadius: 6, padding: '8px 10px', fontSize: 14, boxSizing: 'border-box', colorScheme: 'dark' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                <button type="button" onClick={() => setShowCreateModal(false)}
+                  style={{ background: 'none', border: '1px solid #555', color: '#aaa', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 14 }}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={creating}
+                  style={{ background: '#D9B97E', color: '#111', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 14, cursor: creating ? 'not-allowed' : 'pointer', opacity: creating ? 0.7 : 1 }}>
+                  {creating ? 'Creando...' : 'Crear evento'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
