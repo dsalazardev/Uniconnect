@@ -55,3 +55,12 @@ export {
   TransferOwnershipDTOSchema,
 } from './groups.validator';
 
+// Resources Validators (CA5 — validación de respuestas de biblioteca)
+export {
+  TipoContenidoSchema,
+  ResourceSchema,
+  ResourceArraySchema,
+  ResourceRatingSchema,
+  ResourceCommentSchema,
+  ResourceDecoratorsSchema,
+} from './resources.validator';
