@@ -55,3 +55,69 @@ export {
   TransferOwnershipDTOSchema,
 } from './groups.validator';
 
+// Resources Validators (Sprint 4)
+export {
+  TipoContenidoSchema,
+  ResourceDecoratorsSchema,
+  ResourceSchema,
+  ResourceArraySchema,
+  ResourceFENResponseSchema,
+  ResourceArrayFENResponseSchema,
+  CreateResourcePayloadSchema,
+  UpdateResourcePayloadSchema,
+  AddCommentSchema,
+  RateResourceSchema,
+  CommentResponseSchema,
+  RatingResponseSchema,
+  DeleteResourceResponseSchema,
+  ProgramaSummarySchema,
+  ProgramaSummaryArraySchema,
+} from './resources.validator';
+
+// Forum Validators (Sprint 4)
+export {
+  ForumQuestionStatusSchema,
+  ForumVoteEntityTypeSchema,
+  ForumQuestionSchema,
+  ForumQuestionArraySchema,
+  ForumQuestionFENResponseSchema,
+  ForumQuestionArrayFENResponseSchema,
+  ForumAnswerSchema,
+  ForumAnswerArraySchema,
+  ForumAnswerFENResponseSchema,
+  ForumAnswerArrayFENResponseSchema,
+  CreateQuestionDtoSchema,
+  CreateAnswerDtoSchema,
+  ForumVoteDtoSchema,
+} from './forum.validator';
+
+// Study Sessions Validators (Sprint 4)
+export {
+  SessionInstanceStatusSchema,
+  AttendanceStatusSchema,
+  RecurrenceTypeSchema,
+  StudySessionInstanceSchema,
+  StudySessionInstanceArraySchema,
+  StudySessionInstanceFENResponseSchema,
+  StudySessionInstanceArrayFENResponseSchema,
+  CreateStudySessionDtoSchema,
+  UpdateAttendanceDtoSchema,
+  CancelInstanceResponseSchema,
+  AttendanceResponseSchema,
+} from './study-sessions.validator';
+
+// Polls Validators (Sprint 4)
+export {
+  PollStatusSchema,
+  PollOptionSchema,
+  PollOptionArraySchema,
+  PollSchema,
+  PollArraySchema,
+  PollFENResponseSchema,
+  PollArrayFENResponseSchema,
+  CreatePollDtoSchema,
+  CastVoteDtoSchema,
+  PollVoteUpdatedPayloadSchema,
+  PollClosedPayloadSchema,
+} from './polls.validator';
+
