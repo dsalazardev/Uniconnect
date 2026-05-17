@@ -46,7 +46,7 @@ export default function BibliotecaScreen() {
       .catch(() => showToast.error('Error', 'No se pudieron cargar los programas'));
   }, [userProgramId]);
 
-  // Cargar recursos cuando cambia programa o filtro
+  // Cargar recursos cuando cambia programa o filtro (con spinner)
   const cargarRecursos = useCallback(() => {
     if (!programaActivo) return;
     setLoading(true);
@@ -55,6 +55,13 @@ export default function BibliotecaScreen() {
       .catch(() => showToast.error('Error', 'No se pudieron cargar los recursos'))
       .finally(() => setLoading(false));
   }, [programaActivo, filtroTipo]);
+
+  // Recarga silenciosa para sincronizar tras mutaciones
+  const silentRefresh = useCallback((programId: number, tipo: TipoContenido | '') => {
+    api.get(BIBLIOTECA_ENDPOINTS.LIST_BY_PROGRAM(programId, tipo || undefined))
+      .then((r) => setResources(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => { cargarRecursos(); }, [cargarRecursos]);
 
@@ -72,10 +79,13 @@ export default function BibliotecaScreen() {
         etiquetas: form.etiquetas ? form.etiquetas.split(',').map((t) => t.trim()).filter(Boolean) : [],
       };
       const { data: newResource } = await api.post(BIBLIOTECA_ENDPOINTS.CREATE(programaActivo), payload);
+      // Actualización optimista inmediata
       setResources((p) => [newResource, ...p]);
       setShowModal(false);
       setForm({ url: '', titulo: '', tipo: 'ENLACE', etiquetas: '' });
       showToast.success('Recurso agregado');
+      // Recarga silenciosa para sincronizar OG y decoradores del servidor
+      silentRefresh(programaActivo, filtroTipo);
     } catch (err: any) {
       showToast.error('Error', err?.response?.data?.message ?? 'No se pudo crear el recurso');
     } finally {
