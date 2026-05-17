@@ -94,7 +94,7 @@ jobs:
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           needs.changes.outputs.ci == 'true'
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install workspace dependencies
         if: >-
@@ -233,11 +233,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send Slack notification
-        uses: slackapi/slack-github-action@v2
+        uses: slackapi/slack-github-action@v1.25.0
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK }}
-          webhook-type: incoming-webhook
           payload: |
             {
-              "text": ":rotating_light: CI pipeline failed for ${{ github.repository }} on branch ${{ github.ref_name }}. Check the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              "text": "❌ El pipeline de CI falló en la rama: ${{ github.ref_name }}"
             }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
