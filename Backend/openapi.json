@@ -7,11 +7,12 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Servidor operativo"
           }
         },
+        "summary": "Health check del servidor",
         "tags": [
-          "App"
+          "health"
         ]
       }
     },
@@ -345,7 +346,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de usuarios conectados"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -366,7 +370,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de usuarios no conectados"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -437,7 +444,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Perfil del usuario"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -445,6 +455,7 @@
             "bearer": []
           }
         ],
+        "summary": "Obtener perfil del usuario autenticado",
         "tags": [
           "Users"
         ]
@@ -464,7 +475,13 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Perfil actualizado"
+          },
+          "400": {
+            "description": "Payload inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -472,6 +489,7 @@
             "bearer": []
           }
         ],
+        "summary": "Actualizar perfil del usuario autenticado",
         "tags": [
           "Users"
         ]
@@ -485,6 +503,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID del usuario cuyo perfil se consulta",
             "schema": {
               "type": "number"
             }
@@ -492,7 +511,13 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Perfil público del usuario"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
           }
         },
         "security": [
@@ -500,6 +525,7 @@
             "bearer": []
           }
         ],
+        "summary": "Obtener perfil público de otro usuario",
         "tags": [
           "Users"
         ]
@@ -522,7 +548,16 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Onboarding completado"
+          },
+          "400": {
+            "description": "Payload inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "409": {
+            "description": "Onboarding ya fue completado previamente"
           }
         },
         "security": [
@@ -2084,7 +2119,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de notificaciones"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2092,6 +2130,7 @@
             "bearer": []
           }
         ],
+        "summary": "Listar todas las notificaciones del usuario autenticado",
         "tags": [
           "Notifications"
         ]
@@ -2103,7 +2142,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "{ count: number }"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2111,6 +2153,7 @@
             "bearer": []
           }
         ],
+        "summary": "Obtener conteo de notificaciones no leídas",
         "tags": [
           "Notifications"
         ]
@@ -2124,6 +2167,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la notificación",
             "schema": {
               "type": "number"
             }
@@ -2131,7 +2175,13 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Notificación marcada como leída"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "404": {
+            "description": "Notificación no encontrada"
           }
         },
         "security": [
@@ -2139,6 +2189,7 @@
             "bearer": []
           }
         ],
+        "summary": "Marcar una notificación como leída",
         "tags": [
           "Notifications"
         ]
@@ -2150,7 +2201,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Todas las notificaciones marcadas como leídas"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2158,6 +2212,7 @@
             "bearer": []
           }
         ],
+        "summary": "Marcar todas las notificaciones del usuario como leídas",
         "tags": [
           "Notifications"
         ]
@@ -2179,7 +2234,10 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Token registrado"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2187,6 +2245,7 @@
             "bearer": []
           }
         ],
+        "summary": "Registrar token de Expo Push para notificaciones push",
         "tags": [
           "Notifications"
         ]
@@ -2200,6 +2259,7 @@
             "name": "token",
             "required": true,
             "in": "path",
+            "description": "Expo push token a eliminar",
             "schema": {
               "type": "string"
             }
@@ -2207,7 +2267,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Token eliminado"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2215,6 +2278,7 @@
             "bearer": []
           }
         ],
+        "summary": "Eliminar token de Expo Push del usuario",
         "tags": [
           "Notifications"
         ]
@@ -2226,7 +2290,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de preferencias por tipo de evento y canal"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2234,6 +2301,7 @@
             "bearer": []
           }
         ],
+        "summary": "Obtener preferencias de notificación del usuario",
         "tags": [
           "Notifications"
         ]
@@ -2253,7 +2321,13 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Preferencia actualizada"
+          },
+          "400": {
+            "description": "Payload inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2261,6 +2335,7 @@
             "bearer": []
           }
         ],
+        "summary": "Actualizar preferencia de notificación (tipo_evento + canal + activo)",
         "tags": [
           "Notifications"
         ]
@@ -2272,11 +2347,20 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de solicitudes pendientes"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar solicitudes de conexión pendientes del usuario autenticado",
         "tags": [
-          "Connections"
+          "connections"
         ]
       }
     },
@@ -2288,18 +2372,28 @@
             "name": "userId",
             "required": true,
             "in": "path",
+            "description": "ID del otro usuario",
             "schema": {
-              "type": "string"
+              "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Estado de la conexión (pending/accepted/none)"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener estado de conexión entre el usuario autenticado y otro usuario",
         "tags": [
-          "Connections"
+          "connections"
         ]
       }
     },
@@ -2319,11 +2413,23 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Solicitud enviada correctamente"
+          },
+          "400": {
+            "description": "Solicitud duplicada o usuario inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enviar solicitud de conexión a otro usuario",
         "tags": [
-          "Connections"
+          "connections"
         ]
       }
     },
@@ -2335,18 +2441,34 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la solicitud de conexión",
             "schema": {
-              "type": "string"
+              "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Solicitud aceptada"
+          },
+          "400": {
+            "description": "ID inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "403": {
+            "description": "No es el destinatario de la solicitud"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Aceptar solicitud de conexión",
         "tags": [
-          "Connections"
+          "connections"
         ]
       }
     },
@@ -2358,18 +2480,31 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la solicitud de conexión",
             "schema": {
-              "type": "string"
+              "type": "number"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Solicitud rechazada"
+          },
+          "400": {
+            "description": "ID inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rechazar solicitud de conexión",
         "tags": [
-          "Connections"
+          "connections"
         ]
       }
     },
@@ -2389,11 +2524,15 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Membresía creada"
+          },
+          "400": {
+            "description": "Payload inválido"
           }
         },
+        "summary": "Crear membresía — agregar usuario a grupo",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       },
       "get": {
@@ -2401,11 +2540,12 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de membresías"
           }
         },
+        "summary": "Listar todas las membresías",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       }
     },
@@ -2417,6 +2557,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la membresía",
             "schema": {
               "type": "number"
             }
@@ -2424,11 +2565,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Membresía encontrada"
+          },
+          "404": {
+            "description": "Membresía no encontrada"
           }
         },
+        "summary": "Obtener membresía por ID",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       },
       "patch": {
@@ -2438,6 +2583,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la membresía",
             "schema": {
               "type": "number"
             }
@@ -2455,11 +2601,15 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Membresía actualizada"
+          },
+          "404": {
+            "description": "Membresía no encontrada"
           }
         },
+        "summary": "Actualizar membresía por ID",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       },
       "delete": {
@@ -2469,6 +2619,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la membresía",
             "schema": {
               "type": "number"
             }
@@ -2476,11 +2627,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Membresía eliminada"
+          },
+          "404": {
+            "description": "Membresía no encontrada"
           }
         },
+        "summary": "Eliminar membresía — remover usuario del grupo",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       }
     },
@@ -2492,6 +2647,7 @@
             "name": "id_user",
             "required": true,
             "in": "path",
+            "description": "ID del usuario",
             "schema": {
               "type": "number"
             }
@@ -2499,11 +2655,12 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de membresías del usuario"
           }
         },
+        "summary": "Obtener todas las membresías de un usuario",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       }
     },
@@ -2515,6 +2672,7 @@
             "name": "id_group",
             "required": true,
             "in": "path",
+            "description": "ID del grupo",
             "schema": {
               "type": "number"
             }
@@ -2522,11 +2680,12 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de membresías del grupo"
           }
         },
+        "summary": "Obtener todas las membresías de un grupo",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       }
     },
@@ -2538,6 +2697,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID de la membresía",
             "schema": {
               "type": "number"
             }
@@ -2545,11 +2705,15 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Rol de admin actualizado"
+          },
+          "404": {
+            "description": "Membresía no encontrada"
           }
         },
+        "summary": "Promover o degradar usuario a administrador del grupo",
         "tags": [
-          "Memberships"
+          "memberships"
         ]
       }
     },
@@ -2699,11 +2863,12 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Conexión S3 operativa"
           }
         },
+        "summary": "Health check de la conexión con AWS S3",
         "tags": [
-          "Files"
+          "files"
         ]
       }
     },
@@ -2711,13 +2876,51 @@
       "post": {
         "operationId": "FilesController_uploadFiles",
         "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  },
+                  "id_group": {
+                    "type": "string"
+                  },
+                  "id_message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "files",
+                  "id_group"
+                ]
+              }
+            }
           }
         },
+        "responses": {
+          "201": {
+            "description": "Archivos subidos a S3 y guardados en base de datos"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Subir archivos a S3 y asociarlos a un mensaje de grupo (máx. 5)",
         "tags": [
-          "Files"
+          "files"
         ]
       }
     },
@@ -2729,6 +2932,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID del archivo",
             "schema": {
               "type": "number"
             }
@@ -2736,11 +2940,23 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "URL prefirmada generada"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "404": {
+            "description": "Archivo no encontrado"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener URL prefirmada de descarga de un archivo desde S3",
         "tags": [
-          "Files"
+          "files"
         ]
       }
     },
@@ -2750,7 +2966,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de categorías de eventos"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2770,7 +2989,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de IDs de categorías suscritas"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2807,7 +3029,10 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Suscripción creada"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2815,7 +3040,7 @@
             "bearer": []
           }
         ],
-        "summary": "CA2: Suscribirse a una categoría de eventos",
+        "summary": "Suscribirse a una categoría de eventos",
         "tags": [
           "events"
         ]
@@ -2842,7 +3067,10 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "Suscripción cancelada"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2850,7 +3078,7 @@
             "bearer": []
           }
         ],
-        "summary": "CA2: Cancelar suscripción a una categoría de eventos",
+        "summary": "Cancelar suscripción a una categoría de eventos",
         "tags": [
           "events"
         ]
@@ -2864,6 +3092,7 @@
             "name": "categoryId",
             "required": true,
             "in": "path",
+            "description": "ID de la categoría",
             "schema": {
               "type": "number"
             }
@@ -2871,7 +3100,10 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "Suscripción creada"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2879,7 +3111,7 @@
             "bearer": []
           }
         ],
-        "summary": "Suscribirse a una categoría de eventos (vía param)",
+        "summary": "Suscribirse a una categoría de eventos (vía path param)",
         "tags": [
           "events"
         ]
@@ -2891,6 +3123,7 @@
             "name": "categoryId",
             "required": true,
             "in": "path",
+            "description": "ID de la categoría",
             "schema": {
               "type": "number"
             }
@@ -2898,7 +3131,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Suscripción cancelada"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2906,7 +3142,7 @@
             "bearer": []
           }
         ],
-        "summary": "Cancelar suscripción a una categoría de eventos (vía param)",
+        "summary": "Cancelar suscripción a una categoría de eventos (vía path param)",
         "tags": [
           "events"
         ]
@@ -2920,6 +3156,7 @@
             "name": "categoryId",
             "required": false,
             "in": "query",
+            "description": "Filtrar por ID de categoría",
             "schema": {
               "type": "number"
             }
@@ -2927,7 +3164,10 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Lista de eventos"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
           }
         },
         "security": [
@@ -2935,7 +3175,7 @@
             "bearer": []
           }
         ],
-        "summary": "Obtener eventos, filtrado opcional por categoryId",
+        "summary": "Listar eventos, filtrado opcional por categoría",
         "tags": [
           "events"
         ]
@@ -2955,7 +3195,23 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "Evento creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateEventDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Payload inválido"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "403": {
+            "description": "Rol insuficiente — requiere admin o superadmin"
           }
         },
         "security": [
@@ -2963,7 +3219,7 @@
             "bearer": []
           }
         ],
-        "summary": "Crear un nuevo evento (requiere autenticación)",
+        "summary": "Crear un nuevo evento académico (admin/superadmin)",
         "tags": [
           "events"
         ]
@@ -2977,6 +3233,7 @@
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "ID del evento",
             "schema": {
               "type": "number"
             }
@@ -2984,7 +3241,13 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Evento encontrado"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "404": {
+            "description": "Evento no encontrado"
           }
         },
         "security": [

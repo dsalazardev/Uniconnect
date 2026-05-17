@@ -1,4 +1,5 @@
 import { Controller, Post, Get, Body, UseInterceptors, UploadedFiles, UseGuards, Req, Param, ParseIntPipe, Inject } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { MessagesGateway } from '../messages/messages.gateway';
@@ -8,6 +9,7 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
 
+@ApiTags('files')
 @Controller('files')
 export class FilesController {
   constructor(
@@ -23,12 +25,20 @@ export class FilesController {
    * GET /files/health
    */
   @Get('health')
+  @ApiOperation({ summary: 'Health check de la conexión con AWS S3' })
+  @ApiResponse({ status: 200, description: 'Conexión S3 operativa' })
   async healthCheck() {
     return this.filesService.testS3Connection();
   }
 
   @Post('upload')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Subir archivos a S3 y asociarlos a un mensaje de grupo (máx. 5)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ schema: { type: 'object', properties: { files: { type: 'array', items: { type: 'string', format: 'binary' } }, id_group: { type: 'string' }, id_message: { type: 'string' } }, required: ['files', 'id_group'] } })
+  @ApiResponse({ status: 201, description: 'Archivos subidos a S3 y guardados en base de datos' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
   @UseInterceptors(FilesInterceptor('files', 5))
   async uploadFiles(
     @UploadedFiles() files: Express.Multer.File[],
@@ -100,6 +110,12 @@ export class FilesController {
      */
     @Get(':id/download')
     @UseGuards(JwtAuthGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Obtener URL prefirmada de descarga de un archivo desde S3' })
+    @ApiParam({ name: 'id', description: 'ID del archivo', type: Number })
+    @ApiResponse({ status: 200, description: 'URL prefirmada generada' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
+    @ApiResponse({ status: 404, description: 'Archivo no encontrado' })
     async getDownloadUrl(@Param('id', ParseIntPipe) id: number) {
       const signedUrl = await this.filesService.getPresignedUrl(id);
 

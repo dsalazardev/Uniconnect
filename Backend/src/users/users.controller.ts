@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from './users.service';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { GetClaim } from 'src/auth/decorators/get-token-claim.decorator';
 import { ProfileUpdateDto } from './dto/google-user-info.dto';
@@ -42,6 +42,8 @@ export class UsersController {
         summary: 'HU-Comunidad: Listar amigos en comunidad',
         description: 'Lista usuarios con conexión aceptada del usuario autenticado para sección Amigos.'
     })
+    @ApiResponse({ status: 200, description: 'Lista de usuarios conectados' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
     async getConnectedCommunity(@GetClaim('sub') userId: number) {
         return this.usersService.getConnectedCommunityUsers(userId);
     }
@@ -52,6 +54,8 @@ export class UsersController {
         summary: 'HU-Comunidad: Listar usuarios no conectados',
         description: 'Lista todos los usuarios que no tienen conexión aceptada con el usuario autenticado para sección Comunidad general.'
     })
+    @ApiResponse({ status: 200, description: 'Lista de usuarios no conectados' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
     async getNotConnectedCommunity(@GetClaim('sub') userId: number) {
         return this.usersService.getNotConnectedCommunityUsers(userId);
     }
@@ -89,18 +93,30 @@ export class UsersController {
 
     @UseGuards(JwtAuthGuard)
     @Get('profile')
+    @ApiOperation({ summary: 'Obtener perfil del usuario autenticado' })
+    @ApiResponse({ status: 200, description: 'Perfil del usuario' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
     async getProfile(@GetClaim('sub') userId: number) {
         return this.usersService.getProfile(userId);
     }
 
     @UseGuards(JwtAuthGuard)
     @Get('profile/:id')
+    @ApiOperation({ summary: 'Obtener perfil público de otro usuario' })
+    @ApiParam({ name: 'id', description: 'ID del usuario cuyo perfil se consulta', type: Number })
+    @ApiResponse({ status: 200, description: 'Perfil público del usuario' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
+    @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
     async getOtherProfile(@GetClaim('sub') userId: number, @Param('id') profileId: number) {
         return this.usersService.getOtherProfile(userId, profileId);
     }
 
     @UseGuards(JwtAuthGuard)
     @Patch('profile')
+    @ApiOperation({ summary: 'Actualizar perfil del usuario autenticado' })
+    @ApiResponse({ status: 200, description: 'Perfil actualizado' })
+    @ApiResponse({ status: 400, description: 'Payload inválido' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
     async updateProfile(@GetClaim('sub') userId: number, @Body() dto: ProfileUpdateDto) {
         return this.usersService.updateProfile(userId, dto);
     }
@@ -111,6 +127,10 @@ export class UsersController {
         summary: 'HU-Onboarding: Completar datos académicos iniciales',
         description: 'Se llama una sola vez tras el primer login con Auth0. Asigna el programa y semestre actual del usuario. Devuelve 409 si ya fue completado.',
     })
+    @ApiResponse({ status: 201, description: 'Onboarding completado' })
+    @ApiResponse({ status: 400, description: 'Payload inválido' })
+    @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
+    @ApiResponse({ status: 409, description: 'Onboarding ya fue completado previamente' })
     async completeOnboarding(@GetClaim('sub') userId: number, @Body() dto: CompleteOnboardingDto) {
         return this.usersService.completeOnboarding(userId, dto);
     }

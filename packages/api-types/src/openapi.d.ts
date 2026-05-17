@@ -11,6 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Health check del servidor */
         get: operations["AppController_HealthCheck"];
         put?: never;
         post?: never;
@@ -199,12 +200,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener perfil del usuario autenticado */
         get: operations["UsersController_getProfile"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /** Actualizar perfil del usuario autenticado */
         patch: operations["UsersController_updateProfile"];
         trace?: never;
     };
@@ -215,6 +218,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener perfil público de otro usuario */
         get: operations["UsersController_getOtherProfile"];
         put?: never;
         post?: never;
@@ -1032,6 +1036,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Listar todas las notificaciones del usuario autenticado */
         get: operations["NotificationsController_findAll"];
         put?: never;
         post?: never;
@@ -1048,6 +1053,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener conteo de notificaciones no leídas */
         get: operations["NotificationsController_getUnreadCount"];
         put?: never;
         post?: never;
@@ -1070,6 +1076,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Marcar una notificación como leída */
         patch: operations["NotificationsController_markAsRead"];
         trace?: never;
     };
@@ -1086,6 +1093,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Marcar todas las notificaciones del usuario como leídas */
         patch: operations["NotificationsController_markAllAsRead"];
         trace?: never;
     };
@@ -1098,6 +1106,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Registrar token de Expo Push para notificaciones push */
         post: operations["NotificationsController_saveExpoPushToken"];
         delete?: never;
         options?: never;
@@ -1115,6 +1124,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** Eliminar token de Expo Push del usuario */
         delete: operations["NotificationsController_deleteExpoPushToken"];
         options?: never;
         head?: never;
@@ -1128,12 +1138,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener preferencias de notificación del usuario */
         get: operations["NotificationsController_obtenerPreferencias"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /** Actualizar preferencia de notificación (tipo_evento + canal + activo) */
         patch: operations["NotificationsController_actualizarPreferencia"];
         trace?: never;
     };
@@ -1144,6 +1156,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Listar solicitudes de conexión pendientes del usuario autenticado */
         get: operations["ConnectionsController_getPendingRequests"];
         put?: never;
         post?: never;
@@ -1160,6 +1173,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener estado de conexión entre el usuario autenticado y otro usuario */
         get: operations["ConnectionsController_getConnectionStatus"];
         put?: never;
         post?: never;
@@ -1178,6 +1192,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Enviar solicitud de conexión a otro usuario */
         post: operations["ConnectionsController_sendConnectionRequest"];
         delete?: never;
         options?: never;
@@ -1198,6 +1213,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Aceptar solicitud de conexión */
         patch: operations["ConnectionsController_acceptConnectionRequest"];
         trace?: never;
     };
@@ -1214,6 +1230,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Rechazar solicitud de conexión */
         patch: operations["ConnectionsController_rejectConnectionRequest"];
         trace?: never;
     };
@@ -1224,8 +1241,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Listar todas las membresías */
         get: operations["MembershipsController_findAll"];
         put?: never;
+        /** Crear membresía — agregar usuario a grupo */
         post: operations["MembershipsController_create"];
         delete?: never;
         options?: never;
@@ -1240,12 +1259,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener membresía por ID */
         get: operations["MembershipsController_findOne"];
         put?: never;
         post?: never;
+        /** Eliminar membresía — remover usuario del grupo */
         delete: operations["MembershipsController_remove"];
         options?: never;
         head?: never;
+        /** Actualizar membresía por ID */
         patch: operations["MembershipsController_update"];
         trace?: never;
     };
@@ -1256,6 +1278,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener todas las membresías de un usuario */
         get: operations["MembershipsController_findByUser"];
         put?: never;
         post?: never;
@@ -1272,6 +1295,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener todas las membresías de un grupo */
         get: operations["MembershipsController_findByGroup"];
         put?: never;
         post?: never;
@@ -1294,6 +1318,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /** Promover o degradar usuario a administrador del grupo */
         patch: operations["MembershipsController_toggleAdmin"];
         trace?: never;
     };
@@ -1389,6 +1414,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Health check de la conexión con AWS S3 */
         get: operations["FilesController_healthCheck"];
         put?: never;
         post?: never;
@@ -1407,6 +1433,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Subir archivos a S3 y asociarlos a un mensaje de grupo (máx. 5) */
         post: operations["FilesController_uploadFiles"];
         delete?: never;
         options?: never;
@@ -1421,6 +1448,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Obtener URL prefirmada de descarga de un archivo desde S3 */
         get: operations["FilesController_getDownloadUrl"];
         put?: never;
         post?: never;
@@ -1473,9 +1501,9 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** CA2: Suscribirse a una categoría de eventos */
+        /** Suscribirse a una categoría de eventos */
         post: operations["EventsController_subscribeByBody"];
-        /** CA2: Cancelar suscripción a una categoría de eventos */
+        /** Cancelar suscripción a una categoría de eventos */
         delete: operations["EventsController_unsubscribeByBody"];
         options?: never;
         head?: never;
@@ -1491,9 +1519,9 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Suscribirse a una categoría de eventos (vía param) */
+        /** Suscribirse a una categoría de eventos (vía path param) */
         post: operations["EventsController_subscribeCategory"];
-        /** Cancelar suscripción a una categoría de eventos (vía param) */
+        /** Cancelar suscripción a una categoría de eventos (vía path param) */
         delete: operations["EventsController_unsubscribeCategory"];
         options?: never;
         head?: never;
@@ -1507,10 +1535,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Obtener eventos, filtrado opcional por categoryId */
+        /** Listar eventos, filtrado opcional por categoría */
         get: operations["EventsController_getEvents"];
         put?: never;
-        /** Crear un nuevo evento (requiere autenticación) */
+        /** Crear un nuevo evento académico (admin/superadmin) */
         post: operations["EventsController_createEvent"];
         delete?: never;
         options?: never;
@@ -2064,6 +2092,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Servidor operativo */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2267,7 +2296,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de usuarios conectados */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2284,7 +2321,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de usuarios no conectados */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2323,7 +2368,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Perfil del usuario */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2344,7 +2397,22 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Perfil actualizado */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payload inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2357,13 +2425,29 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID del usuario cuyo perfil se consulta */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Perfil público del usuario */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Usuario no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2384,7 +2468,29 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Onboarding completado */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payload inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Onboarding ya fue completado previamente */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3726,7 +3832,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de notificaciones */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3743,7 +3857,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description { count: number } */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3756,13 +3878,29 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la notificación */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Notificación marcada como leída */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Notificación no encontrada */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3779,7 +3917,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Todas las notificaciones marcadas como leídas */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3800,7 +3946,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Token registrado */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3813,13 +3967,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Expo push token a eliminar */
                 token: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Token eliminado */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3836,7 +3999,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de preferencias por tipo de evento y canal */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3857,7 +4028,22 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Preferencia actualizada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payload inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3874,7 +4060,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de solicitudes pendientes */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3887,13 +4081,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                userId: string;
+                /** @description ID del otro usuario */
+                userId: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Estado de la conexión (pending/accepted/none) */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3914,7 +4117,22 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Solicitud enviada correctamente */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solicitud duplicada o usuario inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3927,13 +4145,36 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                /** @description ID de la solicitud de conexión */
+                id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Solicitud aceptada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ID inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No es el destinatario de la solicitud */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3946,13 +4187,29 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                /** @description ID de la solicitud de conexión */
+                id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Solicitud rechazada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ID inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3969,6 +4226,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de membresías */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3990,7 +4248,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Membresía creada */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payload inválido */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4003,13 +4269,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la membresía */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Membresía encontrada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Membresía no encontrada */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4022,13 +4297,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la membresía */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Membresía eliminada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Membresía no encontrada */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4041,6 +4325,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la membresía */
                 id: number;
             };
             cookie?: never;
@@ -4051,7 +4336,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Membresía actualizada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Membresía no encontrada */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4064,12 +4357,14 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID del usuario */
                 id_user: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de membresías del usuario */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4083,12 +4378,14 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID del grupo */
                 id_group: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de membresías del grupo */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4102,13 +4399,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la membresía */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Rol de admin actualizado */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Membresía no encontrada */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4252,6 +4558,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Conexión S3 operativa */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4267,9 +4574,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                    id_group: string;
+                    id_message?: string;
+                };
+            };
+        };
         responses: {
+            /** @description Archivos subidos a S3 y guardados en base de datos */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4282,13 +4605,29 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID del archivo */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description URL prefirmada generada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Archivo no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4305,7 +4644,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de categorías de eventos */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4322,7 +4669,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de IDs de categorías suscritas */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4345,7 +4700,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Suscripción creada */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4368,7 +4731,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Suscripción cancelada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4381,13 +4752,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la categoría */
                 categoryId: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Suscripción creada */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4400,13 +4780,22 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID de la categoría */
                 categoryId: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Suscripción cancelada */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4417,6 +4806,7 @@ export interface operations {
     EventsController_getEvents: {
         parameters: {
             query?: {
+                /** @description Filtrar por ID de categoría */
                 categoryId?: number;
             };
             header?: never;
@@ -4425,7 +4815,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Lista de eventos */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4446,7 +4844,31 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Evento creado */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateEventDto"];
+                };
+            };
+            /** @description Payload inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol insuficiente — requiere admin o superadmin */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4459,13 +4881,29 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description ID del evento */
                 id: number;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Evento encontrado */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token JWT ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Evento no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
