@@ -19,6 +19,7 @@ const TIPOS_EVENTO: { key: string; label: string }[] = [
   { key: 'member_accepted', label: 'Solicitud de ingreso aceptada' },
   { key: 'member_removed', label: 'Eliminado de grupo' },
   { key: 'mention', label: 'Menciones' },
+  { key: 'event_published', label: 'Eventos académicos' },
 ];
 
 export interface PreferenceMap {
