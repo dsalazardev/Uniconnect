@@ -4,8 +4,7 @@ import { api } from '@/constants/api';
 import { authStore } from '@/features/auth/store/AuthStore';
 import { showToast } from '@/lib/toast';
 import type { Resource, TipoContenido, CreateResourcePayload } from '@uniconnect/shared';
-import { BIBLIOTECA_ENDPOINTS, ResourceArraySchema, ResourceSchema } from '@uniconnect/shared';
-import { validateApiResponse } from '@uniconnect/api-types';
+import { BIBLIOTECA_ENDPOINTS, ResourceArraySchema, ResourceSchema, validateApiResponse } from '@uniconnect/shared';
 
 const TIPOS: { value: TipoContenido | ''; label: string }[] = [
   { value: '', label: 'Todos' },

@@ -55,6 +55,9 @@ export {
   TransferOwnershipDTOSchema,
 } from './groups.validator';
 
+// CA5 — Validador de respuestas genérico (compatible con Metro bundler)
+export { validateApiResponse, ApiValidationError } from './validate';
+
 // Resources Validators (CA5 — validación de respuestas de biblioteca)
 export {
   TipoContenidoSchema,

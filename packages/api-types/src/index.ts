@@ -31,4 +31,5 @@ export type CreateResourcePayload =
   operations['BibliotecaController_crearRecurso']['requestBody']['content']['application/json'];
 
 // ── Utilidad de validación Zod (CA5) ─────────────────────────────────────────
+// Re-exportada desde @uniconnect/shared para compatibilidad con Metro (mobile)
 export { validateApiResponse, ApiValidationError } from './validate';

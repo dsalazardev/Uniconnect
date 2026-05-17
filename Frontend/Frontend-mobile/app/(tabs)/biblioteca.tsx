@@ -8,9 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/src/constants/api';
 import { authStore } from '@/src/features/auth/store/AuthStore';
 import { showToast } from '@/src/lib/toast';
-import { BIBLIOTECA_ENDPOINTS, ResourceArraySchema, ResourceSchema } from '@uniconnect/shared';
+import { BIBLIOTECA_ENDPOINTS, ResourceArraySchema, ResourceSchema, validateApiResponse } from '@uniconnect/shared';
 import type { Resource, TipoContenido } from '@uniconnect/shared';
-import { validateApiResponse } from '@uniconnect/api-types';
 
 const TIPOS: { value: TipoContenido | ''; label: string }[] = [
   { value: '', label: 'Todos' },
