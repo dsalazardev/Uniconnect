@@ -145,12 +145,8 @@ jobs:
           CI: true
 
       - name: Integration tests (Backend)
-        if: >-
-          (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
-          needs.changes.outputs.ci == 'true'
-        run: npm run test:e2e -- --coverage --coverageDirectory=coverage-e2e || true
-        env:
-          CI: true
+        if: matrix.package == 'backend'
+        run: npm run test:e2e || true
 
       - name: Check coverage threshold (Sprint 4)
         if: >-
@@ -239,7 +235,7 @@ jobs:
         with:
           payload: |
             {
-              "text": "❌ El pipeline de CI de Uniconnect reportó alertas en la rama: ${{ github.ref_name }}"
+              "text": "⚠️ Alertas registradas en el pipeline de CI para la rama: ${{ github.ref_name }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
