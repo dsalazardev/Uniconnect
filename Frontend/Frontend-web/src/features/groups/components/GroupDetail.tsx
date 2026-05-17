@@ -12,6 +12,7 @@ import { GroupAdminPanel } from './GroupAdminPanel';
 import { SessionList } from '@/features/study-sessions/components/SessionList';
 import { SessionCreateForm } from '@/features/study-sessions/components/SessionCreateForm';
 import { useStudySessions } from '@/features/study-sessions/hooks/useStudySessions';
+import { ResourceLibrary } from './ResourceLibrary';
 import { MessageList } from '@/features/messages/components/MessageList';
 import { MessageInput } from '@/features/messages/components/MessageInput';
 import { useChat } from '@/features/messages/hooks/useChat.tsx';
@@ -555,6 +556,18 @@ export const GroupDetail: React.FC = () => {
                   )}
                 </div>
               )}
+
+            {/* CA5: Biblioteca de recursos — visible para todos los miembros */}
+            {isMember && !groupInfo.is_direct_message && (
+              <div className={styles.section}>
+                <h3 className={styles.sectionTitle}>Biblioteca de recursos</h3>
+                <ResourceLibrary
+                  groupId={groupId}
+                  currentUserId={currentUserId}
+                  isOwner={isOwner}
+                />
+              </div>
+            )}
 
             </div>
 
