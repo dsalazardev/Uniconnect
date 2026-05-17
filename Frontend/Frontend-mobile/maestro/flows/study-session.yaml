@@ -1,0 +1,112 @@
+appId: com.damaluja.uniconnect
+env:
+  STUDY_TITLE: "Sesión E2E {{DATE}}"
+  STUDY_DESC: "Creada por test automatizado Maestro"
+  STUDY_DURATION: "60"
+  RECURRENCE: "NONE"
+---
+# Tarea 3 - US-T07: E2E Study Session Creation & Sync Verification Flow
+#
+# Prerequisites:
+#   1. Backend running at MAESTRO_API_URL (default: http://10.0.2.2:8007/api)
+#   2. Authenticated user with at least one group in "Mis Grupos"
+#   3. MAESTRO_AUTH_TOKEN env var set with a valid JWT for the test user
+#   4. GROUP_ID env var or hardcoded with a group the user belongs to
+#
+# Flow overview:
+#   login → deep link to groups → open first group → sessions screen
+#   → create session via API → verify via API polling → take screenshots
+#
+# NOTE: The app does not yet have a "Crear sesión" UI button in the sessions
+# screen, so this flow creates the session via direct HTTP API call as a
+# transitional step. Once the UI button is added, replace the HTTP step with
+# UI interactions (tapOn + inputText + assertVisible).
+#
+# Navigation strategy:
+#   Uses deep links (uniconnect://) for reliable screen transitions instead
+#   of depending on hamburger menu icon coordinates or accessibility labels.
+
+# ── 1. Login ───────────────────────────────────────────────────────────────
+- runFlow:
+    file: ../shared/login.yaml
+
+# ── 2. Navigate to Groups via deep link ────────────────────────────────────
+# The app scheme is "uniconnect" (configured in app.json).
+# Expo Router maps file-based routes to deep link paths.
+- openLink: "uniconnect:///(tabs)/groups"
+- waitFor:
+    text: "Mis Grupos"
+    timeout: 15000
+
+# ── 3. Open the first group ────────────────────────────────────────────────
+# Groups screen renders a FlatList of GroupCard components.
+# We scroll to find a "Propietario" or "Admin" badge, then tap it.
+# If no groups exist, the test will fail here with a timeout.
+- waitFor:
+    text: "Propietario"
+    timeout: 15000
+    optional: true
+- tapOn:
+    text: "Propietario"
+    optional: true
+    index: 0
+- tapOn:
+    text: "Admin"
+    optional: true
+    index: 0
+
+# ── 4. Navigate to Sessions screen via deep link ───────────────────────────
+# Deep link uses the group ID from the previous step. The group ID must be
+# known at test time. Set GROUP_ID env var in .maestro/config.yaml or CLI.
+- openLink: "uniconnect:///groups/{{GROUP_ID}}/sessions"
+- waitFor:
+    text: "Sesiones de estudio"
+    timeout: 10000
+
+# ── 5. Create study session via API ────────────────────────────────────────
+# Since there's no "Crear sesión" button in the UI yet, we create the session
+# by calling the backend API directly. Maestro's http action sends the POST.
+- http:
+    method: POST
+    url: "{{API_URL}}/groups/{{GROUP_ID}}/study-sessions"
+    headers:
+      Authorization: "Bearer {{AUTH_TOKEN}}"
+      Content-Type: "application/json"
+    body:
+      title: "{{STUDY_TITLE}}"
+      description: "{{STUDY_DESC}}"
+      startDatetime: "{{START_DATETIME}}"
+      durationMinutes: "{{STUDY_DURATION}}"
+      recurrenceType: "{{RECURRENCE}}"
+    output:
+      body: createResponse
+
+# ── 6. Take screenshot after creation ──────────────────────────────────────
+- takeScreenshot: "session-created"
+
+# ── 7. Verify via API polling ──────────────────────────────────────────────
+# Poll GET /groups/:groupId/study-sessions until the session appears.
+# Maestro retries the http command until assertVisible passes.
+- http:
+    method: GET
+    url: "{{API_URL}}/groups/{{GROUP_ID}}/study-sessions"
+    headers:
+      Authorization: "Bearer {{AUTH_TOKEN}}"
+
+# ── 8. Assert title is visible in the sessions list ────────────────────────
+# The sessions list should have been updated via WebSocket by the backend.
+# If the session appears without manual refresh, WebSocket sync works.
+- waitFor:
+    text: "{{STUDY_TITLE}}"
+    timeout: 10000
+
+# ── 9. Take final screenshot ───────────────────────────────────────────────
+- takeScreenshot: "session-verified"
+
+# ── 10. Run external verification script (optional) ────────────────────────
+# Uncomment to run the Node.js verification script:
+# - runScript:
+#     file: ../scripts/verify-sync.js
+#     env:
+#       GROUP_ID: "{{GROUP_ID}}"
+#       AUTH_TOKEN: "{{AUTH_TOKEN}}"

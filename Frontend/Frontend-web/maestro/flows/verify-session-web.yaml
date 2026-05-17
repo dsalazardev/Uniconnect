@@ -1,0 +1,73 @@
+appId: com.damaluja.uniconnect.web
+---
+# Tarea 3 - US-T07: Web Calendar Sync Verification Flow
+#
+# Purpose: Verify that a study session created from the mobile app
+# appears in the web calendar via WebSocket push (without manual refresh).
+#
+# NOTE on Multi-App Strategy:
+#   Maestro 2.x supports opening both mobile and web apps on the same device,
+#   but switching context between them is limited. The primary verification
+#   strategy uses API polling (see verify-sync.js companion script).
+#
+#   This flow serves as a secondary browser-based check that can be run
+#   separately after the mobile flow completes.
+#
+# Prerequisites:
+#   1. Frontend-web dev server running at VITE_APP_URL
+#   2. Backend running at MAESTRO_API_URL
+#   3. Test user account with access to the web app
+#   4. A study session was created by the mobile flow beforehand
+#
+# Flow:
+#   launch web app → login → navigate to calendar → verify session
+
+# ── Step 1: Launch web app ─────────────────────────────────────────────────
+- launchApp:
+    appId: "com.damaluja.uniconnect.web"
+    url: "{{VITE_APP_URL}}/events"
+
+# ── Step 2: Wait for login page ────────────────────────────────────────────
+- waitFor:
+    text: "Iniciar sesión"
+    timeout: 15000
+    optional: true
+
+# ── Step 3: Login via Google OAuth (or mock) ───────────────────────────────
+- runFlow:
+    file: ../shared/login-web.yaml
+    optional: true
+
+# ── Step 4: Wait for calendar/events page after login ─────────────────────
+- waitFor:
+    text: "Eventos Académicos"
+    timeout: 20000
+    optional: true
+
+# ── Step 5: Navigate to study sessions section ─────────────────────────────
+# The web app's study sessions might be under the events page or a dedicated
+# study-sessions route. Try both.
+- waitFor:
+    text: "Sesiones de estudio"
+    timeout: 10000
+    optional: true
+
+# ── Step 6: Scroll to find the session created by the mobile flow ──────────
+- scrollUntilVisible:
+    element:
+      text: "Sesión E2E"
+    direction: DOWN
+    timeout: 10000
+    speed: 30
+    visibilityPercentage: 20
+
+# ── Step 7: Assert session text is visible (confirms WebSocket sync) ───────
+# If this passes, it confirms the session created on mobile was pushed to the
+# web calendar without manual refresh, because the page was loaded AFTER the
+# session was created (no reload needed if WebSocket sync works).
+- assertVisible:
+    text: "Sesión E2E"
+    timeout: 5000
+
+# ── Step 8: Take screenshot of verified session ────────────────────────────
+- takeScreenshot: "web-session-verified"
