@@ -109,7 +109,7 @@ Antes de ejecutar cualquier flow, asegurate de tener:
    ```
 4. **Token JWT válido** — obtenelo iniciando sesión en la app, o generalo con:
    ```bash
-   node -e "const {JwtService}=require('@nestjs/jwt');const s=new JwtService({secret:'BY85hSfTMHL80k90G24RUwDNxD7'});console.log(s.sign({sub:1,permissions:[],roleName:'student'}))"
+   node -e "const {JwtService}=require('@nestjs/jwt');const s=new JwtService({secret:'<your-jwt-secret>'});console.log(s.sign({sub:1,permissions:[],roleName:'student'}))"
    ```
 
 ### Ejecución de Flows
