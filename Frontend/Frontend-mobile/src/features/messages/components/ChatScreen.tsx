@@ -113,6 +113,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     deleteMessage,
     emitTyping,
     loadMoreMessages,
+    reloadMessages,
     downloadFile,
     castVote,
     createPoll,
@@ -166,14 +167,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const handleFilesSelected = async (files: any[]) => {
     try {
       setUploadingFiles(true);
-      const uploadedFiles = await filesService.uploadFiles(
-        files,
-        groupId,
-        token
-      );
-
-      
+      await filesService.uploadFiles(files, groupId, token);
       setShowFilePicker(false);
+      // Fallback: forzar recarga por si el evento WebSocket se perdió
+      reloadMessages();
     } catch (error: any) {
       console.error(`[ChatScreen] ❌ Error en subida:`, error.message, error.response?.status);
       Alert.alert('Error', error.message || 'Error al subir los archivos. Intenta de nuevo.');

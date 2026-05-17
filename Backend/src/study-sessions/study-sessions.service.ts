@@ -212,6 +212,21 @@ export class StudySessionsService {
       },
     });
 
+    // Notificar a todos los miembros del grupo para que actualicen su lista
+    const members = await this.prisma.membership.findMany({
+      where: { id_group: groupId, id_user: { not: userId } },
+    });
+    await Promise.all(
+      members.map((m) =>
+        this.notificationsService.enviarNotificacion({
+          id_user: m.id_user!,
+          mensaje: `Una sesión de estudio fue cancelada`,
+          tipo_evento: 'study_session_created', // reutiliza el tipo para disparar recarga en el listener
+          entidad_relacionada_id: groupId,
+        }),
+      ),
+    );
+
     return { cancelled: true };
   }
 

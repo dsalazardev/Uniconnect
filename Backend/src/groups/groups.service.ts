@@ -178,14 +178,22 @@ export class GroupsService {
       // Obtener lista de miembros ANTES de eliminar el grupo
       const members = await this.prisma.membership.findMany({
         where: { id_group },
-        select: { id_user: true },
+        select: { id_user: true, id_membership: true },
       });
       const memberIds = members.map(m => m.id_user).filter((id): id is number => id !== null);
+      const membershipIds = members.map(m => m.id_membership);
 
-      // Si se borra el grupo, 
-      // se deberían borrar las membresías en cascada si así está en el DB.
-      await this.prisma.group.delete({
-        where: { id_group },
+      await this.prisma.$transaction(async (tx) => {
+        // 1. Borrar mensajes que referencian las membresías (sin cascade en schema)
+        if (membershipIds.length > 0) {
+          await tx.message.deleteMany({ where: { id_membership: { in: membershipIds } } });
+        }
+        // 2. Borrar membresías (sin cascade en schema)
+        await tx.membership.deleteMany({ where: { id_group } });
+        // 3. Borrar solicitudes de unión (sin cascade en schema)
+        await tx.group_join_request.deleteMany({ where: { id_group } });
+        // 4. Borrar el grupo (file, poll, study_session, group_invitation ya tienen cascade)
+        await tx.group.delete({ where: { id_group } });
       });
 
       // Emitir evento GROUP_DELETED después de delete exitoso

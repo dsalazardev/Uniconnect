@@ -86,6 +86,13 @@ export default function SessionsScreen() {
 
   useEffect(() => {
     const handler = (payload: { tipo_evento: string; entidad_relacionada_id?: number }) => {
+      if (
+        payload.tipo_evento === 'study_session_created' &&
+        payload.entidad_relacionada_id === groupId
+      ) {
+        loadSessions();
+        return;
+      }
       if (payload.tipo_evento === 'attendance_updated') {
         setSessions((prev) => {
           const belongs = prev.some((s) => s.id_instance === payload.entidad_relacionada_id);
@@ -96,7 +103,7 @@ export default function SessionsScreen() {
     };
     websocketService.on('notification:new', handler);
     return () => websocketService.off('notification:new', handler);
-  }, [silentRefresh]);
+  }, [groupId, loadSessions, silentRefresh]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

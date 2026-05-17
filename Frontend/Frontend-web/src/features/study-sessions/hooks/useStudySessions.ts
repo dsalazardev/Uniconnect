@@ -35,10 +35,13 @@ export const useStudySessions = (groupId: number) => {
     loadSessions();
   }, [loadSessions]);
 
-  // Recarga en tiempo real cuando se crea una sesión o alguien actualiza su asistencia
+  // Recarga en tiempo real cuando se crea/cancela una sesión o alguien actualiza su asistencia
   useEffect(() => {
     const handler = (payload: { tipo_evento: string; entidad_relacionada_id?: number }) => {
-      if (payload.tipo_evento === 'study_session_created' && payload.entidad_relacionada_id === groupId) {
+      if (
+        payload.tipo_evento === 'study_session_created' &&
+        payload.entidad_relacionada_id === groupId
+      ) {
         loadSessions();
         return;
       }
