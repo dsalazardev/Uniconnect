@@ -35,4 +35,7 @@ model user {
   forum_questions               forum_question[]               @relation("ForumQuestionAuthor")
   forum_answers                 forum_answer[]                 @relation("ForumAnswerAuthor")
   event_category_subscriptions  event_category_subscription[]
+  resources_created             resource[]                     @relation("ResourceCreator")
+  resource_ratings              resource_rating[]              @relation("ResourceRatingUser")
+  resource_comments             resource_comment[]             @relation("ResourceCommentUser")
 }
