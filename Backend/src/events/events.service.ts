@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { EventoUniversidadSubject } from './domain/observer/evento-universidad.subject';
+import { MessagesGateway } from '../messages/messages.gateway';
 
 @Injectable()
 export class EventsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventoUniversidadSubject: EventoUniversidadSubject,
+    private readonly messagesGateway: MessagesGateway,
   ) {}
 
   // ── GET /categories ──────────────────────────────────────────────────────
@@ -75,6 +77,13 @@ export class EventsService {
         start_date: event.start_date,
       },
       timestamp: new Date(),
+    });
+
+    // Broadcast en tiempo real a todos los usuarios conectados para que actualicen
+    // su listado de eventos sin necesidad de recargar la pantalla.
+    this.messagesGateway.broadcastToAll('event:published', {
+      event,
+      categoryId: event.id_category,
     });
 
     return event;

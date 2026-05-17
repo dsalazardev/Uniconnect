@@ -3,11 +3,12 @@ import { EventsService } from './events.service';
 import { EventsController } from './events.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MessagesModule } from '../messages/messages.module';
 import { EventoUniversidadSubject } from './domain/observer/evento-universidad.subject';
 import { EventPublishedObserver } from './infrastructure/observers/event-published.observer';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, MessagesModule],
   providers: [EventsService, EventoUniversidadSubject, EventPublishedObserver],
   controllers: [EventsController],
   exports: [EventsService, EventoUniversidadSubject],
