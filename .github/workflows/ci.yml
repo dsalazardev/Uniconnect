@@ -75,6 +75,8 @@ jobs:
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           needs.changes.outputs.ci == 'true'
+        with:
+          version: 8.15.4
 
       - uses: actions/setup-node@v4
         if: >-
@@ -233,7 +235,7 @@ jobs:
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v2
         with:
-          slack-webhook-url: ${{ secrets.SLACK_WEBHOOK }}
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
           webhook-type: incoming-webhook
           payload: |
             {
