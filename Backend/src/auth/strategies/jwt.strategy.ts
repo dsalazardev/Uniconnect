@@ -11,7 +11,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         configService: ConfigService,
         private usersService: UsersService,
     ){
-        const secret = configService.get<string>('JWT_SECRET') || 'uniconnect-test-key';        
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is required');
+        }
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,

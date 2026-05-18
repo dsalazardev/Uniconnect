@@ -6,7 +6,7 @@
 flowchart TB
     subgraph Events["Eventos"]
         PUSH_PR["push (cualquier rama) o PR → main"]
-        MAIN["push a main"]
+        MAIN["push a main → CI → (si pasa) → CD"]
     end
 
     subgraph CI["CI — Validación (.github/workflows/ci.yml)"]
@@ -16,7 +16,7 @@ flowchart TB
         COV["Upload coverage artifact"]
     end
 
-    subgraph CD["CD — Deploy (.github/workflows/cd.yml)"]
+    subgraph CD["CD — Deploy (.github/workflows/deploy.yml)"]
         BKDEPLOY["Backend → Fly.io<br/>health check /api/health"]
         WEBDEPLOY["Web → npm build → Fly.io (Nginx)"]
         MOBDEPLOY["Mobile → EAS Build (preview)"]
@@ -27,7 +27,8 @@ flowchart TB
     end
 
     PUSH_PR --> CI
-    MAIN --> CD
+    MAIN --> CI
+    CI --> |"✅ éxito"| CD
     CI --> |"❌ fallo"| SLACK
     CD --> |"❌ fallo"| SLACK
     FILTER --> MATRIX
@@ -136,14 +137,16 @@ cd Frontend/shared && npm run lint && npm run typecheck && npm test
 | Archivo | Propósito |
 |---|---|
 | `.github/workflows/ci.yml` | Validación en PRs: lint + type-check + test con cobertura, solo paquetes afectados |
-| `.github/workflows/cd.yml` | Deploy a producción en push a main: Backend (Fly.io), Web (Fly.io), Mobile (EAS) |
+| `.github/workflows/deploy.yml` | Deploy a producción, gatillado por CI exitoso en main: Backend (Fly.io), Web (Fly.io), Mobile (EAS) |
+
+> **Nota:** El workflow `deploy.yml` no ejecuta tests directamente. Los tests corren en `ci.yml` mediante una matriz paralela (backend, web, mobile, shared). `deploy.yml` se activa vía `workflow_run` solo si CI completa exitosamente. Esta separación permite detectar fallos en cada paquete por separado y evita duplicar la matriz de pruebas dentro del pipeline de deploy.
 
 ### Archivos eliminados
 
 | Archivo | Motivo |
 |---|---|
 | `eas.json` (raíz) | Huérfano, 0 bytes |
-| `Frontend/Frontend-mobile/.github/workflows/ci-cd.yml` | Duplicado del workflow migrado |
+| `Frontend/.github/workflows/ci-cd.yml` | Legacy frontend workflow — eliminado |
 
 ### Scripts agregados
 

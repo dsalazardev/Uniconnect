@@ -1,0 +1,102 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App to rollback'
+        required: true
+        type: choice
+        options:
+          - backend
+          - web
+          - mobile
+      version:
+        description: >-
+          SHA256 digest (backend/web, from `flyctl releases list`)
+          or commit hash (mobile)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  rollback-backend:
+    name: Rollback Backend
+    if: github.event.inputs.app == 'backend'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy previous image
+        run: >-
+          flyctl deploy --remote-only
+          --image registry.fly.io/uniconnect-backend-core-black-wave-3099@sha256:${{ github.event.inputs.version }}
+        working-directory: Backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Health check
+        run: |
+          sleep 15
+          curl --retry 6 --retry-delay 10 --fail-with-body https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+
+  rollback-web:
+    name: Rollback Web
+    if: github.event.inputs.app == 'web'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy previous image
+        run: >-
+          flyctl deploy --remote-only
+          --image registry.fly.io/uniconnect-frontend-uc@sha256:${{ github.event.inputs.version }}
+        working-directory: Frontend/Frontend-web
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  rollback-mobile:
+    name: Rollback Mobile
+    if: github.event.inputs.app == 'mobile'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        working-directory: Frontend/Frontend-mobile
+
+      - name: Trigger EAS Build (previous commit)
+        run: npx eas build --profile preview --platform all --non-interactive
+        working-directory: Frontend/Frontend-mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  notify-failure:
+    name: Notify Slack on failure
+    needs: [rollback-backend, rollback-web, rollback-mobile]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": ":rotating_light: Rollback failed for ${{ github.repository }} (${{ github.event.inputs.app }}). Check the workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }

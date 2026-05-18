@@ -29,7 +29,10 @@ import * as https from 'https';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
-        const secret = configService.get<string>('JWT_SECRET') || 'uniconnect-test-key';
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('JWT_SECRET environment variable is required');
+        }
         return {
           secret: secret,
           signOptions: { expiresIn: '2h' },

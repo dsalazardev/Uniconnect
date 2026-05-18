@@ -1,22 +1,32 @@
-name: CD
+name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   changes:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       web: ${{ steps.filter.outputs.web }}
       mobile: ${{ steps.filter.outputs.mobile }}
-      shared: ${{ steps.filter.outputs.shared }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
           filters: |
             backend:
               - 'Backend/**'
@@ -24,8 +34,6 @@ jobs:
               - 'Frontend/Frontend-web/**'
             mobile:
               - 'Frontend/Frontend-mobile/**'
-            shared:
-              - 'Frontend/shared/**'
 
   deploy-backend:
     name: Deploy Backend
@@ -34,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -55,6 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -71,6 +83,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -87,6 +101,37 @@ jobs:
         working-directory: Frontend/Frontend-mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+  create-release:
+    name: Create GitHub Release
+    needs: [deploy-backend, deploy-web, deploy-mobile]
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Extract version from package.json
+        id: version
+        run: echo "version=$(node -p "require('./Backend/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-${{ github.event.workflow_run.run_number }}
+          name: "Release v${{ steps.version.outputs.version }} (build ${{ github.event.workflow_run.run_number }})"
+          body: |
+            ## Deploy Automático
+
+            **Commit:** ${{ github.event.workflow_run.head_sha }}
+            **Branch:** ${{ github.event.workflow_run.head_branch }}
+
+            ### Despliegues
+            - **Backend:** https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+            - **Web:** https://frontend-uc-spring-dust-5949.fly.dev
+            - **Mobile (EAS):** Build triggered on Expo — check https://expo.dev/accounts/salazar04/projects/uniconnect_g/builds
+          target_commitish: ${{ github.event.workflow_run.head_sha }}
 
   notify-failure:
     name: Notify Slack on failure
