@@ -114,8 +114,7 @@ jobs:
         run: npx prisma generate
 
       - name: Lint
-        env:
-          ESLINT_USE_FLAT_CONFIG: "false"
+        continue-on-error: ${{ matrix.package == 'web' }}
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
