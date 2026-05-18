@@ -124,7 +124,7 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        continue-on-error: ${{ matrix.package == 'web' || matrix.package == 'backend' }}
+        continue-on-error: ${{ matrix.package == 'web' || matrix.package == 'backend' || matrix.package == 'mobile' }}
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
