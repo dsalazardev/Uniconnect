@@ -13,4 +13,5 @@ export { NotificationObserverService, notificationObserver } from './notificatio
 export { PollService } from './poll.service';
 export { ForumService } from './forum.service';
 export { ResourcesService } from './resources.service';
+export { StudySessionsService } from './study-sessions.service';
 

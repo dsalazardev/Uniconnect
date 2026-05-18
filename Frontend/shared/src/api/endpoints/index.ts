@@ -18,3 +18,4 @@ export * from './students';
 export * from './polls';
 export * from './forum';
 export * from './resources';
+export * from './study-sessions';

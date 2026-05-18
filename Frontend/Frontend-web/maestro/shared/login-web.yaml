@@ -1,0 +1,22 @@
+appId: com.damaluja.uniconnect.web
+---
+# Web Login subflow - reusable by web Maestro flows
+# Strategy: Tap Google OAuth button on the web login page.
+# For environments without real OAuth, set MAESTRO_MOCK_AUTH=true.
+
+- waitFor:
+    text: "Iniciar sesión"
+    timeout: 15000
+- waitFor:
+    text: "Universidad de Caldas"
+    timeout: 5000
+    optional: true
+- tapOn:
+    text: "Ingresar con Google"
+    optional: true
+# After tapping, the browser opens an OAuth redirect.
+# For headless E2E, configure Auth0 with a test account or mock the callback.
+- waitFor:
+    text: "Bienvenido"
+    timeout: 30000
+    optional: true

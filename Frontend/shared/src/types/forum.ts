@@ -1,40 +1,19 @@
-export type ForumQuestionStatus = 'OPEN' | 'RESOLVED';
-export type ForumVoteEntityType = 'QUESTION' | 'ANSWER';
+import type {
+  ForumQuestion as ZodForumQuestion,
+  ForumAnswer as ZodForumAnswer,
+  ForumQuestionStatus as ZodForumQuestionStatus,
+  ForumVoteEntityType as ZodForumVoteEntityType,
+  CreateQuestionDto as ZodCreateQuestionDto,
+  CreateAnswerDto as ZodCreateAnswerDto,
+} from '../validators/forum.validator';
 
-export interface ForumQuestion {
-  id: number;
-  subjectId: number;
-  authorId: number;
-  authorName: string;
-  title: string;
-  body: string;
-  status: ForumQuestionStatus;
-  voteCount: number;
-  answerCount: number;
-  createdAt: string;
-  userVoted?: boolean;
-}
+export type ForumQuestionStatus = ZodForumQuestionStatus;
+export type ForumVoteEntityType = ZodForumVoteEntityType;
 
-export interface ForumAnswer {
-  id: number;
-  questionId: number;
-  authorId: number;
-  authorName: string;
-  body: string;
-  voteCount: number;
-  isAccepted: boolean;
-  createdAt: string;
-  userVoted?: boolean;
-}
-
-export interface CreateQuestionDto {
-  title: string;
-  body: string;
-}
-
-export interface CreateAnswerDto {
-  body: string;
-}
+export interface ForumQuestion extends ZodForumQuestion {}
+export interface ForumAnswer extends ZodForumAnswer {}
+export interface CreateQuestionDto extends ZodCreateQuestionDto {}
+export interface CreateAnswerDto extends ZodCreateAnswerDto {}
 
 export interface ForumVoteDto {
   entityType: ForumVoteEntityType;

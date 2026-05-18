@@ -1,40 +1,18 @@
-export type PollStatus = 'ACTIVE' | 'CLOSED';
+import type {
+  Poll as ZodPoll,
+  PollOption as ZodPollOption,
+  PollStatus as ZodPollStatus,
+  CreatePollDto as ZodCreatePollDto,
+  CastVoteDto as ZodCastVoteDto,
+  PollVoteUpdatedPayload as ZodPollVoteUpdatedPayload,
+  PollClosedPayload as ZodPollClosedPayload,
+} from '../validators/polls.validator';
 
-export interface PollOption {
-  id: number;
-  text: string;
-  count: number;
-  percentage: number;
-}
+export type PollStatus = ZodPollStatus;
 
-export interface Poll {
-  id: number;
-  groupId: number;
-  createdBy: number;
-  question: string;
-  options: PollOption[];
-  closesAt: string;
-  status: PollStatus;
-  createdAt: string;
-}
-
-export interface CreatePollDto {
-  question: string;
-  options: string[];
-  closesAt: string;
-}
-
-export interface CastVoteDto {
-  optionId: number;
-}
-
-export interface PollVoteUpdatedPayload {
-  pollId: number;
-  options: PollOption[];
-}
-
-export interface PollClosedPayload {
-  pollId: number;
-  options: PollOption[];
-  closedAt: string;
-}
+export interface PollOption extends ZodPollOption {}
+export interface Poll extends ZodPoll {}
+export interface CreatePollDto extends ZodCreatePollDto {}
+export interface CastVoteDto extends ZodCastVoteDto {}
+export interface PollVoteUpdatedPayload extends ZodPollVoteUpdatedPayload {}
+export interface PollClosedPayload extends ZodPollClosedPayload {}
