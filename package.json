@@ -6,7 +6,8 @@
   "workspaces": [
     "Frontend/shared",
     "Frontend/Frontend-mobile",
-    "Frontend/Frontend-web"
+    "Frontend/Frontend-web",
+    "packages/api-types"
   ],
   "scripts": {
     "dev:mobile": "cd Frontend/Frontend-mobile && npx expo run:android",
@@ -14,12 +15,15 @@
     "dev:backend": "cd Backend && npm run start:dev",
     "build:shared": "cd Frontend/shared && npm run build",
     "build:web": "cd Frontend/Frontend-web && npm run build",
+    "generate:api-types": "cd packages/api-types && npm run generate",
+    "generate:all": "cd Backend && npm run generate:openapi && cd ../packages/api-types && npm run generate",
     "test:mobile": "cd Frontend/Frontend-mobile && npm test",
     "test:web": "cd Frontend/Frontend-web && npm test",
     "test:all": "npm run test:mobile && npm run test:web",
     "typecheck:shared": "cd Frontend/shared && npx tsc --noEmit",
     "typecheck:web": "cd Frontend/Frontend-web && npx tsc --noEmit",
-    "typecheck:all": "npm run typecheck:shared && npm run typecheck:web"
+    "typecheck:api-types": "cd packages/api-types && npm run typecheck",
+    "typecheck:all": "npm run typecheck:shared && npm run typecheck:web && npm run typecheck:api-types"
   },
   "overrides": {
     "pretty-format": "29.7.0",

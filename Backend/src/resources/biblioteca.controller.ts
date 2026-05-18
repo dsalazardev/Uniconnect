@@ -2,7 +2,7 @@ import {
   Controller, Get, Post, Patch, Delete, Param, Body, Query,
   UseGuards, HttpCode, HttpStatus, ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetClaim } from '../auth/decorators/get-token-claim.decorator';
 import { ResourcesService } from './resources.service';
@@ -22,14 +22,20 @@ export class BibliotecaController {
   /** Programas accesibles por el usuario autenticado */
   @Get('programas')
   @ApiOperation({ summary: 'Listar programas a los que el usuario tiene acceso' })
+  @ApiResponse({ status: 200, description: 'Lista de programas académicos del usuario' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
   listarProgramas(@GetClaim('sub') userId: number) {
     return this.resourcesService.listarProgramasDelUsuario(userId);
   }
 
   /** CA4: Recursos de un programa, filtrable por tipo */
   @Get('programas/:id/recursos')
-  @ApiOperation({ summary: 'CA4: Listar recursos del programa con filtro por tipo_contenido' })
-  @ApiQuery({ name: 'tipo', enum: TipoContenido, required: false })
+  @ApiOperation({ summary: 'Listar recursos del programa con filtro por tipo_contenido' })
+  @ApiParam({ name: 'id', description: 'ID del programa académico', type: Number })
+  @ApiQuery({ name: 'tipo', enum: TipoContenido, required: false, description: 'Filtrar por tipo de contenido' })
+  @ApiResponse({ status: 200, description: 'Lista de recursos decorados del programa' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
+  @ApiResponse({ status: 403, description: 'El usuario no pertenece al programa solicitado' })
   listarRecursos(
     @Param('id', ParseIntPipe) programId: number,
     @GetClaim('sub') userId: number,
@@ -41,7 +47,12 @@ export class BibliotecaController {
   /** CA1: Crear recurso con extracción Open Graph */
   @Post('programas/:id/recursos')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'CA1: Subir recurso con extracción Open Graph (segmentado por programa)' })
+  @ApiOperation({ summary: 'Crear recurso con extracción automática de metadatos Open Graph' })
+  @ApiParam({ name: 'id', description: 'ID del programa académico', type: Number })
+  @ApiResponse({ status: 201, description: 'Recurso creado con metadatos OG extraídos', type: CreateResourceDto })
+  @ApiResponse({ status: 400, description: 'Payload inválido — se requiere url_externa o titulo' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
+  @ApiResponse({ status: 403, description: 'El usuario no pertenece al programa' })
   crearRecurso(
     @Param('id', ParseIntPipe) programId: number,
     @Body() dto: CreateResourceDto,
@@ -74,7 +85,12 @@ export class BibliotecaController {
   /** CA3: Eliminar — solo propietario o admin del grupo */
   @Delete('recursos/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'CA3: Eliminar recurso (solo propietario o admin del grupo asociado)' })
+  @ApiOperation({ summary: 'Eliminar recurso (solo propietario o admin del grupo asociado)' })
+  @ApiParam({ name: 'id', description: 'ID del recurso', type: Number })
+  @ApiResponse({ status: 200, description: 'Recurso eliminado correctamente' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
+  @ApiResponse({ status: 403, description: 'Sin permiso — no es propietario ni admin del grupo' })
+  @ApiResponse({ status: 404, description: 'Recurso no encontrado' })
   eliminarRecurso(
     @Param('id', ParseIntPipe) id: number,
     @GetClaim('sub') userId: number,
@@ -86,6 +102,9 @@ export class BibliotecaController {
   @Post('recursos/:id/comentarios')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Agregar comentario a un recurso' })
+  @ApiParam({ name: 'id', description: 'ID del recurso', type: Number })
+  @ApiResponse({ status: 201, description: 'Comentario agregado' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
   comentar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AddCommentDto,
@@ -98,6 +117,10 @@ export class BibliotecaController {
   @Post('recursos/:id/valoracion')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Valorar un recurso (1–5 estrellas, upsert)' })
+  @ApiParam({ name: 'id', description: 'ID del recurso', type: Number })
+  @ApiResponse({ status: 200, description: 'Valoración registrada o actualizada' })
+  @ApiResponse({ status: 400, description: 'Valor fuera del rango 1–5' })
+  @ApiResponse({ status: 401, description: 'Token JWT ausente o inválido' })
   valorar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: RateResourceDto,

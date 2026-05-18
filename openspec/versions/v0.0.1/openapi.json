@@ -1,0 +1,4362 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "AppController_HealthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "operationId": "AuthController_googleLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/temp-login": {
+      "post": {
+        "operationId": "AuthController_tempLogin",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TempLoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/callback": {
+      "post": {
+        "description": "Exchanges Auth0 authorization code for tokens and returns user profile in FEN format. This is the BFF endpoint that handles the secure token exchange with Auth0.",
+        "operationId": "AuthController_auth0Callback",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Authorization code, redirect URI, and PKCE code_verifier from Auth0 Universal Login",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Auth0CallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful - Returns FEN formatted response with user profile and tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "statusCode": 200,
+                    "message": "Authentication successful",
+                    "data": {
+                      "access_token": "jwt-token-here",
+                      "user": {
+                        "id_user": 1,
+                        "id_role": 2,
+                        "full_name": "John Doe",
+                        "email": "john.doe@ucaldas.edu.co",
+                        "picture": "https://example.com/avatar.jpg"
+                      },
+                      "auth0_tokens": {
+                        "access_token": "auth0-access-token",
+                        "id_token": "auth0-id-token",
+                        "refresh_token": "auth0-refresh-token",
+                        "expires_in": 3600
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed - Invalid code, unauthorized domain, or Auth0 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": false,
+                    "statusCode": 401,
+                    "message": "Dominio de correo no permitido. Solo se permiten correos @ucaldas.edu.co",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Auth0 Authorization Code Exchange (BFF)",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "description": "Exchanges Auth0 refresh token for new tokens and generates updated local JWT. Maintains user session without re-authentication.",
+        "operationId": "AuthController_refreshToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Refresh token and user ID for token renewal",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refresh successful - Returns FEN formatted response with new tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "statusCode": 200,
+                    "message": "Token refreshed successfully",
+                    "data": {
+                      "access_token": "new-jwt-token-here",
+                      "user": {
+                        "id_user": 1,
+                        "id_role": 2,
+                        "full_name": "John Doe",
+                        "email": "john.doe@ucaldas.edu.co",
+                        "picture": "https://example.com/avatar.jpg"
+                      },
+                      "auth0_tokens": {
+                        "access_token": "new-auth0-access-token",
+                        "id_token": "new-auth0-id-token",
+                        "refresh_token": "auth0-refresh-token",
+                        "expires_in": 3600
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token refresh failed - Invalid refresh token or user not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": false,
+                    "statusCode": 401,
+                    "message": "Usuario no encontrado",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error - Auth0 service unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": false,
+                    "statusCode": 500,
+                    "message": "No se pudo refrescar la sesión",
+                    "error": "Internal Server Error"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Refresh Auth0 Tokens (BFF)",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "description": "Invalidates the current JWT token by adding it to a blacklist. The token will no longer be valid for authentication.",
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "JWT access token to invalidate",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logout successful - Token invalidated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": true,
+                    "data": {
+                      "message": "Logout successful"
+                    },
+                    "error": null,
+                    "metadata": {
+                      "timestamp": "2024-01-01T00:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid token or token does not belong to user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": false,
+                    "statusCode": 401,
+                    "message": "Token inválido o expirado",
+                    "error": "Unauthorized"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "success": false,
+                    "statusCode": 500,
+                    "message": "Error al cerrar sesión",
+                    "error": "Internal Server Error"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Logout - Invalidate JWT Token",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/users": {
+      "get": {
+        "description": "Filtra estudiantes por nombre, programa académico o materia específica.",
+        "operationId": "UsersController_findAll",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Nombre del estudiante o de la materia",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id_program",
+            "required": false,
+            "in": "query",
+            "description": "ID del programa académico",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "id_course",
+            "required": false,
+            "in": "query",
+            "description": "ID de la materia específica",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "HU-03: Visualizar y filtrar estudiantes",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/community/connected": {
+      "get": {
+        "description": "Lista usuarios con conexión aceptada del usuario autenticado para sección Amigos.",
+        "operationId": "UsersController_getConnectedCommunity",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "HU-Comunidad: Listar amigos en comunidad",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/community/not-connected": {
+      "get": {
+        "description": "Lista todos los usuarios que no tienen conexión aceptada con el usuario autenticado para sección Comunidad general.",
+        "operationId": "UsersController_getNotConnectedCommunity",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "HU-Comunidad: Listar usuarios no conectados",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/connections/with-courses/{groupId}": {
+      "get": {
+        "description": "Lista conexiones aceptadas del usuario que comparten la materia específica del grupo, para invitarlos a ese grupo.",
+        "operationId": "UsersController_getConnectionsForGroupInvite",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de conexiones con la materia del grupo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": [
+                    {
+                      "id_user": 2,
+                      "full_name": "Juan Perez",
+                      "picture": "https://...",
+                      "email": "juan@example.com",
+                      "program": {
+                        "name": "Ingeniería de Sistemas"
+                      },
+                      "course": {
+                        "id_course": 1,
+                        "name": "Matemáticas"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "HU-Invitaciones: Conexiones con materia del grupo",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/profile": {
+      "get": {
+        "operationId": "UsersController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/profile/{id}": {
+      "get": {
+        "operationId": "UsersController_getOtherProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/onboarding": {
+      "post": {
+        "description": "Se llama una sola vez tras el primer login con Auth0. Asigna el programa y semestre actual del usuario. Devuelve 409 si ya fue completado.",
+        "operationId": "UsersController_completeOnboarding",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteOnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "HU-Onboarding: Completar datos académicos iniciales",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/perfil/{id}": {
+      "get": {
+        "description": "Sin query param retorna PerfilBase. Con ?vista=completa aplica PerfilConEstadisticas y PerfilConInsignias sobre el perfil base.",
+        "operationId": "PerfilController_getPerfil",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "vista",
+            "required": false,
+            "in": "query",
+            "description": "Usa \"completa\" para obtener el perfil enriquecido con estadísticas e insignias",
+            "schema": {
+              "enum": [
+                "completa"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "US-D02: Obtener perfil del estudiante con patrón Decorator",
+        "tags": [
+          "Perfil"
+        ]
+      }
+    },
+    "/api/courses": {
+      "post": {
+        "operationId": "CoursesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCourseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear una nueva materia",
+        "tags": [
+          "courses"
+        ]
+      },
+      "get": {
+        "operationId": "CoursesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar todas las materias",
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/courses/get-by-student": {
+      "get": {
+        "operationId": "CoursesController_getCoursesByStudent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/courses/get-own": {
+      "get": {
+        "operationId": "CoursesController_getOwnCourses",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "courses"
+        ]
+      }
+    },
+    "/api/programs": {
+      "post": {
+        "operationId": "ProgramsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProgramDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear un nuevo programa académico",
+        "tags": [
+          "programs"
+        ]
+      },
+      "get": {
+        "operationId": "ProgramsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Listar todos los programas (público — requerido en onboarding de nuevos usuarios)",
+        "tags": [
+          "programs"
+        ]
+      }
+    },
+    "/api/enrollments": {
+      "post": {
+        "operationId": "EnrollmentsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnrollmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Matricular a un estudiante en una materia",
+        "tags": [
+          "Enrollments"
+        ]
+      },
+      "get": {
+        "operationId": "EnrollmentsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar todas las matrículas",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/api/enrollments/{id}": {
+      "patch": {
+        "operationId": "EnrollmentsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar el estado de una matrícula",
+        "tags": [
+          "Enrollments"
+        ]
+      },
+      "delete": {
+        "operationId": "EnrollmentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eliminar una matrícula por ID",
+        "tags": [
+          "Enrollments"
+        ]
+      }
+    },
+    "/api/groups": {
+      "post": {
+        "operationId": "GroupsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "El grupo y la membresía han sido creados."
+          },
+          "404": {
+            "description": "El curso especificado no existe."
+          },
+          "500": {
+            "description": "Error interno al procesar la transacción."
+          }
+        },
+        "summary": "Crear un nuevo grupo de estudio y asignar owner como admin",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/user/{userId}": {
+      "get": {
+        "operationId": "GroupsController_findAll",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos con conteo de miembros."
+          }
+        },
+        "summary": "Listar grupos donde el usuario es miembro",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/created-by/{userId}": {
+      "get": {
+        "operationId": "GroupsController_findGroupsCreated",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos creados por el usuario."
+          }
+        },
+        "summary": "Listar grupos creados por el usuario (es owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/member-of/{userId}": {
+      "get": {
+        "operationId": "GroupsController_findGroupsMember",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos donde el usuario participa."
+          }
+        },
+        "summary": "Listar grupos donde el usuario es miembro",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/discover/{userId}": {
+      "get": {
+        "operationId": "GroupsController_discoverGroups",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos disponibles para unirse."
+          }
+        },
+        "summary": "Descubrir grupos disponibles según materias inscritas",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/direct-message/{userId2}": {
+      "post": {
+        "operationId": "GroupsController_findOrCreateDirectMessage",
+        "parameters": [
+          {
+            "name": "userId2",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat privado creado o encontrado."
+          },
+          "403": {
+            "description": "No hay conexión aceptada entre los usuarios."
+          },
+          "404": {
+            "description": "Usuario no encontrado."
+          }
+        },
+        "summary": "Crear o encontrar chat privado con otro usuario",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/direct-messages": {
+      "get": {
+        "operationId": "GroupsController_findUserDirectMessages",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de chats privados con último mensaje."
+          }
+        },
+        "summary": "Listar todos los chats privados del usuario autenticado",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/owner/pending-requests": {
+      "get": {
+        "description": "Retorna todos los grupos del usuario autenticado que tienen solicitudes pendientes, agrupadas por grupo.",
+        "operationId": "GroupsController_getAllPendingRequestsForOwner",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos con sus solicitudes pendientes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": [
+                    {
+                      "id_group": 1,
+                      "name": "Grupo Cálculo I",
+                      "description": "Grupo de estudio",
+                      "joinRequests": [
+                        {
+                          "id_request": 5,
+                          "status": "pending",
+                          "requested_at": "2026-04-26T10:00:00Z",
+                          "requester": {
+                            "id_user": 12,
+                            "full_name": "Ana García",
+                            "picture": null,
+                            "email": "ana@ucaldas.edu.co",
+                            "program": {
+                              "name": "Ingeniería de Sistemas"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado."
+          }
+        },
+        "summary": "Solicitudes de unión pendientes de todos los grupos del owner",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/by-course/{courseId}": {
+      "get": {
+        "operationId": "GroupsController_findByCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de grupos de la materia."
+          }
+        },
+        "summary": "Buscar grupos por materia específica",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}": {
+      "get": {
+        "operationId": "GroupsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datos del grupo encontrados."
+          },
+          "404": {
+            "description": "Grupo no encontrado."
+          }
+        },
+        "summary": "Obtener detalle de un grupo específico",
+        "tags": [
+          "groups"
+        ]
+      },
+      "delete": {
+        "operationId": "GroupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "description": "ID del usuario autenticado para verificar propiedad",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grupo eliminado exitosamente."
+          },
+          "403": {
+            "description": "Prohibido: El usuario no es el dueño del grupo."
+          }
+        },
+        "summary": "Eliminar un grupo (Solo permitido al owner)",
+        "tags": [
+          "groups"
+        ]
+      },
+      "patch": {
+        "operationId": "GroupsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "description": "ID del usuario para verificar propiedad",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grupo actualizado correctamente."
+          },
+          "403": {
+            "description": "No tienes permisos para editar este grupo."
+          },
+          "404": {
+            "description": "Grupo no encontrado."
+          }
+        },
+        "summary": "Actualizar información del grupo (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/join-request": {
+      "post": {
+        "description": "Usuario solicita acceso a un grupo disponible en comunidad",
+        "operationId": "GroupsController_requestGroupAccess",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Solicitud de acceso creada"
+          },
+          "400": {
+            "description": "Ya eres miembro o solicitud pendiente"
+          },
+          "404": {
+            "description": "Grupo no encontrado"
+          }
+        },
+        "summary": "HU: Solicitar acceso a un grupo de comunidad",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/join-requests": {
+      "get": {
+        "description": "Owner ve todas las solicitudes de acceso al grupo",
+        "operationId": "GroupsController_getPendingJoinRequests",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de solicitudes"
+          },
+          "403": {
+            "description": "No eres el owner del grupo"
+          }
+        },
+        "summary": "HU: Listar solicitudes pendientes (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/join-requests/{requestId}/accept": {
+      "patch": {
+        "description": "Owner acepta solicitud y agrega usuario como miembro",
+        "operationId": "GroupsController_acceptJoinRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud aceptada, usuario agregado al grupo"
+          },
+          "403": {
+            "description": "No eres el owner"
+          },
+          "404": {
+            "description": "Solicitud no encontrada"
+          }
+        },
+        "summary": "HU: Aceptar solicitud de acceso (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/join-requests/{requestId}/reject": {
+      "patch": {
+        "description": "Owner rechaza la solicitud de acceso al grupo",
+        "operationId": "GroupsController_rejectJoinRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud rechazada"
+          },
+          "403": {
+            "description": "No eres el owner"
+          }
+        },
+        "summary": "HU: Rechazar solicitud de acceso (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/members": {
+      "get": {
+        "description": "Solo miembros del grupo pueden ver su lista de participantes",
+        "operationId": "GroupsController_getGroupMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de miembros"
+          },
+          "404": {
+            "description": "Grupo no encontrado"
+          }
+        },
+        "summary": "HU: Listar miembros del grupo",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/leave": {
+      "delete": {
+        "description": "Usuario abandona el grupo (no puede ser el owner)",
+        "operationId": "GroupsController_leaveGroup",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grupo abandonado exitosamente"
+          },
+          "400": {
+            "description": "El owner no puede abandonar así"
+          },
+          "404": {
+            "description": "No eres miembro del grupo"
+          }
+        },
+        "summary": "HU: Abandonar grupo",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/members/{memberId}": {
+      "delete": {
+        "description": "Owner remueve un miembro del grupo",
+        "operationId": "GroupsController_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Miembro removido"
+          },
+          "403": {
+            "description": "No eres el owner"
+          },
+          "404": {
+            "description": "Miembro no encontrado"
+          }
+        },
+        "summary": "HU: Sacar miembro del grupo (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/members/{memberId}/make-admin": {
+      "patch": {
+        "description": "Owner promueve a un miembro como admin del grupo",
+        "operationId": "GroupsController_makeAdmin",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "memberId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Miembro promovido a admin"
+          },
+          "403": {
+            "description": "No eres el owner"
+          },
+          "404": {
+            "description": "Miembro no encontrado"
+          }
+        },
+        "summary": "HU: Dar rol de admin a miembro (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/transfer-ownership/{newOwnerId}": {
+      "patch": {
+        "description": "Owner transfiere la propiedad del grupo a otro miembro. El nuevo propietario debe ser miembro del grupo.",
+        "operationId": "GroupsController_transferOwnership",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "newOwnerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Propiedad transferida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Propiedad del grupo transferida exitosamente",
+                    "group": {
+                      "id_group": 1,
+                      "name": "Grupo de Estudio",
+                      "owner_id": 5,
+                      "owner": {
+                        "id_user": 5,
+                        "full_name": "Nuevo Propietario",
+                        "email": "nuevo@ucaldas.edu.co"
+                      }
+                    },
+                    "previous_owner_id": 3,
+                    "new_owner_id": 5
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "El nuevo propietario debe ser miembro del grupo o ya eres el propietario"
+          },
+          "403": {
+            "description": "Solo el propietario actual puede transferir la propiedad"
+          },
+          "404": {
+            "description": "Grupo o usuario no encontrado"
+          }
+        },
+        "summary": "HU: Transferir propiedad del grupo (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/request-ownership-transfer/{candidateId}": {
+      "post": {
+        "description": "El owner designa un candidato. El candidato queda en pending_owner_id hasta que acepte o el owner cancele.",
+        "operationId": "GroupsController_requestOwnershipTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "candidateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Solicitud enviada al candidato."
+          },
+          "400": {
+            "description": "Ya existe una transferencia pendiente, candidato no es miembro, o intento de auto-transferencia."
+          },
+          "403": {
+            "description": "Solo el propietario puede iniciar la transferencia."
+          },
+          "404": {
+            "description": "Grupo o candidato no encontrado."
+          }
+        },
+        "summary": "US-W02: Solicitar transferencia de propiedad con confirmación",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/accept-ownership-transfer": {
+      "patch": {
+        "description": "Solo el usuario en pending_owner_id puede llamar este endpoint. Ejecuta el cambio de owner y limpia el campo pendiente.",
+        "operationId": "GroupsController_acceptOwnershipTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transferencia aceptada. Ahora eres el propietario."
+          },
+          "400": {
+            "description": "No hay transferencia pendiente."
+          },
+          "403": {
+            "description": "No eres el candidato designado."
+          },
+          "404": {
+            "description": "Grupo no encontrado."
+          }
+        },
+        "summary": "US-W02: Candidato acepta la transferencia de propiedad",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/cancel-ownership-transfer": {
+      "delete": {
+        "operationId": "GroupsController_cancelOwnershipTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "US-W02: Owner cancela la solicitud de transferencia pendiente",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/decline-ownership-transfer": {
+      "delete": {
+        "operationId": "GroupsController_declineOwnershipTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transferencia declinada."
+          },
+          "403": {
+            "description": "Solo el candidato designado puede declinar."
+          }
+        },
+        "summary": "US-W02: Candidato declina la propuesta de transferencia",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/invite/{inviteeId}": {
+      "post": {
+        "description": "Owner invita a un usuario conectado al grupo",
+        "operationId": "GroupsController_inviteUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "inviteeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Invitación enviada"
+          },
+          "400": {
+            "description": "Sin conexión aceptada o ya es miembro"
+          },
+          "403": {
+            "description": "No eres el owner"
+          }
+        },
+        "summary": "HU: Invitar usuario (Solo owner)",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/info": {
+      "get": {
+        "description": "Obtiene info del grupo con datos sobre permisos y rol del usuario actual",
+        "operationId": "GroupsController_getGroupInfo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Información del grupo"
+          },
+          "404": {
+            "description": "Grupo no encontrado"
+          }
+        },
+        "summary": "HU: Información del grupo con permisos del usuario",
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/invitations/{invitationId}/accept": {
+      "patch": {
+        "operationId": "GroupsController_acceptInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/groups/{id}/invitations/{invitationId}/reject": {
+      "patch": {
+        "operationId": "GroupsController_rejectInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "groups"
+        ]
+      }
+    },
+    "/api/messages": {
+      "post": {
+        "operationId": "MessagesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensaje creado exitosamente."
+          }
+        },
+        "summary": "Crear un nuevo mensaje",
+        "tags": [
+          "messages"
+        ]
+      },
+      "get": {
+        "operationId": "MessagesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de todos los mensajes."
+          }
+        },
+        "summary": "Obtener todos los mensajes",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/group/{id_group}/recent": {
+      "get": {
+        "operationId": "MessagesController_findRecentByGroup",
+        "parameters": [
+          {
+            "name": "id_group",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Número de mensajes a cargar (default 50)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "beforeId",
+            "required": false,
+            "in": "query",
+            "description": "Cursor: id_message del mensaje más antiguo ya cargado",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "since",
+            "required": false,
+            "in": "query",
+            "description": "Unix timestamp (ms): devuelve mensajes posteriores a esa fecha (para sincronizar desconexiones)",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "{ messages: Message[], hasMore: boolean }"
+          }
+        },
+        "summary": "Obtener mensajes recientes de un grupo (con cursor)",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/group/{id_group}/count": {
+      "get": {
+        "operationId": "MessagesController_countByGroup",
+        "parameters": [
+          {
+            "name": "id_group",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Número total de mensajes."
+          }
+        },
+        "summary": "Contar mensajes de un grupo",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/group/{id_group}/last": {
+      "get": {
+        "operationId": "MessagesController_getLastMessage",
+        "parameters": [
+          {
+            "name": "id_group",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Último mensaje del grupo."
+          }
+        },
+        "summary": "Obtener último mensaje de un grupo",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/group/{id_group}/search": {
+      "get": {
+        "operationId": "MessagesController_searchInGroup",
+        "parameters": [
+          {
+            "name": "id_group",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Término de búsqueda",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensajes encontrados."
+          }
+        },
+        "summary": "Buscar mensajes en un grupo",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/group/{id_group}": {
+      "get": {
+        "operationId": "MessagesController_findByGroup",
+        "parameters": [
+          {
+            "name": "id_group",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de mensajes del grupo."
+          }
+        },
+        "summary": "Obtener todos los mensajes de un grupo",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/membership/{id_membership}": {
+      "get": {
+        "operationId": "MessagesController_findByMembership",
+        "parameters": [
+          {
+            "name": "id_membership",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de mensajes de la membresía."
+          }
+        },
+        "summary": "Obtener mensajes de una membresía",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/{id}": {
+      "get": {
+        "operationId": "MessagesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensaje encontrado."
+          },
+          "404": {
+            "description": "Mensaje no encontrado."
+          }
+        },
+        "summary": "Obtener un mensaje por ID",
+        "tags": [
+          "messages"
+        ]
+      },
+      "patch": {
+        "operationId": "MessagesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Actualizar un mensaje (deprecated)",
+        "tags": [
+          "messages"
+        ]
+      },
+      "delete": {
+        "operationId": "MessagesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensaje eliminado."
+          },
+          "403": {
+            "description": "Sin permiso para eliminar."
+          }
+        },
+        "summary": "Eliminar un mensaje",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/messages/{id}/edit": {
+      "patch": {
+        "operationId": "MessagesController_editMessage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensaje editado."
+          },
+          "403": {
+            "description": "Sin permiso para editar."
+          }
+        },
+        "summary": "Editar un mensaje",
+        "tags": [
+          "messages"
+        ]
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "operationId": "NotificationsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_getUnreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/notifications/expo-push-token": {
+      "post": {
+        "operationId": "NotificationsController_saveExpoPushToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpoPushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/notifications/expo-push-token/{token}": {
+      "delete": {
+        "operationId": "NotificationsController_deleteExpoPushToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/notifications/preferencias": {
+      "get": {
+        "operationId": "NotificationsController_obtenerPreferencias",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "NotificationsController_actualizarPreferencia",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreferenciaCanalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/api/connections/pending": {
+      "get": {
+        "operationId": "ConnectionsController_getPendingRequests",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Connections"
+        ]
+      }
+    },
+    "/api/connections/status/{userId}": {
+      "get": {
+        "operationId": "ConnectionsController_getConnectionStatus",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Connections"
+        ]
+      }
+    },
+    "/api/connections/request": {
+      "post": {
+        "operationId": "ConnectionsController_sendConnectionRequest",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConnectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Connections"
+        ]
+      }
+    },
+    "/api/connections/{id}/accept": {
+      "patch": {
+        "operationId": "ConnectionsController_acceptConnectionRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Connections"
+        ]
+      }
+    },
+    "/api/connections/{id}/reject": {
+      "patch": {
+        "operationId": "ConnectionsController_rejectConnectionRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Connections"
+        ]
+      }
+    },
+    "/api/memberships": {
+      "post": {
+        "operationId": "MembershipsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      },
+      "get": {
+        "operationId": "MembershipsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/memberships/{id}": {
+      "get": {
+        "operationId": "MembershipsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      },
+      "patch": {
+        "operationId": "MembershipsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      },
+      "delete": {
+        "operationId": "MembershipsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/memberships/user/{id_user}": {
+      "get": {
+        "operationId": "MembershipsController_findByUser",
+        "parameters": [
+          {
+            "name": "id_user",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/memberships/group/{id_group}": {
+      "get": {
+        "operationId": "MembershipsController_findByGroup",
+        "parameters": [
+          {
+            "name": "id_group",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/memberships/{id}/toggle-admin": {
+      "patch": {
+        "operationId": "MembershipsController_toggleAdmin",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Memberships"
+        ]
+      }
+    },
+    "/api/group-invitations": {
+      "post": {
+        "operationId": "GroupInvitationsController_sendInvitation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitación enviada exitosamente."
+          },
+          "403": {
+            "description": "Solo administradores pueden invitar."
+          }
+        },
+        "summary": "Enviar invitación a un grupo (solo admin)",
+        "tags": [
+          "group-invitations"
+        ]
+      }
+    },
+    "/api/group-invitations/pending/{userId}": {
+      "get": {
+        "operationId": "GroupInvitationsController_getPendingInvitations",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de invitaciones pendientes."
+          }
+        },
+        "summary": "Obtener invitaciones pendientes del usuario",
+        "tags": [
+          "group-invitations"
+        ]
+      }
+    },
+    "/api/group-invitations/sent/{userId}": {
+      "get": {
+        "operationId": "GroupInvitationsController_getSentInvitations",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de invitaciones enviadas."
+          }
+        },
+        "summary": "Obtener invitaciones enviadas por el usuario",
+        "tags": [
+          "group-invitations"
+        ]
+      }
+    },
+    "/api/group-invitations/{id}/respond": {
+      "patch": {
+        "operationId": "GroupInvitationsController_respondToInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondGroupInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta procesada exitosamente."
+          },
+          "404": {
+            "description": "Invitación no encontrada."
+          }
+        },
+        "summary": "Responder a una invitación (aceptar o rechazar)",
+        "tags": [
+          "group-invitations"
+        ]
+      }
+    },
+    "/api/group-invitations/{id}": {
+      "delete": {
+        "operationId": "GroupInvitationsController_cancelInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitación cancelada."
+          },
+          "403": {
+            "description": "Sin permiso para cancelar."
+          }
+        },
+        "summary": "Cancelar una invitación (solo quien la envió)",
+        "tags": [
+          "group-invitations"
+        ]
+      }
+    },
+    "/api/files/health": {
+      "get": {
+        "operationId": "FilesController_healthCheck",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Files"
+        ]
+      }
+    },
+    "/api/files/upload": {
+      "post": {
+        "operationId": "FilesController_uploadFiles",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Files"
+        ]
+      }
+    },
+    "/api/files/{id}/download": {
+      "get": {
+        "operationId": "FilesController_getDownloadUrl",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Files"
+        ]
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "operationId": "EventsController_getCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener todas las categorías de eventos",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/events/categories/subscriptions": {
+      "get": {
+        "operationId": "EventsController_getSubscriptions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener IDs de categorías suscritas por el usuario autenticado",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/eventos/suscribir": {
+      "post": {
+        "operationId": "EventsController_subscribeByBody",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "id_category": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id_category"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "CA2: Suscribirse a una categoría de eventos",
+        "tags": [
+          "events"
+        ]
+      },
+      "delete": {
+        "operationId": "EventsController_unsubscribeByBody",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "id_category": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id_category"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "CA2: Cancelar suscripción a una categoría de eventos",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/events/categories/{categoryId}/subscribe": {
+      "post": {
+        "operationId": "EventsController_subscribeCategory",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Suscribirse a una categoría de eventos (vía param)",
+        "tags": [
+          "events"
+        ]
+      },
+      "delete": {
+        "operationId": "EventsController_unsubscribeCategory",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancelar suscripción a una categoría de eventos (vía param)",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/events": {
+      "get": {
+        "operationId": "EventsController_getEvents",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener eventos, filtrado opcional por categoryId",
+        "tags": [
+          "events"
+        ]
+      },
+      "post": {
+        "operationId": "EventsController_createEvent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear un nuevo evento (requiere autenticación)",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/events/{id}": {
+      "get": {
+        "operationId": "EventsController_getEventById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener un evento por ID",
+        "tags": [
+          "events"
+        ]
+      }
+    },
+    "/api/groups/{groupId}/polls": {
+      "post": {
+        "operationId": "PollsController_createPoll",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePollDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Encuesta creada con opciones y estado inicial."
+          },
+          "400": {
+            "description": "closesAt debe ser en el futuro."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear una encuesta rápida en el chat de grupo",
+        "tags": [
+          "polls"
+        ]
+      }
+    },
+    "/api/polls/{pollId}/vote": {
+      "post": {
+        "operationId": "PollsController_castVote",
+        "parameters": [
+          {
+            "name": "pollId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CastVoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Encuesta actualizada con los nuevos porcentajes."
+          },
+          "409": {
+            "description": "Ya registraste tu voto en esta encuesta"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Registrar voto en una encuesta activa",
+        "tags": [
+          "polls"
+        ]
+      }
+    },
+    "/api/polls/{pollId}": {
+      "get": {
+        "operationId": "PollsController_getPoll",
+        "parameters": [
+          {
+            "name": "pollId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Encuesta con opciones, conteos y porcentajes."
+          },
+          "404": {
+            "description": "Encuesta no encontrada."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener encuesta con resultados y porcentajes",
+        "tags": [
+          "polls"
+        ]
+      }
+    },
+    "/api/courses/{courseId}/forum/questions": {
+      "get": {
+        "operationId": "ForumController_getQuestions",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preguntas ordenadas por votos desc."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar preguntas del foro de una asignatura",
+        "tags": [
+          "forum"
+        ]
+      },
+      "post": {
+        "operationId": "ForumController_createQuestion",
+        "parameters": [
+          {
+            "name": "courseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pregunta creada."
+          },
+          "403": {
+            "description": "Se requiere matrícula en la asignatura."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publicar una pregunta (requiere matrícula en la asignatura)",
+        "tags": [
+          "forum"
+        ]
+      }
+    },
+    "/api/forum/questions/{questionId}/answers": {
+      "get": {
+        "operationId": "ForumController_getAnswers",
+        "parameters": [
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar respuestas de una pregunta",
+        "tags": [
+          "forum"
+        ]
+      },
+      "post": {
+        "operationId": "ForumController_createAnswer",
+        "parameters": [
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAnswerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Respuesta creada."
+          },
+          "403": {
+            "description": "Se requiere matrícula en la asignatura."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Responder una pregunta (requiere matrícula)",
+        "tags": [
+          "forum"
+        ]
+      }
+    },
+    "/api/forum/questions/{questionId}/vote": {
+      "post": {
+        "operationId": "ForumController_voteQuestion",
+        "parameters": [
+          {
+            "name": "questionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Votar una pregunta",
+        "tags": [
+          "forum"
+        ]
+      }
+    },
+    "/api/forum/answers/{answerId}/vote": {
+      "post": {
+        "operationId": "ForumController_voteAnswer",
+        "parameters": [
+          {
+            "name": "answerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Votar una respuesta",
+        "tags": [
+          "forum"
+        ]
+      }
+    },
+    "/api/forum/answers/{answerId}/accept": {
+      "patch": {
+        "operationId": "ForumController_acceptAnswer",
+        "parameters": [
+          {
+            "name": "answerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Solo el docente puede aceptar respuestas."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Marcar respuesta como aceptada (solo docente)",
+        "tags": [
+          "forum"
+        ]
+      }
+    },
+    "/api/groups/{groupId}/study-sessions": {
+      "post": {
+        "operationId": "StudySessionsController_createSession",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateStudySessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sesión(es) creada(s) con sus instancias."
+          },
+          "400": {
+            "description": "Validación fallida o fecha en el pasado."
+          },
+          "404": {
+            "description": "Grupo no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear sesión de estudio con recurrencia opcional",
+        "tags": [
+          "study-sessions"
+        ]
+      },
+      "get": {
+        "operationId": "StudySessionsController_getSessionsByGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de instancias con indicador de recurrencia."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar sesiones activas del grupo ordenadas por fecha",
+        "tags": [
+          "study-sessions"
+        ]
+      }
+    },
+    "/api/groups/{groupId}/study-sessions/{instanceId}": {
+      "delete": {
+        "operationId": "StudySessionsController_cancelInstance",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "instanceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Instancia cancelada."
+          },
+          "403": {
+            "description": "No eres el owner ni el creador de la sesión."
+          },
+          "404": {
+            "description": "Instancia no encontrada."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancelar una instancia individual de la serie (CA3)",
+        "tags": [
+          "study-sessions"
+        ]
+      }
+    },
+    "/api/groups/{groupId}/study-sessions/{instanceId}/attendance": {
+      "patch": {
+        "operationId": "StudySessionsController_updateAttendance",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "instanceId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAttendanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Asistencia actualizada. Organizador notificado via Observer."
+          },
+          "400": {
+            "description": "Sesión cancelada o datos inválidos."
+          },
+          "404": {
+            "description": "Instancia no encontrada."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Actualizar asistencia a una sesión (CA7)",
+        "tags": [
+          "study-sessions"
+        ]
+      }
+    },
+    "/api/biblioteca/programas": {
+      "get": {
+        "operationId": "BibliotecaController_listarProgramas",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Lista de programas académicos del usuario"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar programas a los que el usuario tiene acceso",
+        "tags": [
+          "biblioteca"
+        ]
+      }
+    },
+    "/api/biblioteca/programas/{id}/recursos": {
+      "get": {
+        "operationId": "BibliotecaController_listarRecursos",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del programa académico",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "tipo",
+            "required": false,
+            "in": "query",
+            "description": "Filtrar por tipo de contenido",
+            "schema": {
+              "enum": [
+                "ENLACE",
+                "DOCUMENTO",
+                "VIDEO",
+                "IMAGEN",
+                "ARTICULO",
+                "OTRO"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de recursos decorados del programa"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "403": {
+            "description": "El usuario no pertenece al programa solicitado"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar recursos del programa con filtro por tipo_contenido",
+        "tags": [
+          "biblioteca"
+        ]
+      },
+      "post": {
+        "operationId": "BibliotecaController_crearRecurso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del programa académico",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recurso creado con metadatos OG extraídos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateResourceDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Payload inválido — se requiere url_externa o titulo"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "403": {
+            "description": "El usuario no pertenece al programa"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear recurso con extracción automática de metadatos Open Graph",
+        "tags": [
+          "biblioteca"
+        ]
+      }
+    },
+    "/api/biblioteca/recursos/{id}": {
+      "get": {
+        "operationId": "BibliotecaController_obtenerRecurso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Obtener recurso decorado por ID",
+        "tags": [
+          "biblioteca"
+        ]
+      },
+      "patch": {
+        "operationId": "BibliotecaController_editarRecurso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "CA3: Editar recurso (solo propietario o admin del grupo asociado)",
+        "tags": [
+          "biblioteca"
+        ]
+      },
+      "delete": {
+        "operationId": "BibliotecaController_eliminarRecurso",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del recurso",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recurso eliminado correctamente"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permiso — no es propietario ni admin del grupo"
+          },
+          "404": {
+            "description": "Recurso no encontrado"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Eliminar recurso (solo propietario o admin del grupo asociado)",
+        "tags": [
+          "biblioteca"
+        ]
+      }
+    },
+    "/api/biblioteca/recursos/{id}/comentarios": {
+      "post": {
+        "operationId": "BibliotecaController_comentar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del recurso",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comentario agregado"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Agregar comentario a un recurso",
+        "tags": [
+          "biblioteca"
+        ]
+      }
+    },
+    "/api/biblioteca/recursos/{id}/valoracion": {
+      "post": {
+        "operationId": "BibliotecaController_valorar",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID del recurso",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateResourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Valoración registrada o actualizada"
+          },
+          "400": {
+            "description": "Valor fuera del rango 1–5"
+          },
+          "401": {
+            "description": "Token JWT ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Valorar un recurso (1–5 estrellas, upsert)",
+        "tags": [
+          "biblioteca"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Uniconnect API",
+    "description": "Documentación oficial de la API REST de Uniconnect — red social universitaria.\n\nTodos los endpoints protegidos requieren un JWT Bearer token obtenido en `POST /api/auth/callback`.\n\n**OpenAPI JSON**: `GET /docs-json`  |  **OpenAPI YAML**: `GET /docs-yaml`",
+    "version": "0.0.1",
+    "contact": {
+      "name": "Uniconnect Team",
+      "url": "",
+      "email": "luma1017hl@gmail.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "tags": [],
+  "servers": [
+    {
+      "url": "http://localhost:8007",
+      "description": "Desarrollo local"
+    },
+    {
+      "url": "https://uniconnect-backend.fly.dev",
+      "description": "Producción (Fly.io)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "access-token": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "GoogleLoginDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "TempLoginDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "Auth0CallbackDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Authorization code received from Auth0 Universal Login",
+            "example": "abc123def456ghi789"
+          },
+          "redirect_uri": {
+            "type": "string",
+            "description": "Redirect URI used in the Auth0 authorization request",
+            "example": "exp://localhost:8081/--/auth/callback"
+          },
+          "code_verifier": {
+            "type": "string",
+            "description": "PKCE code_verifier used to generate the code_challenge",
+            "example": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
+          }
+        },
+        "required": [
+          "code",
+          "redirect_uri",
+          "code_verifier"
+        ]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "description": "Refresh token received from Auth0",
+            "example": "refresh_token_string_here"
+          },
+          "user_id": {
+            "type": "number",
+            "description": "User ID for token validation",
+            "example": 1
+          }
+        },
+        "required": [
+          "refresh_token",
+          "user_id"
+        ]
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "JWT access token to invalidate",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "access_token"
+        ]
+      },
+      "ProfileUpdateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CompleteOnboardingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateCourseDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ingeniería de Software III",
+            "description": "Nombre de la materia"
+          },
+          "id_program": {
+            "type": "number",
+            "example": 1,
+            "description": "ID del programa al que pertenece"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateProgramDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ingeniería de Sistemas",
+            "description": "Nombre del programa académico"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateEnrollmentDto": {
+        "type": "object",
+        "properties": {
+          "id_course": {
+            "type": "number",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "example": "active"
+          }
+        },
+        "required": [
+          "id_course"
+        ]
+      },
+      "CreateGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Grupo de Estudio Cálculo III",
+            "description": "Nombre del grupo"
+          },
+          "description": {
+            "type": "string",
+            "example": "Repaso para el parcial final"
+          },
+          "id_course": {
+            "type": "number",
+            "example": 1,
+            "description": "ID de la materia (course)"
+          }
+        },
+        "required": [
+          "name",
+          "id_course"
+        ]
+      },
+      "UpdateGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Grupo de Estudio Cálculo III",
+            "description": "Nombre del grupo"
+          },
+          "description": {
+            "type": "string",
+            "example": "Repaso para el parcial final"
+          },
+          "id_course": {
+            "type": "number",
+            "example": 1,
+            "description": "ID de la materia (course)"
+          }
+        }
+      },
+      "CreateMessageDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMessageDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ExpoPushTokenDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PreferenciaCanalDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateConnectionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateMembershipDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMembershipDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateGroupInvitationDto": {
+        "type": "object",
+        "properties": {
+          "id_group": {
+            "type": "number",
+            "description": "ID del grupo al que se invita",
+            "example": 1
+          },
+          "inviter_id": {
+            "type": "number",
+            "description": "ID del usuario que envía la invitación (debe ser admin)",
+            "example": 1
+          },
+          "invitee_id": {
+            "type": "number",
+            "description": "ID del usuario que recibe la invitación",
+            "example": 2
+          }
+        },
+        "required": [
+          "id_group",
+          "inviter_id",
+          "invitee_id"
+        ]
+      },
+      "RespondGroupInvitationDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Respuesta a la invitación: accepted o rejected",
+            "example": "accepted",
+            "enum": [
+              "accepted",
+              "rejected"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateEventDto": {
+        "type": "object",
+        "properties": {
+          "id_category": {
+            "type": "number",
+            "example": 1
+          },
+          "title": {
+            "type": "string",
+            "example": "Conferencia de Inteligencia Artificial"
+          },
+          "description": {
+            "type": "string",
+            "example": "Charla sobre avances en IA aplicada a la educación."
+          },
+          "location": {
+            "type": "string",
+            "example": "Auditorio principal, Bloque A"
+          },
+          "start_date": {
+            "type": "string",
+            "example": "2026-06-10T09:00:00Z"
+          },
+          "end_date": {
+            "type": "string",
+            "example": "2026-06-10T12:00:00Z"
+          }
+        },
+        "required": [
+          "id_category",
+          "title",
+          "description",
+          "location",
+          "start_date",
+          "end_date"
+        ]
+      },
+      "CreatePollDto": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "example": "¿Cuál es tu opción favorita?"
+          },
+          "options": {
+            "example": [
+              "Opción A",
+              "Opción B"
+            ],
+            "minItems": 2,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "closesAt": {
+            "type": "string",
+            "example": "2025-12-31T23:59:00.000Z"
+          }
+        },
+        "required": [
+          "question",
+          "options",
+          "closesAt"
+        ]
+      },
+      "CastVoteDto": {
+        "type": "object",
+        "properties": {
+          "optionId": {
+            "type": "number",
+            "example": 1,
+            "description": "ID de la opción seleccionada"
+          }
+        },
+        "required": [
+          "optionId"
+        ]
+      },
+      "CreateQuestionDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "¿Cómo funciona la recursión en Python?"
+          },
+          "body": {
+            "type": "string",
+            "example": "Estoy tratando de entender la recursión..."
+          }
+        },
+        "required": [
+          "title",
+          "body"
+        ]
+      },
+      "CreateAnswerDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "example": "La recursión es cuando una función se llama a sí misma..."
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "CreateStudySessionDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Repaso de Álgebra Lineal"
+          },
+          "description": {
+            "type": "string",
+            "example": "Capítulos 3 y 4, traer calculadora"
+          },
+          "startDatetime": {
+            "type": "string",
+            "example": "2026-06-10T14:00:00.000Z"
+          },
+          "durationMinutes": {
+            "type": "number",
+            "example": 90,
+            "description": "Duración en minutos"
+          },
+          "recurrenceType": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "WEEKLY"
+            ],
+            "default": "NONE"
+          },
+          "recurrenceEndDate": {
+            "type": "string",
+            "example": "2026-08-31T23:59:00.000Z"
+          }
+        },
+        "required": [
+          "title",
+          "startDatetime",
+          "durationMinutes",
+          "recurrenceType"
+        ]
+      },
+      "UpdateAttendanceDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "DECLINED",
+              "PENDING"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "CreateResourceDto": {
+        "type": "object",
+        "properties": {
+          "url_externa": {
+            "type": "string",
+            "example": "https://arxiv.org/abs/2106.09685"
+          },
+          "titulo": {
+            "type": "string",
+            "example": "Attention is All You Need"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "tipo_contenido": {
+            "type": "string",
+            "enum": [
+              "ENLACE",
+              "DOCUMENTO",
+              "VIDEO",
+              "IMAGEN",
+              "ARTICULO",
+              "OTRO"
+            ],
+            "default": "ENLACE"
+          },
+          "etiquetas": {
+            "example": [
+              "IA",
+              "Deep Learning"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id_group": {
+            "type": "number",
+            "example": 1
+          }
+        }
+      },
+      "UpdateResourceDto": {
+        "type": "object",
+        "properties": {
+          "titulo": {
+            "type": "string"
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "tipo_contenido": {
+            "type": "string",
+            "enum": [
+              "ENLACE",
+              "DOCUMENTO",
+              "VIDEO",
+              "IMAGEN",
+              "ARTICULO",
+              "OTRO"
+            ]
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AddCommentDto": {
+        "type": "object",
+        "properties": {
+          "contenido": {
+            "type": "string",
+            "example": "Excelente recurso, muy útil para el parcial."
+          }
+        },
+        "required": [
+          "contenido"
+        ]
+      },
+      "RateResourceDto": {
+        "type": "object",
+        "properties": {
+          "valor": {
+            "type": "number",
+            "example": 4,
+            "minimum": 1,
+            "maximum": 5
+          }
+        },
+        "required": [
+          "valor"
+        ]
+      }
+    }
+  }
+}

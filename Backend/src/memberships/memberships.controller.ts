@@ -8,64 +8,61 @@ import {
   Delete,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { MembershipsService } from './memberships.service';
 import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
 
+@ApiTags('memberships')
 @Controller('memberships')
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
-  /**
-   * POST /memberships
-   * Crear una nueva membresía (agregar usuario a grupo)
-   */
   @Post()
+  @ApiOperation({ summary: 'Crear membresía — agregar usuario a grupo' })
+  @ApiResponse({ status: 201, description: 'Membresía creada' })
+  @ApiResponse({ status: 400, description: 'Payload inválido' })
   create(@Body() createMembershipDto: CreateMembershipDto) {
     return this.membershipsService.create(createMembershipDto);
   }
 
-  /**
-   * GET /memberships
-   * Obtener todas las membresías
-   */
   @Get()
+  @ApiOperation({ summary: 'Listar todas las membresías' })
+  @ApiResponse({ status: 200, description: 'Lista de membresías' })
   findAll() {
     return this.membershipsService.findAll();
   }
 
-  /**
-   * GET /memberships/:id
-   * Obtener una membresía por su ID
-   */
   @Get(':id')
+  @ApiOperation({ summary: 'Obtener membresía por ID' })
+  @ApiParam({ name: 'id', description: 'ID de la membresía', type: Number })
+  @ApiResponse({ status: 200, description: 'Membresía encontrada' })
+  @ApiResponse({ status: 404, description: 'Membresía no encontrada' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.membershipsService.findOne(id);
   }
 
-  /**
-   * GET /memberships/user/:id_user
-   * Obtener todas las membresías de un usuario
-   */
   @Get('user/:id_user')
+  @ApiOperation({ summary: 'Obtener todas las membresías de un usuario' })
+  @ApiParam({ name: 'id_user', description: 'ID del usuario', type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de membresías del usuario' })
   findByUser(@Param('id_user', ParseIntPipe) id_user: number) {
     return this.membershipsService.findByUser(id_user);
   }
 
-  /**
-   * GET /memberships/group/:id_group
-   * Obtener todas las membresías de un grupo
-   */
   @Get('group/:id_group')
+  @ApiOperation({ summary: 'Obtener todas las membresías de un grupo' })
+  @ApiParam({ name: 'id_group', description: 'ID del grupo', type: Number })
+  @ApiResponse({ status: 200, description: 'Lista de membresías del grupo' })
   findByGroup(@Param('id_group', ParseIntPipe) id_group: number) {
     return this.membershipsService.findByGroup(id_group);
   }
 
-  /**
-   * PATCH /memberships/:id
-   * Actualizar una membresía
-   */
   @Patch(':id')
+  @ApiOperation({ summary: 'Actualizar membresía por ID' })
+  @ApiParam({ name: 'id', description: 'ID de la membresía', type: Number })
+  @ApiResponse({ status: 200, description: 'Membresía actualizada' })
+  @ApiResponse({ status: 404, description: 'Membresía no encontrada' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateMembershipDto: UpdateMembershipDto,
@@ -73,11 +70,11 @@ export class MembershipsController {
     return this.membershipsService.update(id, updateMembershipDto);
   }
 
-  /**
-   * PATCH /memberships/:id/toggle-admin
-   * Promover/degradar un usuario a admin
-   */
   @Patch(':id/toggle-admin')
+  @ApiOperation({ summary: 'Promover o degradar usuario a administrador del grupo' })
+  @ApiParam({ name: 'id', description: 'ID de la membresía', type: Number })
+  @ApiResponse({ status: 200, description: 'Rol de admin actualizado' })
+  @ApiResponse({ status: 404, description: 'Membresía no encontrada' })
   toggleAdmin(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { is_admin: boolean },
@@ -85,11 +82,11 @@ export class MembershipsController {
     return this.membershipsService.toggleAdmin(id, body.is_admin);
   }
 
-  /**
-   * DELETE /memberships/:id
-   * Eliminar una membresía (remover usuario del grupo)
-   */
   @Delete(':id')
+  @ApiOperation({ summary: 'Eliminar membresía — remover usuario del grupo' })
+  @ApiParam({ name: 'id', description: 'ID de la membresía', type: Number })
+  @ApiResponse({ status: 200, description: 'Membresía eliminada' })
+  @ApiResponse({ status: 404, description: 'Membresía no encontrada' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.membershipsService.remove(id);
   }
