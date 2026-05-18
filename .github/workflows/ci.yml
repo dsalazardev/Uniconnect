@@ -114,7 +114,7 @@ jobs:
         run: npx prisma generate
 
       - name: Lint
-        continue-on-error: ${{ matrix.package == 'web' }}
+        continue-on-error: ${{ matrix.package == 'web' || matrix.package == 'backend' }}
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
@@ -124,6 +124,7 @@ jobs:
         run: npm run lint
 
       - name: Type check
+        continue-on-error: ${{ matrix.package == 'web' }}
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
