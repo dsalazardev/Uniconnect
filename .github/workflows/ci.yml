@@ -122,7 +122,7 @@ jobs:
           (matrix.package == 'mobile'  && needs.changes.outputs.mobile  == 'true') ||
           (matrix.package == 'shared'  && needs.changes.outputs.shared  == 'true') ||
           needs.changes.outputs.ci == 'true'
-        run: npm run lint || true
+        run: npm run lint
 
       - name: Type check
         if: >-
@@ -131,16 +131,17 @@ jobs:
           (matrix.package == 'mobile'  && needs.changes.outputs.mobile  == 'true') ||
           (matrix.package == 'shared'  && needs.changes.outputs.shared  == 'true') ||
           needs.changes.outputs.ci == 'true'
-        run: npm run ${{ matrix.typecheck-script }} || true
+        run: npm run ${{ matrix.typecheck-script }}
 
       - name: Test with coverage
+        continue-on-error: true
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
           (matrix.package == 'mobile'  && needs.changes.outputs.mobile  == 'true') ||
           (matrix.package == 'shared'  && needs.changes.outputs.shared  == 'true') ||
           needs.changes.outputs.ci == 'true'
-        run: npm run test -- --coverage --passWithNoTests || true
+        run: npm run test -- --coverage --passWithNoTests
         env:
           CI: true
 
