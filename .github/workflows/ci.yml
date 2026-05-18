@@ -65,8 +65,6 @@ jobs:
             typecheck-script: typecheck
             needs-prisma: false
     runs-on: ubuntu-latest
-    env:
-      ESLINT_USE_FLAT_CONFIG: false
     defaults:
       run:
         working-directory: ${{ matrix.workdir }}
@@ -116,6 +114,8 @@ jobs:
         run: npx prisma generate
 
       - name: Lint
+        env:
+          ESLINT_USE_FLAT_CONFIG: "false"
         if: >-
           (matrix.package == 'backend' && needs.changes.outputs.backend == 'true') ||
           (matrix.package == 'web'     && needs.changes.outputs.web     == 'true') ||
