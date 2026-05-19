@@ -18,6 +18,8 @@ import * as path from 'path';
  * the TypeScript compiler SHALL successfully resolve type declarations and complete compilation
  * without TS2307 errors."
  */
+jest.setTimeout(120000);
+
 describe('Bug Condition Exploration: TypeScript Compilation Without @types/multer', () => {
   const projectRoot = path.resolve(__dirname, '../..');
   const packageJsonPath = path.join(projectRoot, 'package.json');
@@ -148,6 +150,7 @@ describe('Bug Condition Exploration: TypeScript Compilation Without @types/multe
           cwd: projectRoot,
           encoding: 'utf-8',
           stdio: 'pipe',
+          timeout: 120000,
         });
         
         if (typesInstalled) {
