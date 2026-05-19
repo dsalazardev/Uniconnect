@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Server, Socket } from 'socket.io';
 import { MessageReadDto, UserPresenceDto, GroupActivityDto } from '../dto/websocket-message.dto';
 import { ChatSessionManager } from '../managers/chat-session.manager';
+import { VALIDACION_CHAIN_TOKEN } from '../application/messages.service';
 
 describe('MessagesGateway - Observer Pattern', () => {
   let gateway: MessagesGateway;
@@ -33,6 +34,13 @@ describe('MessagesGateway - Observer Pattern', () => {
             membership: {
               findFirst: jest.fn(),
             },
+          },
+        },
+        {
+          provide: VALIDACION_CHAIN_TOKEN,
+          useValue: {
+            setSiguiente: jest.fn(),
+            manejar: jest.fn().mockReturnValue({ valido: true }),
           },
         },
       ],

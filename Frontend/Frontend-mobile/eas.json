@@ -16,9 +16,6 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
-      },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://uniconnect-backend-core-black-wave-3099.fly.dev/api"
       }
     },
     "production": {
