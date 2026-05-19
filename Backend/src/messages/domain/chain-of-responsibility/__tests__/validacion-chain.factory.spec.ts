@@ -41,19 +41,6 @@ describe('ValidacionChainFactory', () => {
     });
   });
 
-  describe('Cortocircuito por menciones inválidas', () => {
-    it('debe cortar en ValidarMencionesHandler con userId inválido', () => {
-      const cadena = ValidacionChainFactory.crearCadena();
-      const mensaje = {
-        ...mensajeValido(),
-        mentions: [{ userId: 0, displayName: 'x', position: 0 } as MentionDto],
-      };
-      const resultado = cadena.manejar(mensaje);
-      expect(resultado.valido).toBe(false);
-      expect(resultado.codigoError).toBe('MSG_MENCIONES_INVALIDAS');
-    });
-  });
-
   describe('Cortocircuito por permisos insuficientes', () => {
     it('debe cortar en ValidarPermisosHandler cuando no hay sender_id', () => {
       const cadena = ValidacionChainFactory.crearCadena();

@@ -1,18 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MessagesService, VALIDACION_CHAIN_REST_TOKEN } from './messages.service';
+import { MessagesService } from './messages.service';
+import { VALIDACION_CHAIN_TOKEN } from './application/messages.service';
 import { MessageRepository } from './message.repository';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MESSAGE_EVENTS } from './events/message.events';
-import { createPrismaMock } from '../test/mocks/prisma.mock';
+import { createPrismaMock, PrismaMock } from '../test/mocks/prisma.mock';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('MessagesService', () => {
   let service: MessagesService;
   let messageRepository: MessageRepository;
   let eventEmitter: EventEmitter2;
+  let prismaMock: PrismaMock;
 
   beforeEach(async () => {
-    const prismaMock = createPrismaMock();
+    prismaMock = createPrismaMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,7 +47,7 @@ describe('MessagesService', () => {
           useValue: prismaMock,
         },
         {
-          provide: VALIDACION_CHAIN_REST_TOKEN,
+          provide: VALIDACION_CHAIN_TOKEN,
           useValue: {
             setSiguiente: jest.fn(),
             manejar: jest.fn().mockReturnValue({ valido: true }),
@@ -203,11 +205,16 @@ describe('MessagesService', () => {
 
   describe('findRecentByGroup', () => {
     it('should find recent messages in a group', async () => {
-      jest.spyOn(messageRepository, 'findRecentByGroup').mockResolvedValue([]);
+      prismaMock.membership.findFirst.mockResolvedValue({
+        id_membership: 1,
+        id_user: 1,
+        id_group: 1,
+      });
+      jest.spyOn(messageRepository, 'findRecentByGroup').mockResolvedValue({ messages: [], hasMore: false });
 
-      const result = await service.findRecentByGroup(1, 50);
-      expect(Array.isArray(result)).toBe(true);
-      expect(messageRepository.findRecentByGroup).toHaveBeenCalledWith(1, 50, undefined);
+      const result = await service.findRecentByGroup(1, 50, undefined, 1);
+      expect(result).toBeDefined();
+      expect(messageRepository.findRecentByGroup).toHaveBeenCalledWith(1, 50, undefined, 1, undefined);
     });
   });
 

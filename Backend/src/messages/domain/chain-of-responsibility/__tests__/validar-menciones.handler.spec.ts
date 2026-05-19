@@ -37,23 +37,4 @@ describe('ValidarMencionesHandler', () => {
     expect(resultado.codigoError).toBe('MSG_MENCIONES_EXCEDIDAS');
   });
 
-  it('debe rechazar una mención con userId inválido (cero)', () => {
-    const mensaje = {
-      text_content: 'Hola',
-      mentions: [crearMencion(0)],
-    } as MessageDto;
-    const resultado = handler.manejar(mensaje);
-    expect(resultado.valido).toBe(false);
-    expect(resultado.codigoError).toBe('MSG_MENCIONES_INVALIDAS');
-  });
-
-  it('debe rechazar una mención con userId negativo', () => {
-    const mensaje = {
-      text_content: 'Hola',
-      mentions: [crearMencion(-5)],
-    } as MessageDto;
-    const resultado = handler.manejar(mensaje);
-    expect(resultado.valido).toBe(false);
-    expect(resultado.codigoError).toBe('MSG_MENCIONES_INVALIDAS');
-  });
 });

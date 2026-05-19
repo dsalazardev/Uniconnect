@@ -31,7 +31,7 @@ describe('Chat Observers', () => {
 
       expect(mockChatGateway.emitToRoom).toHaveBeenCalledWith(
         'private-1-2',
-        'NUEVO_MENSAJE',
+        'message:new',
         expect.objectContaining({
           text_content: 'Private message',
           channel: 'private',
@@ -169,10 +169,10 @@ describe('Chat Observers', () => {
 
       // Private observer should only handle private messages
       privateChatObserver.update(privateMessage);
-      expect(mockChatGateway.emitToRoom).toHaveBeenCalledWith('private-1-2', 'NUEVO_MENSAJE', expect.any(Object));
-      
+      expect(mockChatGateway.emitToRoom).toHaveBeenCalledWith('private-1-2', 'message:new', expect.any(Object));
+
       mockChatGateway.emitToRoom.mockClear();
-      
+
       privateChatObserver.update(groupMessage);
       expect(mockChatGateway.emitToRoom).not.toHaveBeenCalled();
 
