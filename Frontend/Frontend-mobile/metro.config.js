@@ -1,10 +1,23 @@
+const path = require("path");
 const { getDefaultConfig } = require("expo/metro-config");
 
-const config = getDefaultConfig(__dirname);
+const projectRoot = __dirname;
+// Sube 2 niveles para llegar a la raiz del monorepo (uniconnect/)
+const workspaceRoot = path.resolve(projectRoot, "../..");
 
-// Resolver para módulos de Node.js que no existen en React Native
+const config = getDefaultConfig(projectRoot);
+
+// Configuracion obligatoria para monorepos
+config.watchFolders = [workspaceRoot];
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, "node_modules"),
+  path.resolve(workspaceRoot, "node_modules"),
+];
+config.resolver.disableHierarchicalLookup = true;
+
+// Resolver para modulos de Node.js que no existen en React Native
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Módulos de Node.js que no están disponibles en React Native
+  // Modulos de Node.js que no estan disponibles en React Native
   if (
     moduleName === "crypto" ||
     moduleName === "http" ||
@@ -17,13 +30,13 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     moduleName === "os" ||
     moduleName === "path"
   ) {
-    // Retorna un módulo vacío para evitar errores
+    // Retorna un modulo vacio para evitar errores
     return {
       type: "empty",
     };
   }
 
-  // Usa el resolver por defecto para otros módulos
+  // Usa el resolver por defecto para otros modulos
   return context.resolveRequest(context, moduleName, platform);
 };
 
