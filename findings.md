@@ -185,3 +185,228 @@ Además de `JWT_SECRET` y `DATABASE_URL`, `FilesModule` tiene un factory provide
 
 ### H4 — Static imports son hoisted, `require()` no
 TypeScript `import` statements se resuelven antes que cualquier código a nivel de módulo. Para inyectar env vars antes de la inicialización de NestJS, el script `generate-openapi.ts` debió migrar de `import` estático a `require()` dinámico dentro de la función `generate()`.
+
+---
+
+# Findings: AWS Amplify Deploy Failure — Frontend Web
+
+---
+
+## Hallazgo durante implementación del amplify.yml
+
+## Fecha
+2026-05-20
+
+## Síntoma
+El build de Amplify se detiene tras `npm install` con el mensaje "No backend environment association found". La compilación dura 1m 24s y falla sin generar artefactos.
+
+## Diagnóstico
+
+### 1. No existe `amplify.yml` en el repositorio
+```
+$ find . -name "amplify.yml"
+(no results)
+```
+Amplify usa configuración por defecto desde la consola. Sin `amplify.yml`, el pipeline no tiene un build command definido explícitamente, y ejecuta `npm install` desde la raíz del monorepo.
+
+### 2. El build corre desde la RAÍZ del monorepo, no desde Frontend/Frontend-web
+```
+Repo root: /codebuild/output/.../Uniconnect/
+npm install → package.json raíz (con workspaces)
+```
+
+El `package.json` raíz tiene:
+```json
+"workspaces": [
+  "Frontend/shared",
+  "Frontend/Frontend-mobile",
+  "Frontend/Frontend-web",
+  "packages/api-types"
+]
+```
+
+Esto significa que `npm install` instala **TODOS** los workspaces, incluyendo React Native, Expo, etc. — innecesario para el web y añade ~1 minuto de build.
+
+### 3. "No backend environment association" — NO es bloqueante
+Amplify Backend (el antiguo Amplify CLI) busca una carpeta `amplify/` en la raíz. No existe, así que imprime el warning y continúa. No es la causa del fallo, solo ruido en el log.
+
+### 4. El build se detiene POST npm install
+Amplify ejecuta:
+```
+preBuild: npm install  ← SÍ ejecuta, instala 930+ paquetes
+build:    ???           ← No definido → falla o no genera output
+```
+
+Sin `amplify.yml`, Amplify no sabe que debe ejecutar:
+```bash
+cd Frontend/Frontend-web && npm run build
+```
+
+### 5. Dependencias locales `file:`
+`Frontend/Frontend-web/package.json` referencia:
+```json
+"@uniconnect/shared": "file:../shared",
+"@uniconnect/api-types": "file:../../packages/api-types",
+```
+
+Con npm workspaces, estas se resuelven via symlinks en `node_modules/`. Pero si Amplify corre `npm install` desde la raíz y luego intenta `cd Frontend/Frontend-web && npm run build`, los symlinks están rotos porque `npm install` se ejecutó en la raíz, no en el subdirectorio.
+
+### Flujo actual de Amplify (diagrama)
+
+```
+Amplify Console
+│
+├── 1. Clona repositorio → /src/Uniconnect/
+│
+├── 2. Busca amplify.yml → NO EXISTE
+│
+├── 3. Backend Build
+│   └── Busca carpeta amplify/ → NO EXISTE
+│       └── "No backend environment association" (warning)
+│
+├── 4. Frontend Build
+│   ├── preBuild: npm install (desde raíz)
+│   │   └── Instala 930+ paquetes (incluye React Native, Expo)
+│   └── build: ??? (no definido)
+│       └── ❌ FALLA o no produce dist/
+│
+└── 5. Deploy: No hay artefactos → Error
+```
+
+## Raíz del problema
+
+El `package.json` raíz tiene `npm run build:web` que hace `cd Frontend/Frontend-web && npm run build`, pero Amplify no sabe que debe ejecutar ese script. Necesita un `amplify.yml` que:
+
+1. Apunte el `appRoot` o `baseDirectory` a `Frontend/Frontend-web`
+2. Defina `preBuild` para construir `@uniconnect/shared` primero
+3. Defina `build` como `npm run build` (o `tsc -b && vite build`)
+
+## Archivos relevantes
+
+| Archivo | Ruta |
+|---------|------|
+| Root package.json (con workspaces) | `package.json` |
+| Web package.json | `Frontend/Frontend-web/package.json` |
+| Build output dir | `Frontend/Frontend-web/dist/` |
+| Amplify config (no existe) | `amplify.yml` |
+| Docker alternativo | `Frontend/Frontend-web/Dockerfile` |
+| Fly.io config | `Frontend/Frontend-web/fly.toml` |
+
+## Hallazgo durante implementación — TS errors pre-existentes en Frontend-web
+
+Al validar localmente la build del web (`npm run build`), se encontraron **errores de TypeScript pre-existentes** en:
+
+| Archivo | Error |
+|---------|-------|
+| `ProgramList.tsx:8` | `programs` no existe en `UseQueryResult` |
+| `StudentProfile.tsx:120` | Argumento no asignable a `void` |
+| `BibliotecaPage.tsx:169` | `url_externa` no existe en `Resource` |
+| `EventsPage.tsx:10` | `showToast` declarado pero no usado |
+| `EventsPage.tsx:106` | Tipo `CreateEventPayload` vs `CreateEventFormPayload` incompatibles |
+
+Estos 5 errores fueron corregidos en el cambio `fix-frontend-typescript-errors`.
+
+Actualmente quedan **58 errores TypeScript** en el build. Categorizados:
+
+| Categoría | Cantidad | Impacto | Estrategia de bypass |
+|-----------|----------|---------|----------------------|
+| TS6133: unused declarations | 22 | Bajo — variables/imports no usados | `noUnusedLocals: false` en tsconfig |
+| TS2339: property missing | 13 | Medio — bugs reales de tipo | Requiere corregir las interfaces |
+| TS2305: testing-library exports | 6 | Bajo — solo en test files | Excluir `__tests__/` del build tsconfig |
+| TS2554: argument count mismatch | 3 | Medio — función llamada con args incorrectos | Requiere corregir firmas |
+| TS2345: type mismatch | 3 | Medio | Requiere corregir tipos |
+| TS2307: module not found | 3 | Alto — rutas rotas `@/src/...` | Corregir paths en imports |
+| TS7006: implicit any | 2 | Bajo | Tipar parámetros |
+| TS2322: not assignable | 2 | Medio | Corregir tipos |
+| Otros | 4 | Variado | — |
+
+**Total: 58 errores**, de los cuales ~28 son triviales (unused declarations + test imports) y ~30 requieren corrección de tipos real.
+
+---
+
+# Análisis CI/CD — Amplify Monorepo Build Chain
+
+## Estado actual del `amplify.yml`
+
+El archivo `amplify.yml` fue creado en el cambio `deploy-frontend-amplify` y está presente en la raíz:
+
+```yaml
+version: 1
+applications:
+  - appRoot: Frontend/Frontend-web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm ci --legacy-peer-deps
+            - cd ../shared && npm run build
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+```
+
+## Problemas detectados
+
+### P1 — `cd ../shared && npm run build` es probablemente innecesario
+
+El shared package tiene `"main": "src/index.ts"`. Frontend-web importa `@uniconnect/shared` como `file:../shared`, y con `"allowImportingTsExtensions": true` en tsconfig, TypeScript y Vite pueden resolver los `.ts` directamente. El `npm run build` en shared compila a `dist/` pero ese output NO es consumido por el web build.
+
+**Riesgo**: Si el shared package tiene sus propios TS errors, `cd ../shared && npm run build` fallará y detendrá el pipeline antes de llegar al web build.
+
+### P2 — 58 errores TS bloquean `tsc -b`
+
+El build script del web es: `"build": "tsc -b && vite build"`. `tsc -b` (project references) ejecuta type-checking estricto sobre TODO el proyecto incluyendo los 58 errores existentes.
+
+**Solución rápida (recomendada)**: Separar type-checking del build para Amplify:
+```json
+"build:prod": "vite build",
+```
+Esto entrega un build sin type-checking. El type-checking sigue disponible localmente via `npm run type-check`.
+
+### P3 — `@uniconnect/api-types` no existe en el entorno de build
+
+`contract-check.ts` importa `@uniconnect/api-types` que está en `packages/api-types/`. Este paquete se genera desde `openapi.json` y no está pre-compilado en el repo. El build falla porque el módulo no existe.
+
+**Solución**: Excluir `contract-check.ts` del build, o añadir un paso `npm run generate:api-types` en preBuild.
+
+### P4 — `@/src/...` paths rotos en GroupAdminStore
+
+`GroupAdminStore.ts` usa `@/src/features/auth/...` — el alias `@/` ya apunta a `src/`, por lo que `@/src/...` es una ruta duplicada. Debería ser `@/features/auth/...`.
+
+## Estrategia recomendada para destrabar el build
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 ESTRATEGIA EN 3 FASES                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  FASE 1 (inmediata, ~5 min):                                    │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │ 1. Eliminar tsc -b del build script para Amplify    │       │
+│  │ 2. Excluir contract-check.ts del build              │       │
+│  │ 3. Quitar cd ../shared && npm run build de preBuild │       │
+│  └─────────────────────────────────────────────────────┘       │
+│                       ↓                                        │
+│  FASE 2 (corto plazo, ~2h):                                    │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │ 1. Corregir ~30 errores de tipo reales              │       │
+│  │ 2. Arreglar paths rotos (@/src/...)                  │       │
+│  │ 3. Reincorporar tsc -b al build                     │       │
+│  └─────────────────────────────────────────────────────┘       │
+│                       ↓                                        │
+│  FASE 3 (mediano plazo):                                       │
+│  ┌─────────────────────────────────────────────────────┐       │
+│  │ 1. Configurar Amplify branch-based deployments      │       │
+│  │ 2. Agregar pruebas automatizadas pre-deploy         │       │
+│  │ 3. Cache optimizations                              │       │
+│  └─────────────────────────────────────────────────────┘       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```

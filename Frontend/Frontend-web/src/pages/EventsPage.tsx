@@ -7,8 +7,9 @@ import { CreateEventModal, EditEventModal } from '@/features/events/components';
 import { EventFilters } from '@/features/events/components';
 import { LoadingSpinner } from '@/components/elements';
 import { ConfirmModal } from '@/components/ConfirmModal';
-import { showToast } from '@/lib/toast';
+import type { CreateEventFormPayload } from '@/features/events/components/CreateEventModal';
 import type { Event, CreateEventPayload, UpdateEventPayload } from '@uniconnect/shared';
+import { EventType } from '@uniconnect/shared';
 
 export const EventsPage: React.FC = observer(() => {
   const {
@@ -33,7 +34,15 @@ export const EventsPage: React.FC = observer(() => {
   const currentUser = authStore.user;
   const canCreate = currentUser?.role?.name === 'admin' || currentUser?.role?.name === 'superadmin';
 
-  const handleCreate = async (payload: CreateEventPayload) => {
+  const handleCreate = async (data: CreateEventFormPayload) => {
+    const payload: CreateEventPayload = {
+      title: data.title,
+      description: data.description,
+      location: data.location,
+      date: data.start_date,
+      time: data.start_date,
+      type: EventType.CONFERENCIA,
+    };
     const success = await createEvent(payload);
     if (success) setCreateModalVisible(false);
   };
