@@ -35,6 +35,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
 
     async onModuleInit() {
+        // Skip database connection during OpenAPI generation build
+        if (process.env.IS_BUILDING_OPENAPI === 'true') return;
+
         try {
             await this.$connect();
             this.logger.log('Database connected successfully');
