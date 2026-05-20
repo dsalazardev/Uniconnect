@@ -97,7 +97,7 @@ jobs:
         working-directory: Frontend/Frontend-mobile
 
       - name: Trigger EAS Build (preview)
-        run: npx eas build --profile preview --platform all --non-interactive
+        run: npm run eas:build
         working-directory: Frontend/Frontend-mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
