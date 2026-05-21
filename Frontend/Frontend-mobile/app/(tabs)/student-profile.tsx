@@ -164,7 +164,7 @@ export default function StudentProfileScreen() {
             </Text>
           </View>
 
-          {profile.current_semester && (
+          {!!profile.current_semester && (
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={20} color="#D9B97E" />
               <Text style={[styles.infoText, styles.semesterText]}>
