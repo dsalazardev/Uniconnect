@@ -11,6 +11,7 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  client_encoding: 'UTF8',
   allowExitOnIdle: false,
   ssl: {
     rejectUnauthorized: false,
@@ -42,22 +43,37 @@ async function main() {
   console.log('🌱 Sembrando programas académicos...');
 
   const programs = [
-    // Facultad de Ingenierías
-    'Ingeniería de Sistemas', 'Ingeniería Informática', 'Ingeniería Electrónica',
-    'Ingeniería de Alimentos', 'Ingeniería Civil', 'Ingeniería Industrial',
-    // Facultad de Ciencias para la Salud
-    'Medicina', 'Enfermería', 'Salud Pública',
-    // Facultad de Ciencias Exactas y Naturales
-    'Biología', 'Geología', 'Matemáticas',
-    // Facultad de Ciencias Jurídicas y Sociales
-    'Derecho', 'Trabajo Social', 'Sociología', 'Antropología',
-    'Psicología', 'Comunicación Social', 'Filosofía', 'Ciencia Política',
-    // Facultad de Ciencias Agropecuarias
-    'Agronomía', 'Medicina Veterinaria', 'Zootecnia',
-    // Facultad de Artes y Humanidades
-    'Música', 'Artes Plásticas', 'Artes Visuales', 'Teatro',
-    'Literatura', 'Lenguas Extranjeras', 'Educación Física',
-    'Licenciatura en Educación',
+    'Administración de Empresas Agropecuarias',
+    'Administración Financiera',
+    'Antropología',
+    'Artes Plásticas',
+    'Biología',
+    'Derecho',
+    'Desarrollo Familiar',
+    'Diseño Visual',
+    'Enfermería',
+    'Geología',
+    'Historia',
+    'Ingeniería Agronómica',
+    'Ingeniería Ambiental y Sanitaria',
+    'Ingeniería de Alimentos',
+    'Ingeniería de Sistemas y Computación',
+    'Ingeniería en Informática',
+    'Ingeniería en Inteligencia Artificial',
+    'Ingeniería Mecatrónica',
+    'Licenciatura en Artes Escénicas',
+    'Licenciatura en Ciencias Naturales',
+    'Licenciatura en Ciencias Sociales',
+    'Licenciatura en Educación Física, Recreación y Deportes',
+    'Licenciatura en Filosofía y Letras',
+    'Licenciatura en Lenguas Modernas',
+    'Licenciatura en Música',
+    'Maestro en Música',
+    'Medicina',
+    'Medicina Veterinaria y Zootecnia',
+    'Profesional en Filosofía y Letras',
+    'Sociología',
+    'Trabajo Social',
   ];
 
   for (const name of programs) {
