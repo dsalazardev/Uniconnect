@@ -26,8 +26,15 @@
 
 ## 5. Validation — Trigger and verify EAS Build
 
+**CRITICAL:** Run EAS build from repo root, NOT from Frontend/Frontend-mobile/
+```bash
+cd /path/to/uniconnect
+npx eas build --platform android --profile preview --non-interactive
+```
+Running from `Frontend/Frontend-mobile/` causes EAS to upload only that directory (1.4 MB), breaking workspace dependency resolution.
+
 - [x] 5.1 Commit all changes and push to `main`
-- [x] 5.2 Trigger `eas build --platform android --profile preview --non-interactive` (requires EAS CLI v19+ for monorepo support; build currently fails due to outdated EAS CLI version)
+- [x] 5.2 Trigger `eas build --platform android --profile preview --non-interactive` from repo ROOT
 - [x] 5.3 Verify EAS Build archive size is > 2 MB (indicates full monorepo upload) - Archive is 276 MB ✓
 - [x] 5.4 Verify `Install dependencies` phase completes with exit code 0 - Build finished successfully! ✓
 - [x] 5.5 Download and install generated APK on Android device - Build artifact URL: https://expo.dev/artifacts/eas/2uxkJswTjTS6MDHUsMttAT.apk

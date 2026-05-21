@@ -85,7 +85,26 @@ Or force the version:
 }
 ```
 
-### Decision 4: Ensure EAS Build triggers from latest `main` commit
+### Decision 4: Execute EAS Build from monorepo root, NOT from app subdirectory
+
+**Rationale**: When `eas build` is executed from `Frontend/Frontend-mobile/`, EAS CLI uploads only that directory (~1.4 MB). Yarn/npm then fails because workspace dependencies (`@uniconnect/*`) cannot be resolved outside the uploaded directory. When executed from the monorepo root, EAS uploads the entire workspace (~276 MB), allowing the package manager to resolve all workspace packages via the root `package.json`.
+
+**Evidence**:
+- Build from `Frontend/Frontend-mobile/`: `error Package "" refers to a non-existing file '"/home/expo/workingdir/packages/api-types"'`
+- Build from root: Archive 276 MB, `Install dependencies` succeeds, APK generated
+
+**Implementation**:
+```bash
+# CORRECT — from monorepo root
+cd /path/to/uniconnect
+npx eas build --platform android --profile preview --non-interactive
+
+# INCORRECT — from app subdirectory
+cd Frontend/Frontend-mobile  # DON'T DO THIS
+npx eas build ...
+```
+
+### Decision 5: Ensure EAS Build triggers from latest `main` commit
 
 **Rationale**: The EAS Build logs show commit `2462581f` which does not exist in the local repo. This indicates EAS is using a cached or stale branch state.
 

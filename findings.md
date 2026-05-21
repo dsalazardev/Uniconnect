@@ -555,4 +555,19 @@ npm error   peer react@">=16.0.0" from @testing-library/jest-native@5.4.3
 ---
 
 ## Estado
-⏳ Pendiente de implementar fix definitivo para EAS monorepo support
+✅ RESUELTO — Build exitoso alcanzado
+
+### Build Exitoso
+- **Build ID**: `0c15473f-4218-4228-a4e9-0296bf32a97b`
+- **Commit**: `8c89605f08a7b71bd4181f95ede999efda7eb760`
+- **APK**: https://expo.dev/artifacts/eas/2uxkJswTjTS6MDHUsMttAT.apk
+- **Archive size**: 276 MB (monorepo completo subido)
+
+### Lección Aprendida
+El error crítico fue ejecutar `eas build` desde `Frontend/Frontend-mobile/` en lugar de la raíz del monorepo. Cuando se ejecuta desde el subdirectorio, EAS CLI sube solo ese directorio (~1.4 MB), rompiendo la resolución de workspace dependencies. Al ejecutar desde la raíz, EAS sube todo el monorepo y Yarn/npm pueden resolver `@uniconnect/*` via el root `package.json` workspaces configuration.
+
+### Instrucción Definitiva para Builds Futuros
+```bash
+cd /path/to/uniconnect  # RAÍZ del monorepo, NO Frontend/Frontend-mobile/
+npx eas build --platform android --profile preview --non-interactive
+```
