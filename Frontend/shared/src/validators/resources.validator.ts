@@ -49,6 +49,7 @@ export const ResourceSchema = z.object({
   id_group: z.number().int().positive().nullable(),
   created_by: z.number().int().positive(),
   titulo: z.string(),
+  url_externa: z.string().nullable().optional(),
   descripcion: z.string().nullable(),
   imagen_preview: z.string().nullable(),
   tipo_contenido: TipoContenidoSchema,
