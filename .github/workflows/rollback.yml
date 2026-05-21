@@ -33,7 +33,7 @@ jobs:
       - name: Deploy previous image
         run: >-
           flyctl deploy --remote-only
-          --image registry.fly.io/uniconnect-backend-core-black-wave-3099@sha256:${{ github.event.inputs.version }}
+          --image registry.fly.io/uniconnect-backend-core-windblown-sound-9364@sha256:${{ github.event.inputs.version }}
         working-directory: Backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
       - name: Health check
         run: |
           sleep 15
-          curl --retry 6 --retry-delay 10 --fail-with-body https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+          curl --retry 6 --retry-delay 10 --fail-with-body https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api/health
 
   rollback-web:
     name: Rollback Web
