@@ -410,3 +410,149 @@ Esto entrega un build sin type-checking. El type-checking sigue disponible local
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+# Findings: EAS Build Failure — Android APK (Install dependencies phase)
+
+## Fecha
+2026-05-20
+
+## Build ID
+`e57c0242-258a-440f-91b1-5d83da0934f2`
+
+## Síntoma
+EAS Build falla consistentemente en la fase **"Install dependencies"** con:
+```
+Android build failed: Unknown error. See logs of the Install dependencies build phase for more information.
+```
+
+---
+
+## 1. Mapeo de Estructura del Repositorio
+
+```
+uniconnect/
+├── Frontend/
+│   ├── Frontend-mobile/     ✅ Directorio existe
+│   ├── Frontend-web/
+│   └── shared/
+├── packages/
+│   └── api-types/
+├── package.json              (monorepo root con workspaces)
+└── package-lock.json         (monorepo root)
+```
+
+**Ruta correcta del proyecto móvil**: `Frontend/Frontend-mobile`
+
+El directorio existe físicamente en el repo. El error `bash: cd: Frontend/Frontend-mobile: No existe el archivo o el directorio` fue un artefacto del shell del usuario (probablemente ejecutado desde un directorio diferente), no un problema estructural real.
+
+---
+
+## 2. Análisis del Archivo eas.json
+
+**Ubicación actual**: `Frontend/Frontend-mobile/eas.json`
+
+```json
+{
+  "cli": { "version": ">= 18.0.4", "appVersionSource": "remote" },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": { "buildType": "apk", "gradleCommand": ":app:assembleRelease" }
+    }
+  }
+}
+```
+
+**Problema identificado**: La configuración `build.android.buildType: apk` + `gradleCommand: :app:assembleRelease` es válida, pero **el archivo `eas.json` está en el subdirectorio de la app**, no en la raíz del monorepo. Esto causa que EAS CLI:
+
+1. Detecte el proyecto como una app aislada (no como parte de un monorepo)
+2. Suba solo `Frontend/Frontend-mobile` (~1.4 MB) en lugar de todo el workspace
+3. Ejecute `npm install` sin acceso a los paquetes hermanos (`@uniconnect/shared`, `@uniconnect/api-types`)
+
+---
+
+## 3. Auditoría de Dependencias (package.json mobile)
+
+```json
+"dependencies": {
+  "@uniconnect/api-types": "*",
+  "@uniconnect/shared": "*"
+}
+```
+
+**Problema crítico**: Las referencias `"*"` son **workspace dependencies** que requieren el contexto del monorepo (`package.json` raíz con `"workspaces": [...]`). Cuando EAS sube solo el subdirectorio mobile:
+
+- npm no puede resolver `@uniconnect/shared` porque no existe en el registro público
+- npm no puede resolver `@uniconnect/api-types` porque no existe en el registro público
+- El `package-lock.json` de la raíz no está disponible (EAS no lo sube)
+
+---
+
+## 4. Simulación del Entorno EAS (Reproducción Local)
+
+Al simular el entorno aislado de EAS Build (`/tmp/eas-simulate/Frontend/Frontend-mobile` sin acceso al monorepo):
+
+```bash
+npm install
+# Resultado: ERESOLVE unable to resolve dependency tree
+```
+
+**Error específico**:
+```
+npm error peer react@"^19.2.6" from react-test-renderer@19.2.6
+npm error node_modules/react-test-renderer
+npm error   dev react-test-renderer@"^19.1.0" from the root project
+npm error   peer react@">=16.0.0" from @testing-library/jest-native@5.4.3
+```
+
+**Causa raíz**: `react-test-renderer@19.2.6` tiene un peer dependency de `react@^19.2.6`, pero el proyecto declara `react@19.1.0`. En el monorepo real, esto se resuelve mediante el `package-lock.json` raíz y las configuraciones de `overrides`, pero en el entorno aislado de EAS falla.
+
+---
+
+## 5. Análisis del Commit en EAS
+
+**Commit que EAS está usando**: `2462581f27780efbc3d3df7c4961661b057402ed`
+
+**Estado en repo local**: `Commit NOT found in local repo`
+
+**Implicación**: EAS está construyendo desde un commit que **no existe en nuestro repo local** y que **no incluye los fixes recientes** (commits `7a417da`, `4772820`, etc.). Esto sugiere que:
+
+1. EAS tiene una copia cacheada desactualizada del repositorio
+2. O el build fue disparado desde una máquina/rama diferente
+3. Los cambios recientes (restauración de `eas.json`, cambio de `file:` a `*`, fix de `metro.config.js`) **no están llegando a EAS Build**
+
+---
+
+## 6. Conclusiones y Root Causes
+
+### 🔴 RC1: EAS no detecta el monorepo
+**Causa**: `eas.json` está en `Frontend/Frontend-mobile/` en lugar de la raíz del repo.
+**Efecto**: EAS sube solo 1.4 MB (app aislada) y `npm install` falla al no encontrar workspace packages.
+
+### 🔴 RC2: Referencias de dependencias no resolvibles fuera del monorepo
+**Causa**: `@uniconnect/shared` y `@uniconnect/api-types` usan `"*"` (workspace refs).
+**Efecto**: npm en EAS Build no puede instalar paquetes que no existen en npm registry.
+
+### 🔴 RC3: Peer dependency conflicts sin lockfile
+**Causa**: `react-test-renderer@19.2.6` requiere `react@^19.2.6`, proyecto usa `react@19.1.0`.
+**Efecto**: Sin `package-lock.json` del monorepo raíz, npm ERESOLVE falla.
+
+### 🔴 RC4: Commit desactualizado en EAS
+**Causa**: EAS usa commit `2462581f` que no existe localmente y no tiene los fixes aplicados.
+**Efecto**: Los cambios recientes no se reflejan en los builds.
+
+---
+
+## 7. Recomendaciones
+
+1. **Mover `eas.json` a la raíz del monorepo** con configuración de monorepo explicita
+2. **Cambiar dependencias `@uniconnect/*` a `file:` paths absolutos o publicar los paquetes**
+3. **Asegurar que EAS Build use el commit más reciente de `main`**
+4. **Considerar usar `npx eas build --local` para debug antes de enviar a EAS cloud**
+
+---
+
+## Estado
+⏳ Pendiente de implementar fix definitivo para EAS monorepo support
