@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Uniconnect G1",
-    "slug": "uniconnect_g",
+    "slug": "uniconnect-monorepo",
     "scheme": "uniconnect",
     "version": "1.0.0",
     "orientation": "portrait",
