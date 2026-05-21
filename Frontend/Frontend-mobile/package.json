@@ -21,7 +21,6 @@
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-picker/picker": "^2.11.4",
     "@tanstack/react-query": "^5.90.21",
-    "@uniconnect/api-types": "*",
     "@uniconnect/shared": "*",
     "axios": "^1.13.5",
     "burnt": "^0.13.0",
