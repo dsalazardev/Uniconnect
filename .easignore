@@ -15,6 +15,10 @@ dist/
 .expo/
 .expo-shared/
 
+# Native build directories (EAS generates these automatically)
+android/
+ios/
+
 # IDE and editor files
 .vscode/
 .idea/
@@ -44,3 +48,9 @@ coverage/
 *.mp4
 *.mov
 *.avi
+
+# Other
+__mocks__/
+maestro/
+fly.toml
+nginx.conf
