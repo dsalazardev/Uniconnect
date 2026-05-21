@@ -264,6 +264,7 @@ export class MessagesGateway
       // Validar con la cadena de responsabilidad antes de tocar la BD
       const dtoValidacion = {
         text_content: data.text_content,
+        id_membership,
         sender_id: id_user,
         mentions,
         files: (data.files || []).map((f: any) => ({
@@ -275,6 +276,9 @@ export class MessagesGateway
       };
       const resultado = this.validacionChain.manejar(dtoValidacion);
       if (!resultado.valido) {
+        this.logger.warn(
+          `[Chain] message:send rechazado [${resultado.codigoError}]: ${resultado.mensaje} — user=${id_user} group=${id_group}`,
+        );
         client.emit('message:send:error', {
           error: resultado.mensaje ?? resultado.codigoError,
           codigoError: resultado.codigoError,
