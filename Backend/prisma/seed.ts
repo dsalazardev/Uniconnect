@@ -37,6 +37,40 @@ async function main() {
   }
 
   console.log('✅ Sistema de roles estandarizado: student, admin, superadmin');
+
+  // Sembrar los 31 programas académicos
+  console.log('🌱 Sembrando programas académicos...');
+
+  const programs = [
+    // Facultad de Ingenierías
+    'Ingeniería de Sistemas', 'Ingeniería Informática', 'Ingeniería Electrónica',
+    'Ingeniería de Alimentos', 'Ingeniería Civil', 'Ingeniería Industrial',
+    // Facultad de Ciencias para la Salud
+    'Medicina', 'Enfermería', 'Salud Pública',
+    // Facultad de Ciencias Exactas y Naturales
+    'Biología', 'Geología', 'Matemáticas',
+    // Facultad de Ciencias Jurídicas y Sociales
+    'Derecho', 'Trabajo Social', 'Sociología', 'Antropología',
+    'Psicología', 'Comunicación Social', 'Filosofía', 'Ciencia Política',
+    // Facultad de Ciencias Agropecuarias
+    'Agronomía', 'Medicina Veterinaria', 'Zootecnia',
+    // Facultad de Artes y Humanidades
+    'Música', 'Artes Plásticas', 'Artes Visuales', 'Teatro',
+    'Literatura', 'Lenguas Extranjeras', 'Educación Física',
+    'Licenciatura en Educación',
+  ];
+
+  for (const name of programs) {
+    const existing = await prisma.program.findFirst({ where: { name } });
+    if (!existing) {
+      await prisma.program.create({ data: { name } });
+      console.log(`✅ Programa '${name}' creado`);
+    } else {
+      console.log(`✅ Programa '${name}' ya existe (ID: ${existing.id_program})`);
+    }
+  }
+
+  console.log('✅ Programas académicos completados');
 }
 
 main()
