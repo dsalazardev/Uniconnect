@@ -6,8 +6,7 @@
   "workspaces": [
     "Frontend/shared",
     "Frontend/Frontend-mobile",
-    "Frontend/Frontend-web",
-    "packages/api-types"
+    "Frontend/Frontend-web"
   ],
   "scripts": {
     "dev:mobile": "cd Frontend/Frontend-mobile && npx expo run:android",
