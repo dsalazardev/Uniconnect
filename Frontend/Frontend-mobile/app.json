@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Uniconnect G1",
-    "slug": "uniconnect_g",
+    "slug": "uniconnect-monorepo",
     "scheme": "uniconnect",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -47,7 +47,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "7541a88e-f9c1-4ab7-85f3-c010177e2b26"
+        "projectId": "1afbd65d-45e1-4b13-a449-1682c85976ca"
       }
     }
   }

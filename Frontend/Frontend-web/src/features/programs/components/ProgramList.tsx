@@ -5,7 +5,7 @@ import { GraduationCap } from 'lucide-react';
 import styles from './ProgramList.module.css';
 
 export const ProgramList: React.FC = () => {
-  const { programs, loading, error } = usePrograms();
+  const { data: programs, isLoading: loading, error } = usePrograms();
 
   if (loading) {
     return <LoadingSpinner size="lg" label="Cargando programas..." />;

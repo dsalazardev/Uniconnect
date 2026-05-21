@@ -52,4 +52,8 @@ async function bootstrap() {
 
   await app.listen(port, '0.0.0.0');
 }
-bootstrap();
+
+// Only bootstrap when executed directly (not when imported by generate-openapi.ts)
+if (require.main === module) {
+  bootstrap();
+}

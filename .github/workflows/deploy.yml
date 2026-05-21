@@ -20,11 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
 
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          base: HEAD~1
           filters: |
             backend:
               - 'Backend/**'
@@ -40,8 +41,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -54,7 +53,7 @@ jobs:
       - name: Health check
         run: |
           sleep 15
-          curl --fail-with-body https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+          curl --fail-with-body https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api/health
 
   deploy-web:
     name: Deploy Web
@@ -63,8 +62,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -81,8 +78,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -95,7 +90,7 @@ jobs:
         working-directory: Frontend/Frontend-mobile
 
       - name: Trigger EAS Build (preview)
-        run: npx eas build --profile preview --platform all --non-interactive
+        run: npm run eas:build
         working-directory: Frontend/Frontend-mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -107,8 +102,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Extract version from package.json
         id: version
@@ -126,9 +119,9 @@ jobs:
             **Branch:** ${{ github.event.workflow_run.head_branch }}
 
             ### Despliegues
-            - **Backend:** https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+            - **Backend:** https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api/health
             - **Web:** https://frontend-uc-spring-dust-5949.fly.dev
-            - **Mobile (EAS):** Build triggered on Expo — check https://expo.dev/accounts/salazar04/projects/uniconnect_g/builds
+            - **Mobile (EAS):** Build triggered on Expo — check https://expo.dev/accounts/jaimecardona/projects/uniconnect-monorepo/builds
           target_commitish: ${{ github.event.workflow_run.head_sha }}
 
   notify-failure:

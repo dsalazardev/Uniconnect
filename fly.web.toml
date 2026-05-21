@@ -1,0 +1,22 @@
+# fly.toml - Uniconnect Frontend Web (Vite + Nginx)
+app = 'uniconnect-web-uc'
+primary_region = 'iad'
+
+[build]
+  dockerfile = "Frontend/Frontend-web/Dockerfile"
+  context = "."
+  [build.args]
+    VITE_API_URL = "https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api"
+    VITE_WEBSOCKET_URL = "https://uniconnect-backend-core-windblown-sound-9364.fly.dev"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
+  memory_mb = 256

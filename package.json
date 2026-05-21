@@ -6,8 +6,7 @@
   "workspaces": [
     "Frontend/shared",
     "Frontend/Frontend-mobile",
-    "Frontend/Frontend-web",
-    "packages/api-types"
+    "Frontend/Frontend-web"
   ],
   "scripts": {
     "dev:mobile": "cd Frontend/Frontend-mobile && npx expo run:android",
@@ -29,6 +28,7 @@
     "pretty-format": "29.7.0",
     "jest-matcher-utils": "29.7.0",
     "jest-diff": "29.7.0",
+    "react-test-renderer": "19.1.0",
     "@expo/metro-runtime": {
       "pretty-format": "29.7.0"
     },

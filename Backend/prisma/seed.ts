@@ -11,6 +11,7 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  client_encoding: 'UTF8',
   allowExitOnIdle: false,
   ssl: {
     rejectUnauthorized: false,
@@ -37,6 +38,55 @@ async function main() {
   }
 
   console.log('✅ Sistema de roles estandarizado: student, admin, superadmin');
+
+  // Sembrar los 31 programas académicos
+  console.log('🌱 Sembrando programas académicos...');
+
+  const programs = [
+    'Administración de Empresas Agropecuarias',
+    'Administración Financiera',
+    'Antropología',
+    'Artes Plásticas',
+    'Biología',
+    'Derecho',
+    'Desarrollo Familiar',
+    'Diseño Visual',
+    'Enfermería',
+    'Geología',
+    'Historia',
+    'Ingeniería Agronómica',
+    'Ingeniería Ambiental y Sanitaria',
+    'Ingeniería de Alimentos',
+    'Ingeniería de Sistemas y Computación',
+    'Ingeniería en Informática',
+    'Ingeniería en Inteligencia Artificial',
+    'Ingeniería Mecatrónica',
+    'Licenciatura en Artes Escénicas',
+    'Licenciatura en Ciencias Naturales',
+    'Licenciatura en Ciencias Sociales',
+    'Licenciatura en Educación Física, Recreación y Deportes',
+    'Licenciatura en Filosofía y Letras',
+    'Licenciatura en Lenguas Modernas',
+    'Licenciatura en Música',
+    'Maestro en Música',
+    'Medicina',
+    'Medicina Veterinaria y Zootecnia',
+    'Profesional en Filosofía y Letras',
+    'Sociología',
+    'Trabajo Social',
+  ];
+
+  for (const name of programs) {
+    const existing = await prisma.program.findFirst({ where: { name } });
+    if (!existing) {
+      await prisma.program.create({ data: { name } });
+      console.log(`✅ Programa '${name}' creado`);
+    } else {
+      console.log(`✅ Programa '${name}' ya existe (ID: ${existing.id_program})`);
+    }
+  }
+
+  console.log('✅ Programas académicos completados');
 }
 
 main()
