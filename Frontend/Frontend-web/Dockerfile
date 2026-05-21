@@ -2,6 +2,12 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+# Build args for Vite env vars (set in fly.web.toml)
+ARG VITE_API_URL
+ARG VITE_WEBSOCKET_URL
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
+
 # Copiar manifests de dependencias (root monorepo + shared + web)
 COPY package.json package-lock.json ./
 COPY Frontend/shared/package.json ./Frontend/shared/

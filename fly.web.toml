@@ -5,6 +5,9 @@ primary_region = 'iad'
 [build]
   dockerfile = "Frontend/Frontend-web/Dockerfile"
   context = "."
+  [build.args]
+    VITE_API_URL = "https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api"
+    VITE_WEBSOCKET_URL = "https://uniconnect-backend-core-windblown-sound-9364.fly.dev"
 
 [http_service]
   internal_port = 8080
