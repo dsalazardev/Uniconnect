@@ -5,7 +5,7 @@ import { Program } from '../types';
 export function usePrograms() {
   return useQuery<Program[], Error>({
     queryKey: ['programs'],
-    queryFn: programsService.getAll,
+    queryFn: () => programsService.getAll(),
     staleTime: 10 * 60 * 1000, // 10 min — list rarely changes
   });
 }
