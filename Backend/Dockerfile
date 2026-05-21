@@ -14,7 +14,7 @@ COPY . .
 
 # Generar Prisma Client y construir el proyecto
 RUN npx prisma generate
-RUN pnpm build
+RUN pnpm exec nest build
 
 # ---
 
