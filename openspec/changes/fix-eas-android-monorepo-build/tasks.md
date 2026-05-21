@@ -49,14 +49,21 @@ Running from `Frontend/Frontend-mobile/` causes EAS to upload only that director
 
 ## 7. CRITICAL — Build Command Reference
 
-### CORRECT (from monorepo root):
+### CORRECT (from Frontend/Frontend-mobile/):
 ```bash
-cd /path/to/uniconnect
+cd Frontend/Frontend-mobile
 npx eas build --platform android --profile preview --non-interactive
 ```
 
+### WHY:
+- `app.json` with `android.package` is in `Frontend/Frontend-mobile/`
+- `eas.json` with build profiles is in `Frontend/Frontend-mobile/`
+- EAS CLI detects these files and uploads the full monorepo (276 MB)
+- Workspace deps (`@uniconnect/*`) resolve correctly via root `package.json`
+
 ### INCORRECT (DO NOT DO THIS):
 ```bash
-cd Frontend/Frontend-mobile  # ❌ WRONG — causes isolated upload
-npx eas build ...
+cd /path/to/uniconnect  # ❌ WRONG — no app.json or eas.json in root
+eas init                 # ❌ Creates NEW project, corrupts everything
+eas build ...
 ```
