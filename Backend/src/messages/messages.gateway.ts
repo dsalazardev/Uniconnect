@@ -14,7 +14,6 @@ import { Logger, Inject } from '@nestjs/common';
 import { SocketData } from './types/SocketData';
 import { ChatSessionManager } from './managers/chat-session.manager';
 import { PrismaService } from '../prisma/prisma.service';
-import { ContentModeration } from './decorators/content-moderation.decorator';
 import { VALIDACION_CHAIN_TOKEN } from './application/messages.service';
 import type { IValidadorMensajeHandler } from './domain/chain-of-responsibility/interfaces';
 import { BaseMessage } from './domain/decorator/base-message';
@@ -234,10 +233,8 @@ export class MessagesGateway
    * Evento: 'message:send'
    * Datos: { text_content, attachments?, files? }
    * El id_membership se toma de la sesión autenticada.
-   * @ContentModeration intercepta el texto antes del procesamiento.
    */
   @SubscribeMessage('message:send')
-  @ContentModeration({ filterProfanity: true, maxLength: 500, logActivity: true })
   async handleMessage(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { text_content: string; attachments?: string | null; files?: any[] },
@@ -259,10 +256,31 @@ export class MessagesGateway
       const rawMatches = rawText.match(/@([\w.\-]+)/g) ?? [];
       const rawMentionNames = rawMatches.map((m) => m.slice(1));
       const mentions = rawMentionNames.map((name, i) => ({
-        userId: 0,         // Placeholder; userId real se resuelve post-creación
+        userId: 0,
         displayName: name,
         position: i,
       }));
+
+      // Validar con la cadena de responsabilidad antes de tocar la BD
+      const dtoValidacion = {
+        text_content: data.text_content,
+        sender_id: id_user,
+        mentions,
+        files: (data.files || []).map((f: any) => ({
+          url: f.url,
+          name: f.file_name,
+          mimeType: f.mime_type,
+          size: f.size,
+        })),
+      };
+      const resultado = this.validacionChain.manejar(dtoValidacion);
+      if (!resultado.valido) {
+        client.emit('message:send:error', {
+          error: resultado.mensaje ?? resultado.codigoError,
+          codigoError: resultado.codigoError,
+        });
+        return { error: resultado.mensaje, codigoError: resultado.codigoError };
+      }
 
       // Crear DTO con el id_membership correcto de la sesión
       const createMessageDto = {
