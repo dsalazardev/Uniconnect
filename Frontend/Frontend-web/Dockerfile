@@ -15,7 +15,7 @@ COPY Frontend/shared ./Frontend/shared
 COPY Frontend/Frontend-web ./Frontend/Frontend-web
 
 # Build del web
-RUN cd Frontend/Frontend-web && npm run build
+RUN cd Frontend/Frontend-web && npm run build:prod
 
 # ETAPA 2: Runner (Nginx)
 FROM nginx:alpine AS runner
