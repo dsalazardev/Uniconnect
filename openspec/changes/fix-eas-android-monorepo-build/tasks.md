@@ -46,3 +46,17 @@ Running from `Frontend/Frontend-mobile/` causes EAS to upload only that director
 - [x] 6.1 Update `AGENTS.md` EAS Build section with monorepo-specific instructions (documented in OpenSpec artifacts)
 - [x] 6.2 Update `findings.md` with resolution confirmation and final build ID - Build ID: 0c15473f-4218-4228-a4e9-0296bf32a97b
 - [x] 6.3 Add troubleshooting section for future EAS Build issues (documented in OpenSpec design.md)
+
+## 7. CRITICAL — Build Command Reference
+
+### CORRECT (from monorepo root):
+```bash
+cd /path/to/uniconnect
+npx eas build --platform android --profile preview --non-interactive
+```
+
+### INCORRECT (DO NOT DO THIS):
+```bash
+cd Frontend/Frontend-mobile  # ❌ WRONG — causes isolated upload
+npx eas build ...
+```
