@@ -102,7 +102,7 @@ export const StudentCard = ({ student, isFriend = false, onOpenDirectMessage }: 
           <Text style={styles.program}>
             {student.program?.name || "Programa no asignado"}
           </Text>
-          {student.current_semester && (
+          {!!student.current_semester && (
             <Text style={styles.semester}>• Semestre {student.current_semester}</Text>
           )}
         </View>

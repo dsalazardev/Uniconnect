@@ -166,8 +166,8 @@ export const BibliotecaPage: React.FC = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                  {r.url_externa
-                    ? <a href={r.url_externa} target="_blank" rel="noreferrer" style={{ color: '#D9B97E', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}><Link size={12} /> Abrir enlace</a>
+                  {dec.url_externa
+                    ? <a href={dec.url_externa} target="_blank" rel="noreferrer" style={{ color: '#D9B97E', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}><Link size={12} /> Abrir enlace</a>
                     : <span />
                   }
                   {r.created_by === currentUserId && (

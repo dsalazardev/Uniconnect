@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:prod": "vite build",
     "lint": "eslint .",
     "type-check": "tsc -b",
     "preview": "vite preview",
@@ -14,7 +15,6 @@
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.19.2",
     "@uniconnect/shared": "file:../shared",
-    "@uniconnect/api-types": "file:../../packages/api-types",
     "@tanstack/react-query": "^5.62.0",
     "axios": "^1.9.0",
     "lucide-react": "^0.475.0",

@@ -53,7 +53,7 @@ jobs:
       - name: Health check
         run: |
           sleep 15
-          curl --fail-with-body https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+          curl --fail-with-body https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api/health
 
   deploy-web:
     name: Deploy Web
@@ -119,9 +119,9 @@ jobs:
             **Branch:** ${{ github.event.workflow_run.head_branch }}
 
             ### Despliegues
-            - **Backend:** https://uniconnect-backend-core-black-wave-3099.fly.dev/api/health
+            - **Backend:** https://uniconnect-backend-core-windblown-sound-9364.fly.dev/api/health
             - **Web:** https://frontend-uc-spring-dust-5949.fly.dev
-            - **Mobile (EAS):** Build triggered on Expo — check https://expo.dev/accounts/salazar04/projects/uniconnect_g/builds
+            - **Mobile (EAS):** Build triggered on Expo — check https://expo.dev/accounts/jaimecardona/projects/uniconnect-monorepo/builds
           target_commitish: ${{ github.event.workflow_run.head_sha }}
 
   notify-failure:

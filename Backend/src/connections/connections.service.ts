@@ -57,9 +57,18 @@ export class ConnectionsService {
 
     if (existingConnection) {
       if (existingConnection.status === 'rejected') {
-        throw new BadRequestException(
-          'No puedes enviar una solicitud de conexión a este usuario. Tu solicitud anterior fue rechazada.'
-        );
+        // Reactivar la solicitud rechazada en lugar de bloquearla
+        await this.prisma.connection.update({
+          where: { id_connection: existingConnection.id_connection },
+          data: {
+            requester_id: requesterId,
+            adressee_id: adresseeId,
+            status: 'pending',
+            request_at: new Date(),
+            respondend_at: null,
+          },
+        });
+        return { id_connection: existingConnection.id_connection, message: 'Solicitud de conexión enviada' };
       }
       throw new BadRequestException('Ya existe una conexión o solicitud pendiente');
     }
